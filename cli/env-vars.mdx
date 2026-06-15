@@ -1,0 +1,131 @@
+---
+title: Environment variables
+description: Every ISH_* environment variable the ish CLI reads, with defaults and precedence.
+mode: reference
+---
+
+The ish CLI reads configuration from environment variables. Every one is optional: unset, the CLI uses the default in each table. Most have an equivalent flag that takes precedence when both are set.
+
+<Note>
+  Flags beat environment variables beat saved config. For the full token resolution order and the global flags themselves, see [auth](/cli/auth) and [global flags](/cli/global-flags).
+</Note>
+
+## Auth
+
+<ParamField path="ISH_TOKEN" type="string">
+  Auth token presented as `Authorization: Bearer`. Sits third in the resolution order: `--token` > `--token-file` > `ISH_TOKEN` > saved OAuth login (`~/.ish/config.json`) > legacy saved token. Use it for CI and other non-interactive runs.
+</ParamField>
+
+<ParamField path="ISH_ASSUME_YES" type="string">
+  Pre-authorize the confirmation gate for the whole session. Mirrors `--yes` exactly and applies to billable verbs (`study run`, `study analyze`, `ask run`, and the like) and destructive deletes. Truthy values: `1`, `true`, `yes`, `on`. Never persisted to config. Default: unset (gate active).
+</ParamField>
+
+## Active context
+
+When a command needs a workspace, study, ask, or chat endpoint and you do not pass it, the CLI falls back to these env vars, then to the active context saved by `ish <noun> use`. The explicit flag or positional argument always wins. Each accepts an id or an alias (for example `w-`, `s-`).
+
+<ParamField path="ISH_WORKSPACE" type="string">
+  Default [workspace](/concepts/workspace). Overridden by `--workspace` and by the saved active workspace order described above. See [study](/concepts/study) and [run vs ask](/concepts/run-vs-ask) for how context flows through commands.
+</ParamField>
+
+<ParamField path="ISH_STUDY" type="string">
+  Default [study](/concepts/study). Overridden by `--study`.
+</ParamField>
+
+<ParamField path="ISH_ASK" type="string">
+  Default ask. Overridden by the positional ask id.
+</ParamField>
+
+<ParamField path="ISH_CHAT_ENDPOINT" type="string">
+  Default chat endpoint id. Overridden by the positional id or `--endpoint`.
+</ParamField>
+
+## Endpoints
+
+<ParamField path="ISH_API_URL" type="string" default="https://api.ishlabs.io">
+  Backend API base URL. The internal `--api-url` flag takes precedence; `--dev` forces `http://localhost:8000` and overrides both.
+</ParamField>
+
+<ParamField path="ISH_APP_URL" type="string" default="https://app.ishlabs.io">
+  Web app base URL used to compose the links the CLI prints (for example the `url` returned by `ish study run`). Set it for a staging or self-hosted UI. Under `--dev` the base is `http://localhost:3000`.
+</ParamField>
+
+<ParamField path="ISH_MCP_URL" type="string" default="https://mcp.ishlabs.io/mcp">
+  ish MCP server URL written by `ish mcp add`. Point it at a local server for dev workflows. See the [MCP overview](/mcp/overview).
+</ParamField>
+
+## Paths
+
+<ParamField path="ISH_HOME" type="string" default="~/.ish">
+  Config directory root. Holds `config.json` (saved login, active context), `aliases.json`, downloaded binaries, and logs. Set it to relocate ish state, mirroring `GH_CONFIG_DIR` / `AWS_CONFIG_FILE`.
+</ParamField>
+
+## Dev login overrides
+
+These point `ish login` at a non-production Supabase project. Set both together. Equivalent to `--dev`, which targets the built-in dev project.
+
+<ParamField path="ISH_SUPABASE_URL" type="string">
+  Supabase project URL used to mint the login session. Default: the production project.
+</ParamField>
+
+<ParamField path="ISH_SUPABASE_ANON_KEY" type="string">
+  Supabase publishable (anon) key matching `ISH_SUPABASE_URL`.
+</ParamField>
+
+## Output and observability
+
+<ParamField path="NO_COLOR" type="string">
+  Disable colored output. Equivalent to `--no-color`. Honors the [NO_COLOR convention](https://no-color.org).
+</ParamField>
+
+<ParamField path="FORCE_COLOR" type="string">
+  Force colored output even when stdout is not a TTY. `0` or `false` disables; any other non-empty value enables. NO_COLOR wins when both are set.
+</ParamField>
+
+<ParamField path="ISH_CLI_SENTRY_DSN" type="string">
+  Opt in to Sentry error and trace reporting by setting a DSN. Unset, the CLI runs untraced. Default: unset.
+</ParamField>
+
+<ParamField path="ISH_DEBUG_OBS" type="string">
+  Print observability init failures to stderr. Diagnostic only. Default: unset (silent).
+</ParamField>
+
+## Installer
+
+Read by the `install.sh` and `install.ps1` scripts, not by the `ish` binary itself.
+
+<ParamField path="ISH_INSTALL_DIR" type="string">
+  Install directory for the `ish` binary. Default: `$HOME/.ish/bin` (`%USERPROFILE%\.ish\bin` on Windows).
+</ParamField>
+
+<ParamField path="ISH_VERSION" type="string">
+  PowerShell `install.ps1` only. Pin a specific version to install. Default: the latest release. On POSIX `install.sh`, pin a version with the `--version=<v>` argument instead, for example `curl -fsSL https://ishlabs.io/install.sh | sh -s -- --version=1.2.3`.
+</ParamField>
+
+<ParamField path="ISH_NO_PATH" type="string">
+  Set to `1` (POSIX `install.sh` only) to skip editing your shell rc file. Use for ephemeral or sandbox installs.
+</ParamField>
+
+## Internal
+
+Reserved for ish development and internal tooling. Not part of the supported surface; documented so you can recognize them.
+
+<ParamField path="ISH_INTERNAL" type="string">
+  Set to `1` to allow the internal-only `--sim-config` flag on `ish study run`.
+</ParamField>
+
+<ParamField path="ISH_ADB" type="string">
+  Override the `adb` binary path for native Android local simulation. Also honors `ADB`.
+</ParamField>
+
+<ParamField path="ISH_EMULATOR" type="string">
+  Override the Android `emulator` binary path.
+</ParamField>
+
+<ParamField path="ISH_WDA_PATH" type="string">
+  Override the iOS WebDriverAgent runner bundle path.
+</ParamField>
+
+<ParamField path="ISH_WDA_PORT" type="string" default="8100">
+  WebDriverAgent port for native iOS local simulation.
+</ParamField>

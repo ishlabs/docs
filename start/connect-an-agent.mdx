@@ -1,0 +1,143 @@
+---
+title: "Quickstart: connect an AI agent"
+description: "Wire ish into one AI client over MCP, confirm the connection, and read your first reaction."
+mode: "tutorial"
+---
+
+This walks one agent through one happy path: connect a client to the hosted ish MCP
+server, confirm ish is reachable, and read back a reaction. It takes under five minutes.
+
+The hosted server lives at `https://mcp.ishlabs.io/mcp`. It speaks streamable HTTP and
+handles sign-in over OAuth the first time a client connects, so you never paste a token
+into a config file. By the end, your agent can call ish as a set of tools and report back
+what a simulated person noticed.
+
+<Info>
+  You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
+  first. The OAuth step below signs the client in as you.
+</Info>
+
+## Step 1: connect a client
+
+Pick the client you already work in. Each one connects to the same URL.
+
+<Tabs>
+  <Tab title="Claude Code">
+    Add the server at user scope:
+
+    ```bash
+    claude mcp add --transport http --scope user ish https://mcp.ishlabs.io/mcp
+    ```
+
+    Claude Code discovers ish's OAuth metadata, registers itself, opens your browser to
+    sign in, and stores the resulting token. Cursor and Claude Desktop connect the same
+    way against the same URL.
+  </Tab>
+  <Tab title="Cursor / VS Code / Windsurf">
+    Install the [ish CLI](/quickstart) and let it write the per-client config block:
+
+    ```bash
+    npm i -g @ishlabs/cli
+    ish mcp add --all --yes
+    ```
+
+    `ish mcp add` wires every detected client (Cursor, VS Code, Claude Code, Claude
+    Desktop, Windsurf) at once. It writes only the server URL, never a token. OAuth
+    runs on first connect. To wire one client or preview the plan first, see the
+    [`ish mcp` reference](/cli/generated/mcp).
+  </Tab>
+  <Tab title="ChatGPT / other MCP clients">
+    Add a custom MCP connector pointing at:
+
+    ```
+    https://mcp.ishlabs.io/mcp
+    ```
+
+    Use the URL with no trailing slash. The client signs in over OAuth on first connect.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Always use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form
+  triggers a redirect that some clients will not follow on a POST, leaving the agent with
+  an empty tool list.
+</Warning>
+
+## Step 2: confirm ish is connected
+
+Reconnect or restart the client so it runs the OAuth flow, then ask the agent a read-only
+question. A read confirms the connection without drawing any credits.
+
+In the agent, ask:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+The agent calls `workspace_get` (a read-only tool) and reports your
+[workspaces](/concepts/workspace) back. If ish is connected, you see at least one
+workspace; a brand-new account shows an empty list, which is still a successful
+connection. Clients that read MCP resources also surface `ish://identity/me`, the decoded
+identity for the session.
+
+<Check>
+  The agent returns a workspace list (or an explicit empty list) instead of "no ish tools
+  available". That means the OAuth sign-in landed and the tools are live.
+</Check>
+
+If the agent reports no ish tools, the OAuth step did not complete. Reconnect the client
+and approve the sign-in in your browser, then ask again.
+
+## Step 3: read your first reaction
+
+Now run something and read back what a simulated person made of it. The fastest path is to
+run a study that already exists in your workspace.
+
+Tell the agent:
+
+```text
+Find a study in my workspace, run it for a few people, and tell me what they noticed.
+```
+
+Under the hood the agent works through ish's tools:
+
+<Steps>
+  <Step title="Discover a study">
+    The agent calls `study_get` with your `workspace_id` to list studies and pick one.
+  </Step>
+  <Step title="Run it">
+    It calls `study_run` with a small audience and `wait=True`, which blocks until every
+    simulated person reaches a terminal state.
+  </Step>
+  <Step title="Read the reactions">
+    It calls `study_get` with `view="summary"` and reports back the journey: what people
+    noticed, where they got stuck, and the reasoning behind each reaction.
+  </Step>
+</Steps>
+
+You get a narrative reaction with the reasoning attached, not a single score. That is the
+loop: simulate a visit, read what landed, decide what to change.
+
+<Note>
+  No study in this workspace yet? Ask the agent to create one first ("create a study that
+  points simulated readers at this URL and asks what they noticed"), then run it. The
+  [`study_create`](/mcp/generated/tools-study) and [`study_run`](/mcp/generated/tools-study)
+  tools cover both.
+</Note>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain, each with its annotation tier.
+  </Card>
+  <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
+    The `ish://` resources for identity, docs, screenshots, and media.
+  </Card>
+  <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">
+    Create, iterate, run, and read studies across every modality.
+  </Card>
+  <Card title="The ish CLI" icon="terminal" href="/quickstart">
+    Drive the same platform from your terminal and from CI.
+  </Card>
+</Columns>

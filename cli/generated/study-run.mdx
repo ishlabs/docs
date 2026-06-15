@@ -1,0 +1,116 @@
+---
+title: "study run"
+description: "Command reference: ish study run."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish study run`
+
+Run a study (creates participants for the latest iteration and dispatches simulations)
+
+Usage: `ish study run [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (alias or UUID) - positional alias for --study (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--study <id>" type="string">Study ID</ParamField>
+<ParamField path="--iteration <id>" type="string">Iteration to run (defaults to latest on the study)</ParamField>
+<ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (max 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--all" type="boolean">Use every AI person matching the filters (workspace-wide if no filters set) (capped at 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
+<ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
+<ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
+<ParamField path="--config <id>" type="string">Simulation config ID (required for media unless every person has one)</ParamField>
+<ParamField path="--max-interactions <n>" type="string">Max interactions per participant (interactive / media only). Precedence: flag &gt; iteration's stored value &gt; CLI default (20).</ParamField>
+<ParamField path="--max-turns <n>" type="string">Max conversation turns per participant (chat studies only)</ParamField>
+<ParamField path="--early-termination" type="boolean">Allow chat agent to end the conversation early when goals are met (chat studies only)</ParamField>
+<ParamField path="--language <lang>" type="string">Language code (e.g. en, sv)</ParamField>
+<ParamField path="--wait" type="boolean">Wait for all simulations to reach a terminal state before returning</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300; only with --wait)</ParamField>
+<ParamField path="--dispatch-timeout <s>" type="string">Per-POST timeout in seconds for the create-participants + dispatch calls (default 120). Bump if `study run` times out client-side after seeding participants but before dispatch - those participants exist server-side and are surfaced under `seeded_but_not_dispatched_*` in the error envelope so the agent can resume.</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt</ParamField>
+<ParamField path="--local" type="boolean">Run simulation with local browser (Playwright) instead of remote</ParamField>
+<ParamField path="--headed" type="boolean">Show browser window (local mode only)</ParamField>
+<ParamField path="--slow-mo <ms>" type="string">Slow down actions by ms (local mode only)</ParamField>
+<ParamField path="--devtools" type="boolean">Open Chrome DevTools (local mode only)</ParamField>
+<ParamField path="--debug" type="boolean">Enable detailed debug logging to stderr and ~/.ish/local-sim.log</ParamField>
+<ParamField path="--parallel <n>" type="string">Run N participants in parallel (local mode only). Browser: default all. Native iOS/Android: pools N auto-provisioned devices - simulators (iOS) / headless emulators from your AVDs (Android) - default 1, capped at 5, auto-sized to host RAM (and AVD count).</ParamField>
+<ParamField path="--platform <platform>" type="string">Local target platform: 'web' (Playwright), 'android' (adb emulator), or 'ios' (simctl+idb simulator). Defaults to the iteration's platform.</ParamField>
+<ParamField path="--app <path>" type="string">Native local mode: path to an .apk (android) / .app (ios) to install, or an installed package/bundle id to launch. The extension implies --platform.</ParamField>
+
+## `ish study poll`
+
+Check simulation progress for a study
+
+Usage: `ish study poll [participant_id] [options]`
+
+### Arguments
+<ParamField path="participant_id">Participant ID (alias or UUID; from `ish study run --json`.participant_aliases[]) (optional)</ParamField>
+
+### Options
+<ParamField path="--study <id>" type="string">Study ID (poll all simulations for study)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from --study/--iteration/&lt;participant_id&gt;)</ParamField>
+
+## `ish study wait`
+
+Poll until simulations reach a terminal state (completed/errored/failed/cancelled)
+
+Usage: `ish study wait [participant_id] [options]`
+
+### Arguments
+<ParamField path="participant_id">Participant ID (alias or UUID; from `ish study run --json`.participant_aliases[]) (optional)</ParamField>
+
+### Options
+<ParamField path="--study <id>" type="string">Study ID (wait for all participants in the study)</ParamField>
+<ParamField path="--iteration <id>" type="string">Iteration ID (wait for participants in this iteration only)</ParamField>
+<ParamField path="--timeout <s>" type="string">Max seconds to wait (default 300)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from --study/--iteration/&lt;participant_id&gt;)</ParamField>
+
+## `ish study cancel`
+
+Cancel a running simulation
+
+Usage: `ish study cancel <participant_id> [options]`
+
+### Arguments
+<ParamField path="participant_id">Participant ID (alias or UUID; from `ish study run --json`.participant_aliases[]) (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from &lt;participant_id&gt;)</ParamField>
+
+## `ish study extend`
+
+Extend a terminal participant with more steps (and optionally a mid-run instruction)
+
+Usage: `ish study extend <participant_id> [options]`
+
+### Arguments
+<ParamField path="participant_id">Participant to extend (alias or UUID). Must be in a terminal state (completed/failed/cancelled). (required)</ParamField>
+
+### Options
+<ParamField path="--add-steps <n>" type="string">Extra interactions past the source's original cap (1-50; backend caps server-side) Default: "10".</ParamField>
+<ParamField path="--instruction <text>" type="string">User message to inject as the new participant resumes. Accepts inline text, `@/path/to/file`, or `-` for stdin.</ParamField>
+<ParamField path="--wait" type="boolean">Block until the new participant reaches a terminal state</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300; only with --wait)</ParamField>
+<ParamField path="--dispatch-timeout <s>" type="string">Per-POST timeout in seconds for the dispatch call (default 120)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from &lt;participant_id&gt;)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

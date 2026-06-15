@@ -1,0 +1,194 @@
+---
+title: "Exit codes and errors"
+description: "The ish CLI exit codes 0 to 5 and the structured error envelope agents and CI branch on."
+mode: "reference"
+---
+
+Every `ish` command exits with a semantic code. Branch on the code in CI and agent loops, and
+parse the JSON envelope (in `--json` mode) for the structured cause. The code answers "what
+class of failure", the envelope answers "what exactly, and what to do next".
+
+## Exit codes
+
+import ExitCodes from "/snippets/exit-codes.mdx";
+
+<ExitCodes />
+
+The map is computed by `exitCodeFromError` in `command-helpers.ts`. A successful command exits
+0; `-h, --help` and `-V, --version` also exit 0.
+
+### How a failure resolves to a code
+
+The resolver checks the most specific signal first, so a tagged error always beats a status
+guess and a status guess always beats a message-regex sniff.
+
+<Steps>
+  <Step title="Billing walls (exit 1)">
+    A `usage_limit_reached` or `insufficient_credits` error is checked before the status map.
+    These arrive as HTTP 403 but are not auth failures, so they exit 1, not 3. An agent
+    branching "exit 3 means re-login" would otherwise loop forever on a quota cap.
+  </Step>
+  <Step title="HTTP status (exit 3, 4, 2, 5)">
+    For other API errors: 401 and 403 exit 3, 404 exits 4, 400 and 422 exit 2. A retryable
+    status (408, 429, or any 5xx) exits 5.
+  </Step>
+  <Step title="Tagged error code (exit 2, 3, 4)">
+    A CLI-thrown error carrying `error_code` is mapped directly: `usage_error` exits 2,
+    `auth_failed` exits 3, `not_found` exits 4.
+  </Step>
+  <Step title="Retryability and error kind (exit 5, 2)">
+    `wait_timeout` and any error pre-declaring `retryable: true` exit 5. A `TunnelInactive` or
+    `BotAuthError` kind exits 5 (the cause is fixable, then retry); `ConfirmationRequired` or
+    `BotShapeError` exit 2.
+  </Step>
+  <Step title="Network cause (exit 5)">
+    DNS and connection failures (`ENOTFOUND`, `ECONNREFUSED`, `ECONNRESET`, `ETIMEDOUT`,
+    `EAI_AGAIN`) are transient and exit 5.
+  </Step>
+  <Step title="Fallback (exit 1)">
+    Anything unclassified exits 1.
+  </Step>
+</Steps>
+
+<Warning>
+  Out of credits exits 1, not 3. A 402 or a billing 403 is a quota cap, not an auth problem.
+  Re-running `ish login` will not fix it. Read `error_code` to tell `insufficient_credits` and
+  `usage_limit_reached` apart from a real auth failure.
+</Warning>
+
+## The error envelope
+
+In `--json` mode (or when stdout is piped, which auto-selects JSON), a failing command writes a
+single-line JSON object to **stderr** and the exit code to the process. Human mode prints
+`Error: <message>` followed by indented `→` suggestion lines instead. See
+[global flags](/cli/global-flags) for when JSON is auto-selected.
+
+### Always present
+
+<ResponseField name="error" type="string">
+  The human-readable message. For API errors, server-internal entity names are remapped to the
+  user-facing vocabulary before printing.
+</ResponseField>
+
+<ResponseField name="error_code" type="string">
+  The stable machine code to branch on. Prefer this over the message text, which can change.
+  See the [error codes](#error-codes) table.
+</ResponseField>
+
+<ResponseField name="retryable" type="boolean">
+  Whether the same call may succeed if retried unchanged. `true` corresponds to exit 5.
+</ResponseField>
+
+### Often present
+
+These fields appear only when the failure carries them, so a consumer must treat each as
+optional.
+
+<ResponseField name="status" type="number">
+  The HTTP status, present only on errors that came back from the API.
+</ResponseField>
+
+<ResponseField name="suggestions" type="string[]">
+  Recovery hints, for example "pass `--study` or run `ish study use`". Merged from the server
+  response, the error instance, and the CLI's own code-to-hint mapping.
+</ResponseField>
+
+<ResponseField name="errors" type="array">
+  Field-level validation detail from a 422 response. Each entry carries `loc`, `msg`, `type`,
+  and, where the field is an enum, `allowed_values`.
+</ResponseField>
+
+<ResponseField name="error_kind" type="string">
+  A structured kind for failures that have one, such as `TunnelInactive`,
+  `ConfirmationRequired`, `BotAuthError`, or `BotShapeError`.
+</ResponseField>
+
+<ResponseField name="example" type="string">
+  A corrected invocation that fixes the call, for example the same command with `--yes`
+  appended when a destructive action needs confirmation in `--json` mode.
+</ResponseField>
+
+<ResponseField name="hint" type="string">
+  A one-line hint on a client-side validation error.
+</ResponseField>
+
+<ResponseField name="valid_options" type="string[]">
+  The accepted values when a validation error rejected an enum-shaped input.
+</ResponseField>
+
+<ResponseField name="available_values" type="string[]">
+  The set a filter argument could have matched (for example the frames a `--frame` value could
+  resolve to).
+</ResponseField>
+
+<ResponseField name="progress" type="object">
+  How far a wait got before it timed out, on a `wait_timeout` error.
+</ResponseField>
+
+<ResponseField name="seeded_but_not_dispatched_ids" type="string[]">
+  Participants seeded before a dispatch failed. Resume with these rather than re-seeding, which
+  would create duplicates. A matching `seeded_but_not_dispatched_aliases` rides alongside.
+</ResponseField>
+
+<ResponseField name="report" type="string">
+  A hint to report the failure, present only on genuine faults (not on usage errors).
+</ResponseField>
+
+### Billing fields
+
+On a `usage_limit_reached` error, the envelope also carries `tier`, `limit`, `current`, `max`,
+and `upgrade_url`. See [run vs ask](/concepts/run-vs-ask) for what draws credits.
+
+## Error codes
+
+The `error_code` field is the stable contract. API errors map from the HTTP status; CLI-thrown
+errors set the code directly.
+
+| `error_code` | Source | Typical exit |
+| --- | --- | --- |
+| `auth_failed` | API 401 | 3 |
+| `forbidden` | API 403 | 3 |
+| `insufficient_credits` | API 402, billing 403 | 1 |
+| `usage_limit_reached` | billing 403 | 1 |
+| `not_found` | API 404, CLI `not_found` | 4 |
+| `validation_error` | API 422, CLI validation | 2 |
+| `usage_error` | CLI usage | 2 |
+| `timeout` | API 408 | 5 |
+| `rate_limited` | API 429 | 5 |
+| `server_error` | API 5xx | 5 |
+| `network_error` | DNS / connection failure | 5 |
+| `wait_timeout` | `ish study run` wait timer | 5 |
+| `request_failed` | other API error | 1 |
+| `client_error` | untagged CLI error | 1 |
+| `unknown_error` | non-`Error` throw | 1 |
+
+## Example
+
+A study id that does not exist returns exit 4 with this envelope on stderr:
+
+```json
+{
+  "error": "Study not found: s-xxxx",
+  "error_code": "not_found",
+  "status": 404,
+  "retryable": false
+}
+```
+
+Branch on the code in a script:
+
+```bash
+ish study results --study s-xxxx --json
+case $? in
+  0) echo "ok" ;;
+  3) echo "re-authenticate" ;;       # auth_failed / forbidden
+  4) echo "wrong id, do not retry" ;; # not_found
+  5) echo "transient, retry" ;;       # timeout / rate_limited / network
+  *) echo "failed" ;;
+esac
+```
+
+<Tip>
+  Branch on the exit code for control flow and read `error_code` for the precise cause. Both are
+  stable; the `error` message text is not.
+</Tip>

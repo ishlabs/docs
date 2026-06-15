@@ -1,0 +1,247 @@
+---
+title: "Asks and rounds"
+description: "The comparison building blocks in ish: variants, picks, ratings, and follow-up rounds against a fixed panel."
+mode: "explanation"
+---
+
+An ask is how you put a choice in front of simulated people. One prompt, a few
+variants of creative, a fixed panel, and a question: which of these lands, and why?
+Where a [study](/concepts/study) walks people through a surface end to end, an ask
+is lighter. Nobody navigates anything. They look at the variants, react, and (if
+you asked) pick a favorite or rate each one.
+
+An ask is built from two pieces. The **ask** holds the panel and the comparison.
+A **round** is one pass of that panel over a prompt and its variants. The first
+round is created with the ask; later rounds reuse the same people to probe the
+result further. This page is the mental model for both, and for the signals they
+produce. For the decision between an ask and a study, see
+[runs and asks](/concepts/run-vs-ask).
+
+## What an ask holds
+
+An ask pairs a fixed panel of [simulated people](/concepts/people) with a sequence
+of rounds. Two things are decided at creation and do not change:
+
+- The **panel** is locked. Every round runs the same people, so a follow-up round
+  is a second look from the group you already have, not a fresh sample. You can
+  grow the panel later (`ish ask add-people` / `ask_people`), but you cannot swap
+  it out. To compare a different audience, start a new ask.
+- The **alias** is `a-...`, the same short-id shape the rest of ish uses.
+
+An ask carries up to five rounds. That ceiling is the natural shape of the work:
+a comparison, then a drill into the result, then maybe one more. Past that you are
+usually asking a different question and want a new ask.
+
+## Variants: the things being compared
+
+A round shows the panel a prompt and one or more **variants**. A variant is one
+candidate: a headline, a hero image, an ad cut. Each variant has a kind, a value,
+and an optional label.
+
+The kind is one of `text`, `image`, `video`, `audio`, or `document`, and it decides
+how the variant is presented and how its value is read. For `text` the value is the
+literal copy; for the media kinds the value is a public URL ish can fetch, or a
+local file the CLI uploads for you.
+
+<CodeGroup>
+
+```bash CLI
+# Two text variants, one image variant with an explicit label
+ish ask run --new --name "Hero copy" \
+  --prompt "Which line makes you want to read on?" \
+  --variant text:"Ship it before it ships." \
+  --variant text:@./long-line.md \
+  --variant image:./hero-a.png::label=A \
+  --sample 30 --wants-pick -y --wait
+```
+
+```python MCP
+ask_run(
+    workspace_id="w-6ec",
+    name="Hero copy",
+    prompt="Which line makes you want to read on?",
+    variants=[
+        {"type": "text", "value": "Ship it before it ships."},
+        {"type": "text", "value": "A longer, descriptive line."},
+        {"type": "image", "value": "https://cdn.example.com/hero-a.png", "label": "A"},
+    ],
+    audience={"sample": 30},
+    wants_pick=True,
+)
+```
+
+</CodeGroup>
+
+In the reactions, variants are referenced as `[[A]]`, `[[B]]`, `[[C]]`, and the
+letter is tied to a variant's identity, not its position. Carry a variant into a
+later round (by reusing its id) and it keeps the same letter, so a `[[B]]` always
+means the same thing across the rounds it appears in.
+
+## Picks and ratings: the verdict you ask for
+
+By default a round collects a free-form reaction to each variant, the reasoning
+behind it. Two flags add a structured verdict on top, and they compose:
+
+- **`wants_pick`** asks each person to choose one favorite. It needs at least two
+  variants. Each pick comes back with the reasoning and a `pick_strength` ordinal
+  (`strong`, `moderate`, `slight`, or `forced`), how decisively that person
+  preferred their choice over the rest. Use it to break ties: when two variants are
+  close on count, the one carrying more `strong` and `moderate` picks is the more
+  decisive choice. `pick_strength` is present only on rounds run with `wants_pick`.
+- **`wants_ratings`** asks each person to rate every variant 1 to 5. It needs at
+  least one variant. The result rolls up to a per-variant mean with an explicit
+  count, so a partial response rate is visible, not inferred.
+
+Set both, one, or neither. With neither, a round is a pure reaction read: comments
+only, no scoring.
+
+When a round wants a pick, ish elects a **winner** and labels how much to trust it.
+The winner block carries the variant, the count, and a `confidence` of `low`,
+`medium`, or `high`. Confidence scores the verdict itself, not any one person's
+preference: it is `low` for a small sample (fewer than three completed responses),
+a tie, or any errored response, `medium` for a clean small sample, and `high` for
+ten or more clean responses. Read `pick_strength` for "how sure was this person"
+and `confidence` for "how sure should I be of the whole verdict." When more than
+half the responses errored, the winner is replaced by a refusal envelope and the
+honest move is to retry the errored responses before reading anything into the
+result.
+
+<Note>
+  A pick is a vote, not a truth. A `high` confidence winner means the panel leaned
+  one way decisively, with enough clean responses to mean it. It does not promise
+  the same result from a real audience. Read the reasoning, not just the count.
+</Note>
+
+## Rounds: a second look from the same panel
+
+A round is one pass of the panel over a prompt and its variants. The first round is
+created with the ask. A follow-up round appends to the ask, reuses the locked panel,
+and dispatches immediately. Rounds are numbered from one in everything you touch
+(`--round 2`, `view="full", round=2`).
+
+The point of more than one round is to probe a result without rebuilding the
+audience. Round one asks "which subject line would you open?" across three variants
+with a pick. Round two narrows to the two that landed and asks why, against the same
+people. Because the panel is fixed, the second round is genuinely the same group
+reconsidering, which is what makes a cross-round comparison meaningful.
+
+A follow-up round can also drill into a slice of the panel rather than all of it.
+Pass a **participant subset** keyed to a prior round's pick (the people who chose a
+specific variant), and only that slice runs the new round. Round one splits the
+panel by what they picked; round two interviews just the A-pickers, without drawing
+credits for everyone else.
+
+## Adding questions to a round
+
+Sometimes you do not want a new round, you want to ask the same people one more
+thing about a round they already finished. Adding follow-up questions to a round is
+**additive by default**: the prior comments, picks, and ratings are preserved, and
+the panel only answers the newly added question. The earlier verdict stays stable.
+Reach for a full re-dispatch of the round only when the new question is different
+enough that you want fresh first impressions rather than an addition.
+
+## Reading across rounds
+
+An ask with two or more pick rounds gives you a cross-round summary for free: the
+winner per round, what changed, and the shift in pick counts from the first round
+to the last. You do not diff two result reads by hand.
+
+That summary is only computed when **every** round asked for a pick, because picks
+are the only signal comparable across rounds. The moment one round is a free-text
+follow-up (no pick), the pick deltas are withheld and the response says which round
+broke eligibility. For asks where narrative is the load-bearing signal, a
+cross-round narrative stitches the per-round comments together instead. Branch on
+what the response tells you; do not poll for a field that was deliberately omitted.
+
+## Both surfaces, same shape
+
+Asks and rounds are first-class on both developer surfaces, and the verbs line up:
+the ask you create, the rounds you append, the people you add, and the reactions you
+read are the same moves on the CLI and through MCP. The example below shows the
+parity.
+
+<CodeGroup>
+
+```bash CLI
+# Create the ask and run round one
+ish ask run --new --name "Tagline AB" \
+  --prompt "Which sounds better?" \
+  --variant text:"Short and punchy." \
+  --variant text:"A longer, descriptive line." \
+  --sample 30 --wants-pick -y --wait
+
+# Append round two to the same panel
+ish ask run a-6ec \
+  --prompt "And which feels more like us?" \
+  --variant text:"Short and punchy." \
+  --variant text:"A longer, descriptive line." \
+  --wants-pick -y --wait
+
+# Read the verdict
+ish ask results a-6ec
+```
+
+```python MCP
+# Create the ask and dispatch round one
+ask_run(
+    workspace_id="w-6ec",
+    name="Tagline AB",
+    prompt="Which sounds better?",
+    variants=[
+        {"type": "text", "value": "Short and punchy."},
+        {"type": "text", "value": "A longer, descriptive line."},
+    ],
+    audience={"sample": 30},
+    wants_pick=True,
+)
+
+# Append round two to the same panel
+ask_round(
+    ask_id="a-6ec",
+    prompt="And which feels more like us?",
+    variants=[
+        {"type": "text", "value": "Short and punchy."},
+        {"type": "text", "value": "A longer, descriptive line."},
+    ],
+    wants_pick=True,
+)
+
+# Read the verdict
+ask_get(ask_id="a-6ec", view="summary")
+```
+
+</CodeGroup>
+
+Full flags and parameters live in the reference: [`ask`](/cli/generated/ask) on the
+CLI, [ask tools](/mcp/generated/tools-ask) on the MCP.
+
+## Both draw credits
+
+Every round that dispatches draws one credit per participant who completes,
+regardless of how many follow-up questions the round carries. A three-person panel
+with two extra questions draws three credits, the same as a no-questions round.
+Failed responses (a refusal, a pre-flight error) draw nothing and are safe to retry.
+
+Credits are funded by the [workspace](/concepts/workspace) plan, so the MCP needs no
+per-dispatch approval. The CLI guards the spend in a non-interactive context (the
+default for agents and CI): a round that draws credits refuses without `-y` / `--yes`
+and exits `2`, so spending is never silent. On the CLI you can also stage a draft ask
+that bills nothing (`ish ask create --no-dispatch`) and start it later. The full
+model is in [credits and limits](/concepts/credits-and-limits).
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Runs and asks" icon="code-compare" href="/concepts/run-vs-ask">
+    When to reach for an ask versus a study, side by side.
+  </Card>
+  <Card title="People" icon="users" href="/concepts/people">
+    How the panel is chosen, and the filters that resolve it.
+  </Card>
+  <Card title="Reactions and results" icon="comments" href="/concepts/reactions-and-results">
+    What a reaction is and how to read what comes back.
+  </Card>
+  <Card title="ask tools" icon="plug" href="/mcp/generated/tools-ask">
+    Every MCP ask parameter, return shape, and view.
+  </Card>
+</Columns>

@@ -1,0 +1,193 @@
+---
+title: "Assignments and questionnaires"
+description: "The two halves of a study definition: what each simulated person is asked to do, and what they answer."
+mode: "explanation"
+---
+
+A [study](/concepts/study) holds two lists that shape what every simulated person
+does. Assignments are the tasks. The questionnaire is the questions. Together they
+are the half of the study that stays fixed across runs, so two iterations of the
+same study put their panels through the same script and the only thing that
+changes is the artifact under test.
+
+Both lists live on the study, not the iteration. That is deliberate: the tasks and
+questions are the question you are asking, held steady while the draft moves.
+
+## Assignments: what people do
+
+An assignment is a single task a simulated person attempts during an `interactive`
+run (or considers, for the media modalities where they read, watch, or listen
+rather than click). A study carries one or more assignments and they run in order.
+
+Each assignment carries:
+
+- `name`: a short label the person sees, like `"Sign up"` or `"Find the price"`.
+- `instructions`: what they are asked to do, like `"Complete the signup flow using
+  a personal email"`.
+- `steps` (optional): an ordered checklist of atomic actions, covered below.
+- `test_context` (optional): goal or background context the engine folds into the
+  persona prompt. For a pair chat, this is what success looks like for that role.
+
+Think of the assignment as the brief. The person reads it, then behaves like
+someone with that goal would, and the reactions report whether the brief was
+something they could actually carry out.
+
+### Steps: a checklist inside an assignment
+
+An assignment can carry an ordered `steps` list: the atomic actions that add up to
+completing the task. Each step is a `name` (1 to 80 characters) and an optional
+`description` (up to 500 characters), for example `"Add to cart"` then `"Complete
+checkout"`.
+
+Steps exist so completion is measured per action, not just per task. After a run,
+an LLM verifier grades each step for each participant, and reading the study back
+surfaces a per-step rollup: how many participants had a verdict, how many passed,
+the pass rate, and a few sample reasons a step was missed. That is how you tell a
+flow that nobody finished from one where everyone got stuck on the same single
+step.
+
+<Note>
+  Steps apply to `interactive` and external-chatbot `chat` studies only. The engine
+  rejects steps on the media modalities (`text`, `video`, `audio`, `image`,
+  `document`) and on pair chat. They are also authored only through the JSON input
+  forms, never the inline `name:instructions` shorthand, since the shorthand cannot
+  express a list.
+</Note>
+
+## The questionnaire: what people answer
+
+The questionnaire is the list of interview questions each simulated person answers
+around the experience. A study can have zero or more questions. Where assignments
+capture behavior, the questionnaire captures self-report: how hard something felt,
+which option they preferred, what confused them.
+
+Each question carries a type and a timing:
+
+- **type** is one of `text`, `slider`, `likert`, `single-choice`, `multiple-choice`,
+  or `number`. The default is `text`. The multi-word types are hyphenated; the
+  underscored variants (`single_choice`, `multiple_choice`) are accepted and folded
+  back to the canonical form, so either spelling works in a manifest.
+- **timing** is `before` or `after`: whether the question is asked before the person
+  starts the assignments or once they are done. The default is `after`.
+
+Slider and number questions take `min`, `max`, and an optional `step`; sliders and
+likert scales can carry `labels` for the endpoints; the choice types carry
+`options`. The questionnaire is part of the persistent study definition, so the
+same questions run against every iteration unless you revise the study.
+
+## Defining them on each surface
+
+Assignments and the questionnaire are set when you create a study and can be
+revised later, on both `create` and `revise`. The two developer surfaces accept
+them the same way, with two differences worth knowing.
+
+The first is the questionnaire. MCP authors free-text questions only: each entry
+becomes `type=text`, `timing=after` on both `study_create` and `study_revise`,
+with no path to slider, likert, choice, number, or `timing=before`. For those
+richer shapes, use the CLI `--questionnaire` flag (on `study create` or
+`study update`) or the web app.
+
+The second is the `name:instructions` colon shorthand. On the CLI, an
+`--assignment "Sign up:Complete the signup flow"` splits on the first colon into a
+name and instructions. MCP does not split: a bare string becomes an assignment
+whose name and instructions are both that string verbatim, colon and all. To set a
+distinct name and instructions through MCP, pass an assignment dict.
+
+<CodeGroup>
+
+```bash CLI
+# Inline shorthand: one "<name>:<instructions>" per assignment, plus text questions
+ish study create \
+  --name "Onboarding UX" \
+  --modality interactive \
+  --assignment "Sign up:Complete the signup flow" \
+  --assignment "Verify:Confirm the email and log in" \
+  --question "How easy was it?" \
+  --question "Anything confusing?"
+
+# Richer shapes: a JSON questionnaire (slider, choice types, timing) and
+# assignments-with-steps from a file
+ish study create \
+  --name "Checkout" \
+  --modality interactive \
+  --assignments-file ./assignments.json \
+  --questionnaire '[{"question":"How easy?","type":"slider","min":0,"max":10}]'
+```
+
+```python MCP
+# Each assignment is a bare label or a {name, instructions, ...} dict.
+# MCP does not split on a colon, so pass a dict to set a distinct name
+# and instructions. Free-text questions become type=text, timing=after.
+study_create(
+    workspace_id="w-6ec",
+    name="Onboarding UX",
+    modality="interactive",
+    assignments=[{"name": "Sign up", "instructions": "Complete the signup flow"}],
+    questions=["How easy was it?"],
+)
+```
+
+</CodeGroup>
+
+The inline `--assignment` flag, the `--assignments-file` path, and the inline
+`--assignments` JSON string are mutually exclusive: pass exactly one. Steps ride
+along only in the JSON forms. An `assignments.json` file is an array of assignment
+objects:
+
+```json assignments.json
+[
+  { "name": "Browse", "instructions": "Find a product you like" },
+  {
+    "name": "Buy",
+    "instructions": "Add to cart and check out",
+    "steps": [
+      { "name": "Find a product", "description": "Browse to any item" },
+      { "name": "Add to cart" },
+      { "name": "Complete checkout" }
+    ]
+  }
+]
+```
+
+For the complete flag and parameter tables, see the
+[`study create` reference](/cli/generated/study-create) and the
+[study tools reference](/mcp/generated/tools-study).
+
+## Editing replaces the whole list
+
+Revising assignments or the questionnaire replaces the full list, not one entry.
+Send the assignments you want the study to have, including the ones you are
+keeping; whatever you leave out is gone. The same goes for the questionnaire. This
+keeps the study definition a single explicit source rather than an append log, but
+it means you edit by sending the complete intended list every time.
+
+<Warning>
+  There is no additive edit. `study update --assignment ...` on the CLI and
+  `study_revise(assignments=...)` through MCP both overwrite the entire list.
+  Passing an empty list clears it.
+</Warning>
+
+## How they show up in results
+
+Assignments and the questionnaire are the input side of a run. Their output side
+is the reactions: the per-person journey, the questionnaire answers, and, when
+steps were defined, the per-step completion rollup. You read all of it back
+through the study results, and you can narrow those results to one assignment or
+one step when you want to see who got stuck where.
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Studies" icon="folder-open" href="/concepts/study">
+    The persistent artifact assignments and the questionnaire live on.
+  </Card>
+  <Card title="Reactions and results" icon="chart-simple" href="/concepts/reactions-and-results">
+    What comes back after a run, including questionnaire answers and step completion.
+  </Card>
+  <Card title="study create reference" icon="terminal" href="/cli/generated/study-create">
+    Every CLI flag for assignments and the questionnaire.
+  </Card>
+  <Card title="study tools" icon="plug" href="/mcp/generated/tools-study">
+    The MCP study tool space: assignment and question parameters, return shapes.
+  </Card>
+</Columns>

@@ -1,0 +1,99 @@
+---
+title: "brand tools"
+description: "MCP tool reference for the brand domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `brand_create`
+
+**Tier:** write · **Tags:** brand, write
+
+Create a brand (competitor product) under a parent workspace, the
+comparison target for a benchmark study.
+
+Benchmark workflow is two-step: ``brand_create`` each target, then one
+``study_benchmark(source_study_id, brand_ids=[...])`` to clone the study
+to all of them. Each clone gets its own iteration to fill in with the
+brand's content (URL or media).
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`name`: human-readable brand name.
+`description`: optional description.
+`base_url`: optional default URL - becomes the suggested URL for
+interactive studies cloned to this brand.
+
+**Returns** ``Brand``; on failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;auth_failed, forbidden, validation_error,
+usage_limit_reached, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="base_url" type="string">
+&nbsp;
+</ParamField>
+
+## `brand_delete`
+
+**Tier:** destructive · **Tags:** brand, delete
+
+Permanently delete a brand. **DESTRUCTIVE** - cascades to every
+cloned study and iteration under it. Irreversible (no soft-archive);
+confirm with the user before calling.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`brand_id`: UUID or short alias (``w-...``) of the brand to delete.
+
+**Returns** ``&#123;"deleted": True, "brand_id": &lt;id>}``; on failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
+not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="brand_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `brand_get`
+
+**Tier:** read-only · **Tags:** brand, read
+
+Read brands (competitor products) under a parent workspace.
+
+Polymorphic on ``brand_id``: omit it to list every brand under the
+workspace (unpaginated ``PaginatedList[Brand]``, ``has_more`` always
+``False``); pass it to return that brand's details. Brands share the
+``w-`` alias prefix with workspaces; ``workspace_get()`` lists only
+standard workspaces, never brands.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`brand_id`: UUID or short alias (``w-...``) of the brand. Optional -
+omit to list.
+
+**Returns** ``PaginatedList[Brand]`` (no id) or ``Brand`` (with id);
+on failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="brand_id" type="string">
+&nbsp;
+</ParamField>

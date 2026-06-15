@@ -1,0 +1,58 @@
+---
+title: "study create"
+description: "Command reference: ish study create."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish study create`
+
+Create a new study (the persistent shape: modality, tasks, questionnaire). Optionally creates iteration A inline when --content-text, --url, --image-urls, --content-url, or --endpoint is passed.
+
+Usage: `ish study create [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--name <name>" type="string">Study name Required.</ParamField>
+<ParamField path="--description <description>" type="string">Study description</ParamField>
+<ParamField path="--modality <modality>" type="string">Study modality (interactive, video, audio, text, image, document, chat)</ParamField>
+<ParamField path="--content-type <type>" type="string">Content type (per-modality enum - see 'Content types by modality' below). Changes how --title is presented to participants (e.g. content-type email renders --title as the Subject: line). Not used for interactive / chat.</ParamField>
+<ParamField path="--assignment <name:instructions>" type="string">Assignment as 'Name:Instructions' (repeatable) Default: [].</ParamField>
+<ParamField path="--assignments-file <path>" type="string">JSON file with assignments array</ParamField>
+<ParamField path="--assignments <json>" type="string">Inline JSON array of assignments (escape hatch)</ParamField>
+<ParamField path="--question <text>" type="string">Add a text question to the questionnaire (repeatable; type=text, timing=after) Default: [].</ParamField>
+<ParamField path="--questionnaire <json|@file|path>" type="string">Questionnaire as inline JSON array, @file, or a JSON file path - supports text, slider, likert, single-choice, multiple-choice, number; timing=before|after</ParamField>
+<ParamField path="--content-text <text>" type="string">Text content to evaluate, or @filepath to read from file. Creates iteration A inline (text modality only)</ParamField>
+<ParamField path="--url <url>" type="string">URL to test. Creates iteration A inline (interactive modality only)</ParamField>
+<ParamField path="--screen-format <format>" type="string">Screen format for interactive iterations: desktop (default) or mobile_portrait (hyphen/underscore variants accepted)</ParamField>
+<ParamField path="--content-url <url>" type="string">Public URL of the media file. Creates iteration A inline (video, audio, document modalities). For local files, use the 2-step `iteration create` flow.</ParamField>
+<ParamField path="--image-urls <urls>" type="string">Comma-separated public image URLs. Creates iteration A inline (image modality). For local files, use the 2-step `iteration create` flow.</ParamField>
+<ParamField path="--title <title>" type="string">Participant-facing content title - the headline participants read before the body (text + media modalities - image, video, audio, document; optional). With --content-type email it becomes the email Subject: line. Not an internal label. Not used for interactive / chat.</ParamField>
+<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON for the inline iteration A - time_based &#123;intervals_seconds, labels?&#125;, section_based &#123;sections[&#123;name,label,...&#125;]&#125;, or page_based &#123;&#125; (text + media). section_based sections are SEMANTIC: group related paragraphs into a few coherent sections (a long article is usually 3-6 sections, not one per paragraph). Lets one `study create` build a complete segmented iteration - no separate `iteration create` needed.</ParamField>
+<ParamField path="--content-config-json <json>" type="string">Content-config JSON for the inline iteration A (early_termination, selected_segment_indices) - text + media.</ParamField>
+<ParamField path="--content-html <html>" type="string">HTML version of the text, or @filepath - text modality (email rendering)</ParamField>
+<ParamField path="--sender-name <name>" type="string">Email 'From' display name - text modality (email rendering)</ParamField>
+<ParamField path="--sender-email <email>" type="string">Email sender address - text modality (email rendering)</ParamField>
+<ParamField path="--featured-image-url <url>" type="string">Hero image URL - text modality (email rendering)</ParamField>
+<ParamField path="--endpoint <id>" type="string">Saved chatbot endpoint id or alias. Creates iteration A inline (chat modality, external_chatbot mode)</ParamField>
+<ParamField path="--endpoint-config <file>" type="string">ChatbotEndpointConfig JSON file (or `-` for stdin); embedded directly. Mutually exclusive with --endpoint (chat modality, external_chatbot mode)</ParamField>
+<ParamField path="--max-turns <n>" type="string">Maximum conversation turns per participant (chat modality only; default 12)</ParamField>
+<ParamField path="--chat-mode <mode>" type="string">Chat mode: external_chatbot (default) or participant_pair (two AI groups talk to each other) - chat modality only</ParamField>
+<ParamField path="--group-a <ids>" type="string">Person IDs/aliases for group A (comma-separated or repeatable). Pass a single profile and N on --group-b to broadcast (1×N rehearsal: fix side A, vary side B) - chat participant_pair mode Default: [].</ParamField>
+<ParamField path="--group-b <ids>" type="string">Person IDs/aliases for group B. When both sides are explicit they must be equal length, BUT if either side is a singleton it's auto-broadcast to match the other (1×N rehearsal) - chat participant_pair mode Default: [].</ParamField>
+<ParamField path="--scenario-a <text-or-@file>" type="string">Side-A scenario + goal - chat participant_pair mode</ParamField>
+<ParamField path="--scenario-b <text-or-@file>" type="string">Side-B scenario + goal - chat participant_pair mode</ParamField>
+<ParamField path="--initiator-side <a|b>" type="string">Which side speaks first (default: a) - chat participant_pair mode</ParamField>
+<ParamField path="--role-criteria-a <json-or-@file>" type="string">RoleCriteria filter for side A (JSON object or @filepath). Keys: occupation[], min_age, max_age, gender[], country[], education_level_in[], household_in[], locale_type_in[], income_level_in[], employment_status_in[], requires_captions, uses_screen_reader, prefers_reduced_motion, prefers_high_contrast, has_any_accessibility_need. The five *_in arrays accept snake_case spec values; the five accessibility filters are booleans. Use INSTEAD of --group-a or alongside it. chat participant_pair mode.</ParamField>
+<ParamField path="--role-criteria-b <json-or-@file>" type="string">RoleCriteria filter for side B - same shape as --role-criteria-a. chat participant_pair mode.</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

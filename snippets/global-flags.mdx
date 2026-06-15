@@ -1,0 +1,15 @@
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ index.ts global options (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+<ParamField path="-V, --version" type="boolean">output the version number</ParamField>
+<ParamField path="-t, --token <token>" type="string">Auth token (or set ISH_TOKEN env var)</ParamField>
+<ParamField path="--token-file <path>" type="string">Read auth token from a file (preferred over --token / ISH_TOKEN)</ParamField>
+<ParamField path="--workspace <id>" type="string">Default workspace ID; per-subcommand --workspace overrides</ParamField>
+<ParamField path="--json" type="boolean">Output as JSON (auto-enabled when piped)</ParamField>
+<ParamField path="--get <field>" type="string">Extract a single field from the JSON response and print only its value (implies --json internally; supports dotted paths e.g. person.name)</ParamField>
+<ParamField path="--human" type="boolean">Force human-readable output even when stdout is piped (overrides JSON-when-piped auto-detection)</ParamField>
+<ParamField path="--fields <fields>" type="string">Comma-separated fields to include in JSON output (e.g. alias,name,status)</ParamField>
+<ParamField path="--verbose" type="boolean">Include full UUIDs and timestamps in JSON output</ParamField>
+<ParamField path="--no-color" type="boolean">Disable colored output (also honored: NO_COLOR env var)</ParamField>
+<ParamField path="-q, --quiet" type="boolean">Suppress progress messages on stderr (no-op for read commands that emit none)</ParamField>

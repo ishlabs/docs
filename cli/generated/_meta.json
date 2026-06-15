@@ -1,0 +1,27 @@
+{
+  "generator": "generate-docs-cli.mjs",
+  "cli_version": "0.28.2",
+  "pages": [
+    "index",
+    "session",
+    "connect",
+    "study-run",
+    "study-create",
+    "study-results",
+    "study-extras",
+    "study",
+    "ask",
+    "person",
+    "iteration",
+    "workspace",
+    "chat",
+    "mcp",
+    "source",
+    "secret",
+    "config",
+    "docs",
+    "check",
+    "upgrade-feedback"
+  ],
+  "command_count": 21
+}

@@ -1,0 +1,87 @@
+---
+title: "upload tools"
+description: "MCP tool reference for the upload domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `upload_create`
+
+**Tier:** write · **Tags:** upload, write
+
+Mint a short-lived web link a user opens in their browser to upload a
+file that a hosted MCP client (ChatGPT) cannot forward through a tool call.
+
+Use this when a user references "the file I just uploaded" / "this image"
+but the file never arrived as a tool argument - hosted MCP transports are
+JSON-only. The flow is: mint → **relay the returned ``instruction`` to the
+user verbatim** → user drops the file in the page and confirms → poll
+``upload_status(token=...)`` → reuse the resulting handle in
+``person_generate(source_upload_ids=[...])`` or ``study_add_iteration(...)``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace the
+upload belongs to.
+`purpose`: what the file is for - ``"person_source"`` (ground a person),
+``"study_media"`` (study iteration content), or ``"both"`` (default -
+mints both handles from one upload so a single image serves person
+grounding AND study media without re-uploading).
+`wait`: OPT-IN convenience (default ``False``). When ``True``, the call
+runs a short internal poll loop and returns once the user completes the
+upload - but since the gating step is a human in a browser, prefer the
+default: relay the link, then poll ``upload_status`` after the user
+confirms. On ``wait=True`` timeout the PENDING session is returned (the
+link is still live; poll ``upload_status`` later).
+`timeout`: seconds to poll when ``wait=True`` (default 120s).
+
+**Returns** an ``UploadSession``. On success (``ok=True``), ``upload_url``
+is the link to relay, ``token`` polls status, and ``instruction`` is the
+ready-to-relay copy. On failure (``ok=False``), ``error_kind`` ∈
+``&#123;not_enabled, validation_error, not_found, auth_failed, server_error,
+network_error, http_error}`` - ``not_enabled`` means this backend lacks
+hosted-upload endpoints, so fall back to a local file path.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="purpose" type="&quot;study_media&quot; | &quot;person_source&quot; | &quot;both&quot;">
+Default: `"both"`.
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `120.0`.
+</ParamField>
+
+## `upload_status`
+
+**Tier:** read-only · **Tags:** read, upload
+
+Check the live state of an out-of-band upload session minted by
+``upload_create``.
+
+Call this after relaying the upload link and the user confirms they've
+uploaded. While ``status='pending'``, the returned ``next_action`` tells
+you to poll again. On ``status='completed'``, ``result`` carries the
+reusable handle(s) and ``suggestions`` names the exact downstream call:
+``person_generate(source_upload_ids=[...])`` and/or
+``study_add_iteration(content_url=… / image_urls=[…])``. On ``status='expired'``
+the link lapsed unused - mint a fresh one.
+
+`token`: the opaque session token from ``upload_create``.
+
+**Returns** an ``UploadStatusResponse``. On failure (``ok=False``),
+``error_kind`` ∈ ``&#123;not_found, validation_error, auth_failed,
+server_error, network_error, http_error}`` - ``not_found`` (a 404) means
+the token is unknown / expired / not-yours; re-mint via ``upload_create``
+rather than falling back to a local path (the feature is provably enabled
+since you already minted a token).
+
+### Parameters
+<ParamField body="token" type="string" required>
+&nbsp;
+</ParamField>

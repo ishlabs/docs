@@ -1,0 +1,211 @@
+---
+title: "Long-running calls"
+description: "The wait and timeout contract, the next_action poll hint, and why the server delivers completion in the return value instead of pushing it."
+mode: "reference"
+---
+
+Simulation runs, ask rounds, study analyses, and participant extensions take 1 to 5 minutes server-side. The dispatch tools that drive that work give you two ways to handle the wait, and both are explicit: the server delivers the completion signal in the tool's return value, never as a pushed notification. This page is the reference for that contract.
+
+For what the underlying work is, see [run vs ask](/concepts/run-vs-ask), [study](/concepts/study), and [people](/concepts/people). For per-tool parameters, link through to [the study tools](/mcp/generated/tools-study), [the ask tools](/mcp/generated/tools-ask), [the simulation tools](/mcp/generated/tools-simulation), and [the person tools](/mcp/generated/tools-person).
+
+## Tools that are long-running
+
+Eleven tools carry the `LONG_RUNNING` classification. They split into four classes by how you wait on them.
+
+| Class | Tools | How you wait |
+| --- | --- | --- |
+| Dispatch and poll | `study_run`, `study_analyze`, `simulation_extend`, `ask_run`, `ask_round`, `ask_questions`, `ask_people` | `wait` / `timeout` params; `next_action` poll hint on the non-blocking path |
+| Blocks by default | `person_generate` | `wait=True` by default; on `wait=False` returns a `job_id` and you read results via `person_get` |
+| Synchronous | `study_benchmark`, `chatbot_setup` | Returns when the call completes; no `wait` param, no `next_action` |
+| Slow create | `study_add_iteration` | No `wait`, no `timeout`, no `next_action`; the call returns an `IterationCreateResponse` once the iteration is created. It is `LONG_RUNNING` only because resolving local file uploads (`content_url`, `image_urls`, `@path` text) can be slow, not because it polls a run. |
+
+<Note>
+`LONG_RUNNING` is the server's own internal classification, not a host-visible signal. Over the wire its annotation is identical to a plain write (MCP has no `longRunningHint` field yet), so a host cannot distinguish a `LONG_RUNNING` tool from a write today. The server uses the label to mark which tools follow this contract. The classification does not mean every such tool follows the same wait protocol. Only the dispatch-and-poll class accepts `wait` / `timeout` and emits `next_action`. `study_benchmark` clones draft studies and returns immediately (it does not run them; `study_run` each clone yourself). `chatbot_setup` runs a synchronous smoke test before it returns. `study_add_iteration` is a create that returns an `IterationCreateResponse`; it dispatches no run, so it carries no `wait`, `timeout`, or `next_action`.
+</Note>
+
+## The wait and timeout contract
+
+The dispatch-and-poll tools accept two parameters:
+
+<ParamField path="wait" type="bool">
+Block inside the tool call until the job reaches a terminal status or `timeout` elapses. Default `False` on every dispatch tool except `person_generate`, which defaults to `True`.
+</ParamField>
+
+<ParamField path="timeout" type="float">
+Seconds to block when `wait=True`. Default `600.0` for `study_run`, `simulation_extend`, and the four ask tools; `300.0` for `study_analyze`; `180.0` for `person_generate`.
+</ParamField>
+
+**`wait=False` (the default for runs and asks).** Dispatch the job and return immediately with the IDs you need to come back for the result (`participant_ids`, `iteration_id`, `ask_id`, and so on). The response carries a structured `next_action` field naming the exact tool, arguments, cadence, and status field to check next.
+
+**`wait=True`.** Block until the job reaches a terminal status or `timeout` elapses. While polling, the server emits `notifications/progress` (see [why the server does not push](#why-the-server-does-not-push-completion)). If the budget runs out before the job is terminal, the tool returns a `wait_timeout` envelope (`error_kind="wait_timeout"`) with the dispatched IDs populated; the job keeps running server-side and the same `next_action` lets you resume polling.
+
+<Warning>
+Many MCP clients cap a single tool call at roughly 30 seconds (Cursor and Replit, for example), and that ceiling overrides `timeout`: `wait=True, timeout=300` still aborts at the client's 30 seconds with no result. Interactive and media runs take 1 to 5 minutes, so they routinely exceed it. Prefer the default `wait=False` and poll via `next_action`; reserve `wait=True` for fast jobs or clients with no short transport cap.
+</Warning>
+
+## The next_action hint
+
+On every non-blocking path (the `wait=False` success path and the `wait_timeout` path where dispatch succeeded but the wait ran out of budget), a dispatch-and-poll tool attaches a `next_action` object. It names which status tool to call, with what arguments, after how long, and which terminal-status set to compare against, so you do not parse prose to pick the next call.
+
+<ResponseField name="next_action" type="object">
+  <Expandable title="fields">
+    <ResponseField name="tool" type="string">
+      Name of the MCP tool to call to check job status, for example `study_get` or `ask_get`.
+    </ResponseField>
+    <ResponseField name="args" type="object">
+      Arguments to pass to `tool` verbatim. IDs are stringified for JSON transport; the status tool accepts them as either UUIDs or short aliases.
+    </ResponseField>
+    <ResponseField name="check_after_seconds" type="int">
+      Suggested floor before the first status check. Backend jobs almost never finish faster than this; calling sooner just adds noise. Typically `30` (`5` for upload sessions).
+    </ResponseField>
+    <ResponseField name="status_path" type="string">
+      Dotted path naming the field on the status-tool response that carries the lifecycle status. See [reading status_path](#reading-status-path).
+    </ResponseField>
+    <ResponseField name="terminal_statuses" type="string[]">
+      Status values that mean the job is done, success or failure. Compare the value or values at `status_path` against this set to decide whether to keep polling.
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+The pattern, top to bottom:
+
+<Steps>
+  <Step title="Dispatch with the default wait=False">
+    Call the dispatch tool. It returns after the backend accepts the job, not after the job finishes.
+  </Step>
+  <Step title="Capture the IDs">
+    Read `participant_ids`, `iteration_id`, `ask_id`, `round_id`, or `study_result_id`, whichever the response carries.
+  </Step>
+  <Step title="Read next_action">
+    It names the tool, args, cadence, and the exact field to inspect for status.
+  </Step>
+  <Step title="Do other work, then call next_action">
+    When you are ready, call `next_action.tool` with `next_action.args`.
+  </Step>
+  <Step title="Compare status_path against terminal_statuses">
+    Resolve the value at `next_action.status_path` and check it against `next_action.terminal_statuses`. Repeat with back-off if not terminal yet.
+  </Step>
+</Steps>
+
+A concrete `study_run` flow:
+
+```python
+# 1. Dispatch (non-blocking, the default).
+result = study_run(study_id="s-abc", audience={"sample": 10, "country": "DE"})
+
+# 2. Capture IDs.
+iteration_id = result["dispatch"]["iteration_id"]
+
+# 3. Read the next_action hint.
+next_action = result["next_action"]
+# {
+#   "tool": "study_get",
+#   "args": {"study_id": "s-abc", "view": "summary"},
+#   "check_after_seconds": 30,
+#   "status_path": "participants[*].status",
+#   "terminal_statuses": ["canceled", "cancelled", "completed", "errored", "failed"]
+# }
+
+# 4. Come back later and call the status tool.
+status = study_get(study_id="s-abc", view="summary")
+
+# 5. status_path ends with [*], so every participant status must be terminal.
+all_done = all(
+    p["status"] in next_action["terminal_statuses"]
+    for p in status["participants"]
+)
+```
+
+The other dispatch tools point at their own status read:
+
+| Dispatch tool | next_action.tool | args | status_path |
+| --- | --- | --- | --- |
+| `study_run` | `study_get` | `view="summary"` | `participants[*].status` |
+| `study_analyze` | `study_get` | `view="insights"` | `latest.status` |
+| `simulation_extend` | `study_get` | `view="per_participant"`, `participant_id` | `status` |
+| `ask_run`, `ask_round`, `ask_questions`, `ask_people` | `ask_get` | `view="summary"`, `round=N` | `rounds[0].status` |
+
+## Reading status_path
+
+`status_path` resolves to the field that carries the real lifecycle status. There are two shapes:
+
+- **Single value.** The path resolves to one string (`status`, `rounds[0].status`, `latest.status`). Compare it directly against `terminal_statuses`.
+- **Array of values.** The path contains `[*]` (`participants[*].status`). Resolve it to the list of statuses; the job is terminal only when **every** listed status is in `terminal_statuses`.
+
+`status_path` exists because the top-level `status` on some response envelopes is the dispatch lifecycle, not the round or participant completion signal. On an ask, the top-level `status` stays `running` even after every round is `completed`. Always read the value at `status_path`, never just `status`.
+
+## Terminal status sets
+
+A status not in the terminal set means the job is still running. Each `next_action.terminal_statuses` carries the exact set for that job type, so you do not need to memorize the table.
+
+| Domain | Terminal statuses |
+| --- | --- |
+| Simulations and participants | `completed`, `failed`, `cancelled`, `canceled`, `errored` |
+| Ask rounds | `completed`, `errored` |
+| Study analysis | `completed`, `failed` |
+| Person generation | `completed`, `failed` |
+| Upload session | `completed`, `expired` |
+
+<Note>
+Both spellings `cancelled` and `canceled` are terminal for simulations. Match either.
+</Note>
+
+## Polling cadence
+
+Internal poll loops tick every 2.0 to 5.0 seconds during a `wait=True` call (the interval starts at 2.0s and ramps geometrically toward 5.0s). Agent-side polling can be much looser; network round-trips and tool-call overhead dominate at sub-30-second cadences anyway.
+
+Recommended back-off:
+
+- First check around 30 seconds after dispatch. `next_action.check_after_seconds` is the floor for the first re-check.
+- Then every 30 to 60 seconds, up to a 60-second cap.
+- Give up after 10 to 15 minutes and investigate stuck state via `study_get(study_id, view="summary")`.
+
+Use your client's wake or sleep primitive. Do not call the status tool in a tight loop.
+
+<Tip>
+A `wait=True` call survives transient poll failures. A single HTTP read-timeout, transport flake, or retryable backend 5xx is treated like a non-terminal poll: the loop logs to the progress channel and keeps going until the outer `timeout` actually elapses. Non-retryable failures (auth, validation) still raise right away.
+</Tip>
+
+## When wait=True is the right choice
+
+`wait=False` is the default because holding a tool call open for minutes blocks the agent from doing other work, and most clients (Claude Code, claude.ai) do not surface intermediate progress to the model. Reach for `wait=True` only when:
+
+- The job is genuinely short: `person_generate` (short enough that it defaults to `wait=True` with a 180s budget), an ask with `sample=1` and a single-variant round, a chatbot smoke test.
+- A human is watching the run live and would rather the agent did not return mid-task.
+- You are scripting end to end and the next step truly cannot start until the run is done.
+
+When you do pass `wait=True`, set `timeout` to a budget that matches the run size. The `wait_timeout` envelope is recoverable: it carries the dispatched IDs and a `next_action` to resume polling. Dispatching async and checking back is still cleaner.
+
+## person_generate and the blocking default
+
+`person_generate` is `LONG_RUNNING` but blocks by default (`wait=True`, `timeout=180.0`): it uploads any source artifacts, enqueues the job, polls to terminal, and returns the resolved people and scenarios. Pass `wait=False` to get the `job_id` and `status="queued"` back immediately, then pick up the results with `person_get(workspace_id=..., type="ai")`. It does not attach a `next_action`; the follow-up tool is `person_get`. See [people](/concepts/people).
+
+## Cancellation
+
+Stop an in-flight participant at any time with `simulation_cancel`, scoped to a participant, iteration, study, or ask round. It is a lifecycle flip, not data removal: the participant row, interactions, and partial transcript are preserved. Resume from a cancelled participant's last interaction with `simulation_extend`. `simulation_cancel` is a write, not a long-running call, so it returns as soon as the flip lands.
+
+## Why the server does not push completion
+
+The MCP spec defines `notifications/progress` (incremental progress during a tool call) and `notifications/resources/updated` (server-pushed resource changes). The server emits the first natively, via `ctx.report_progress` in the shared poll loop. It does not rely on either to deliver the completion signal, because the two clients that matter most today do not surface either notification to the model:
+
+- Claude Code receives progress notifications but does not expose them to the model loop.
+- The claude.ai hosted MCP client has the same constraint: the return value of a tool call is the only thing the model reliably sees.
+
+So this server delivers completion in the return envelope, not on a side channel. That is why a dispatch response carries `next_action` instead of a `progressToken` you would subscribe to. MCP Inspector and Cursor do render `ctx.report_progress`, so the server keeps emitting it for those clients and for forward compatibility. If a future client starts surfacing progress or resource-update notifications to the model, nothing in this server needs to change: progress is already on, and subscriptions can layer on top of the same return shape.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Tool conventions" href="/mcp/tool-conventions">
+    Naming, polymorphism, safety annotations, and id rules.
+  </Card>
+  <Card title="MCP resources" href="/mcp/generated/resources">
+    Session and reference data that lives at resources, not tools.
+  </Card>
+  <Card title="Run vs ask" href="/concepts/run-vs-ask">
+    Which verb drives which long-running work.
+  </Card>
+  <Card title="People" href="/concepts/people">
+    Audiences, generation, and how participants are resolved.
+  </Card>
+</Columns>

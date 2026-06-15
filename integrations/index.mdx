@@ -1,0 +1,106 @@
+---
+title: "Connect your client"
+description: "Pick your AI client and wire it to the ish MCP server."
+mode: "how-to"
+---
+
+ish runs as a hosted MCP server at `https://mcp.ishlabs.io/mcp`. Any client that
+speaks MCP over streamable HTTP can call ish tools (`study_run`, `ask_run`,
+`person_generate`, and the rest) once it points at that URL and signs in. Pick
+your client below for the exact steps.
+
+<Columns cols={3}>
+  <Card title="Claude Code" icon="terminal" href="/integrations/claude-code">
+    Wire it with one command.
+  </Card>
+  <Card title="Cursor" icon="/images/logos/cursor.svg" href="/integrations/cursor">
+    Wire from the CLI or settings.
+  </Card>
+  <Card title="Claude Desktop" icon="/images/logos/claude.svg" href="/integrations/claude-desktop">
+    Connect over OAuth.
+  </Card>
+  <Card title="ChatGPT" icon="/images/logos/openai.svg" href="/integrations/chatgpt">
+    Add as a connector.
+  </Card>
+  <Card title="VS Code" icon="/images/logos/vscode.svg" href="/integrations/vscode">
+    Add to your user MCP config.
+  </Card>
+  <Card title="Lovable" icon="/images/logos/lovable.svg" href="/integrations/lovable">
+    Connect inside the builder.
+  </Card>
+  <Card title="Replit" icon="/images/logos/replit.svg" href="/integrations/replit">
+    Connect inside the workspace.
+  </Card>
+  <Card title="Bolt" icon="/images/logos/bolt.svg" href="/mcp/connecting">
+    Connect the embedded agent.
+  </Card>
+  <Card title="v0" icon="/images/logos/v0.svg" href="/mcp/connecting">
+    Connect in the editor.
+  </Card>
+  <Card title="Windsurf" icon="wind" href="/mcp/connecting">
+    Add to your MCP config.
+  </Card>
+</Columns>
+
+Every client uses the same endpoint and the same sign-in. The
+[connecting guide](/mcp/connecting) owns the add mechanism and the OAuth handshake;
+the per-client pages above are the short, client-specific version.
+
+## How clients group
+
+All clients reach the same server the same way. They differ in how much ish can
+do _for_ them when you set up or run a study. There are three groups.
+
+<AccordionGroup>
+  <Accordion title="The CLI wires these for you" icon="wrench">
+    The ish CLI writes the MCP config block for Cursor, VS Code, Claude Code,
+    Claude Desktop, and Windsurf. Run `ish mcp add` to plan and apply the change,
+    `ish mcp list` to see what is wired, and `ish mcp remove` to unwire it. The CLI
+    edits local JSON config files only; it never embeds a token, since the server
+    handles OAuth on first connect. See the [`ish mcp` reference](/cli/generated/mcp).
+  </Accordion>
+
+  <Accordion title="App builders get reachability hints" icon="globe">
+    Lovable, Replit, Bolt, and v0 build apps whose preview URLs are gated to your
+    editor session. ish runs simulated people from the cloud, so a preview URL that
+    loads in your tab fails silently for them. When ish detects one of these
+    clients (or a study URL on a known builder host), it returns a hint that names
+    the share or deploy path for that builder. The per-client pages above carry the
+    exact steps.
+  </Accordion>
+
+  <Accordion title="Other clients connect and run" icon="plug">
+    Any other MCP client connects to `https://mcp.ishlabs.io/mcp` and runs every
+    tool. ish recognizes the client from its handshake to tailor guidance, but the
+    CLI does not write its config and there is no builder hint. ChatGPT is in this
+    group and has [its own page](/integrations/chatgpt) because it reads ish tools
+    but not ish resources.
+  </Accordion>
+</AccordionGroup>
+
+## Other MCP clients
+
+No page for your client? It still works. Point any MCP client that speaks
+streamable HTTP at `https://mcp.ishlabs.io/mcp` and sign in on first connect.
+This covers clients like [Cline](https://github.com/cline/cline) and
+[Roo Code](https://github.com/RooCodeInc/Roo-Code): add the server with their
+own MCP settings, using the URL above.
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. A trailing slash
+  redirects (HTTP 307) and breaks some clients, ChatGPT among them.
+</Warning>
+
+For the generic steps that work in any client, see
+[Connecting](/mcp/connecting).
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Connecting" icon="link" href="/mcp/connecting">
+    The add mechanism and OAuth, in full.
+  </Card>
+  <Card title="Tool index" icon="list" href="/mcp/generated/index">
+    Every ish MCP tool, grouped by domain.
+  </Card>
+</Columns>

@@ -1,0 +1,410 @@
+---
+title: "ask tools"
+description: "MCP tool reference for the ask domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `ask_delete`
+
+**Tier:** destructive · **Tags:** ask, delete
+
+Permanently delete an ask and all its rounds + responses.
+**DESTRUCTIVE** - irreversible; there is no soft-archive for asks.
+
+**When to use:** typically only when the user explicitly asks to
+remove an ask, or after an ask is confirmed obsolete. Confirm with
+the user before calling.
+
+`ask_id`: UUID or short alias (e.g. ``a-d4e``) of the ask to delete. (No
+confirmation flag - unlike the CLI's ``-y``; confirming is the caller's job.)
+
+**Returns** ``&#123;"deleted": True, "ask_id": &lt;id>}``; on failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
+not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="ask_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `ask_get`
+
+**Tier:** read-only · **Tags:** ask, read
+
+Read asks. Polymorphic - supply exactly one of ``ask_id`` / ``workspace_id``.
+
+- **``workspace_id``** → paginated list of asks in the workspace.
+  ``include_archived`` (default ``False``) controls archived visibility;
+  ``view`` / ``round`` / ``participant_id`` are ignored.
+- **``ask_id``, no ``participant_id``** → results for one ask.
+  ``view="summary"`` (default) returns the projected envelope: per-round
+  ``aggregates`` (``pick_counts``; ``winner`` = &#123;label, variant_id, count,
+  tied, n, confidence}, or &#123;refused, reason, errored, total} when too many
+  responses errored) + ``summary``. Raw responses are flattened once onto the
+  top-level ``responses`` list (each tagged with ``round_index``) - not
+  repeated per round. A lean ``participants`` roster
+  (``&#123;participant_id, person_id, name, persona}`` per participant) maps the
+  ``t-…`` ids on responses to who they are; full persona detail is opt-in via
+  ``person_get``. Top-level ``status`` is derived from the rounds. Asks with
+  2+ rounds also carry ``cross_round_summary`` (a winner-tracking diff:
+  ``&#123;round_count, winner_per_round[], winner_changed, picks_delta,
+  cross_round_variants}``) and, when no round wants a pick,
+  ``cross_round_narrative``. ``view="full"`` returns the typed ``Ask`` (rounds
+  + responses verbatim, no projection).
+- **``ask_id`` + ``participant_id``, ``view="per_participant"``** → one
+  participant's response across every round (``&#123;ask_id, participant_id, name,
+  rounds:[...]}``); rounds with no response land ``response=None``.
+
+Variant ``[[A]]/[[B]]`` labels are stable per variant identity across rounds, so a
+``[[B]]`` means the same variant in every round it appears in; the UUID-keyed
+``cross_round_summary.cross_round_variants`` map is still exposed for resolving a
+variant's per-round labels and counts by id. Concept: ``docs_get("concepts/ask")``.
+
+`ask_id` / `workspace_id`: UUID or short alias; mutually exclusive, exactly
+one required.
+`view`: ``"summary"`` (default) | ``"full"`` | ``"per_participant"``. Ignored
+when listing.
+`round`: 1-indexed round filter for single-ask reads.
+`participant_id`: required when ``view="per_participant"``.
+`include_archived`: include soft-archived asks when listing (default ``False``).
+
+**Returns** ``PaginatedList[Ask]`` (list), ``AskResults`` (summary), ``Ask``
+(full), or ``dict[str, Any]`` (per_participant); on failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found,
+validation_error, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="ask_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="workspace_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="view" type="&quot;summary&quot; | &quot;full&quot; | &quot;per_participant&quot;">
+Default: `"summary"`.
+</ParamField>
+<ParamField body="round" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="participant_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="include_archived" type="boolean">
+Default: `false`.
+</ParamField>
+
+## `ask_people`
+
+**Tier:** long-running · **Tags:** ask, dispatch
+
+Add MORE participants to an existing ask (a WRITE/dispatch verb, not a
+reader). Incrementally expands the audience; the new participants run through
+the specified round (and optionally prior rounds). To READ who's already on an
+ask, use ``ask_get`` (the summary roster), not this.
+
+**Credit cost:** one credit per successful new participant - same model as
+``ask_run`` (``docs_get("reference/credits")``).
+
+`ask_id`: UUID or short alias of the ask.
+`round`: 1-indexed int or round UUID/alias - new participants start there.
+`audience`: ``AudienceFilter`` for the additional participants.
+`backfill_prior_rounds`: ``True`` runs the new participants through prior
+rounds first; ``False`` (default) only the specified round forward.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+
+**Returns** ``Ask``.
+
+### Parameters
+<ParamField body="ask_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="round" type="integer | string" required>
+&nbsp;
+</ParamField>
+<ParamField body="audience" type="object" required>
+Mutually-exclusive ways to pick an audience.
+
+Pass exactly one of:
+  - ``person_ids`` - explicit IDs, returned verbatim.
+  - ``sample`` (with optional filters) - randomly sample N from the pool.
+  - ``all_matching`` (with optional filters) - every match in the pool.
+  - filters only - treated as ``all_matching``.
+
+Always sends ``type=ai`` to the backend (simulations are AI-driven).
+<Expandable title="properties">
+<ParamField body="person_ids" type="string[]">
+Explicit person IDs (UUIDs or ``tp-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+</ParamField>
+<ParamField body="sample" type="integer">
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching profile.
+</ParamField>
+<ParamField body="all_matching" type="boolean">
+Use every profile that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+</ParamField>
+<ParamField body="search" type="string">
+Case-insensitive substring match on the person's name.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Exact match on one of: ``male``, ``female``, ``non-binary``, ``prefer_not_to_say`` (case-insensitive). Multiple values OR-combine. Any other value matches no one.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes, e.g. ``"US"``, ``"AU"``, ``"GB"`` - NOT country names like ``"United States"`` (the pool stores two-letter codes and matches them exactly). Multiple codes OR-combine.
+</ParamField>
+<ParamField body="occupation" type="string[]">
+Free-text, case-insensitive substring match on the person's occupation; multiple values OR-combine. For reliable role targeting prefer ``role_in`` (the canonical role filter).
+</ParamField>
+<ParamField body="role_in" type="string[]">
+Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that expand to many free-text ``occupation`` substrings under the hood - a best-effort convenience over the backend's free-text occupation field. OR-combines with any explicit ``occupation`` filter (the expanded substrings are merged into the occupation dimension). Pass an unknown key to see the full canonical list in the resulting ``[validation_error]``.
+</ParamField>
+<ParamField body="min_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="max_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="visibility" type="string">
+&nbsp;
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="backfill_prior_rounds" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>
+
+## `ask_questions`
+
+**Tier:** long-running · **Tags:** ask, dispatch
+
+Append new follow-up questions to an existing ask round (``round`` is a
+1-indexed int or a round UUID).
+
+**Credit cost:** ``redispatch_all=False`` (default) extends the in-flight
+round at no incremental cost; ``redispatch_all=True`` re-dispatches and bills
+one credit per successful participant (``docs_get("reference/credits")``).
+
+`ask_id`: UUID or short alias of the ask.
+`round`: 1-indexed int or round UUID/alias.
+`questions`: free-text follow-up question strings.
+`redispatch_all`: ``False`` (default) is additive - only the new questions get
+answered, prior responses kept. ``True`` clears phase-1 outputs and re-runs the round.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+
+**Returns** ``Ask``.
+
+### Parameters
+<ParamField body="ask_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="round" type="integer | string" required>
+&nbsp;
+</ParamField>
+<ParamField body="questions" type="string[]" required>
+&nbsp;
+</ParamField>
+<ParamField body="redispatch_all" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>
+
+## `ask_round`
+
+**Tier:** long-running · **Tags:** ask, dispatch
+
+Append a follow-up round to an existing ask. The audience is fixed at
+creation; new rounds inherit it and dispatch immediately.
+
+**Credit cost:** one credit per successful participant per round - same model
+as ``ask_run`` (``docs_get("reference/credits")``).
+
+`ask_id`: UUID or short alias (e.g. ``a-d4e``) of the ask.
+`prompt`, `variants`, `wants_pick`, `wants_ratings`, `questions`: same
+semantics as ``ask_run``. Variant ``[[A]]/[[B]]`` labels are stable per
+variant *identity* across rounds: to carry a variant over from a prior round
+and keep its letter, pass that variant's existing ``id`` (read it from the
+prior round's ``variants[*].id`` or ``cross_round_summary.cross_round_variants``
+keys); omit ``id`` for a brand-new variant and the backend mints one.
+`participant_subset` (optional): drill the new round into one prior-round pick
+bucket - pass ``&#123;"round": 1, "picked_variant_id": "&lt;variant-uuid>"}`` to
+dispatch only to participants who picked that variant (read the id from the
+prior round's ``aggregates.pick_buckets``). Omit to inherit the full audience;
+the backend 422s an unresolvable subset with
+``error_kind="participant_subset_invalid"``.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+
+**Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
+``&#123;auth_failed, forbidden, not_found, validation_error,
+participant_subset_invalid, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="ask_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="prompt" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="variants" type="object[]" required>
+&nbsp;
+</ParamField>
+<ParamField body="wants_pick" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="wants_ratings" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="participant_subset" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="round" type="integer" required>
+1-indexed prior round to filter against. Must be strictly less than the new round's index.
+</ParamField>
+<ParamField body="picked_variant_id" type="string" required>
+The `id` of the variant on the prior round whose pickers should be inherited as the new round's audience. Read this from `aggregates.pick_buckets` or `variants[*].id` on the prior round's `get_ask_results` payload.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>
+
+## `ask_run`
+
+**Tier:** long-running · **Tags:** ask, dispatch
+
+Create an ask + dispatch round 1 in one call.
+
+``wait=False`` (default) returns immediately with a ``next_action``
+pointing at ``ask_get`` to poll round 1; ``wait=True`` blocks until round 1
+is terminal (summary included) or returns the in-flight envelope on
+``timeout``. Round 1 always dispatches - there is no draft/stage primitive.
+
+**Credit cost:** one credit per successfully completed participant per round
+(extra ``questions`` add no cost); pre-flight failures bill nothing; credits
+are subscription-funded, so no per-dispatch approval is needed. Confirm the
+pool via ``workspace_get(...).credits`` - full model in
+``docs_get("reference/credits")``.
+
+Pick an **ask** for "which of these lands?" (one prompt + 0..N variants + a
+small panel, optional follow-up rounds); pick a **study** for "how do people
+experience this end-to-end?" (see ``study_create``). Concept:
+``docs_get("concepts/ask")``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`name`: human-readable ask name.
+`prompt`: the question participants respond to on round 1.
+`variants`: list of ``&#123;type, value, label?, id?}`` (kinds: text, image, video,
+audio, document). Prose references variants as ``[[A]]/[[B]]/[[C]]`` - assigned
+by variant identity, so the letter is stable across rounds; for label fidelity in
+prose, include the label inline in ``value``. ``id`` is normally omitted on round 1
+(the backend mints one); pass an existing variant's ``id`` only to carry it into a
+follow-up round via ``ask_round`` and keep its letter.
+`audience`: ``AudienceFilter`` - explicit ``person_ids``, or ``sample=N`` /
+``all_matching=True`` plus optional demographic + ``role_in`` filters (see
+``AudienceFilter``). Fixed at creation; subsequent rounds inherit it.
+`wants_pick`: requires >=2 variants; asks each participant to pick a favorite.
+`wants_ratings`: requires >=1 variant; collects per-variant ratings.
+`questions`: free-text follow-ups appended to round 1.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+
+**Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
+``&#123;auth_failed, forbidden, not_found, validation_error, empty_audience,
+usage_limit_reached, rate_limited, server_error, network_error,
+http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="prompt" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="variants" type="object[]" required>
+&nbsp;
+</ParamField>
+<ParamField body="audience" type="object" required>
+Mutually-exclusive ways to pick an audience.
+
+Pass exactly one of:
+  - ``person_ids`` - explicit IDs, returned verbatim.
+  - ``sample`` (with optional filters) - randomly sample N from the pool.
+  - ``all_matching`` (with optional filters) - every match in the pool.
+  - filters only - treated as ``all_matching``.
+
+Always sends ``type=ai`` to the backend (simulations are AI-driven).
+<Expandable title="properties">
+<ParamField body="person_ids" type="string[]">
+Explicit person IDs (UUIDs or ``tp-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+</ParamField>
+<ParamField body="sample" type="integer">
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching profile.
+</ParamField>
+<ParamField body="all_matching" type="boolean">
+Use every profile that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+</ParamField>
+<ParamField body="search" type="string">
+Case-insensitive substring match on the person's name.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Exact match on one of: ``male``, ``female``, ``non-binary``, ``prefer_not_to_say`` (case-insensitive). Multiple values OR-combine. Any other value matches no one.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes, e.g. ``"US"``, ``"AU"``, ``"GB"`` - NOT country names like ``"United States"`` (the pool stores two-letter codes and matches them exactly). Multiple codes OR-combine.
+</ParamField>
+<ParamField body="occupation" type="string[]">
+Free-text, case-insensitive substring match on the person's occupation; multiple values OR-combine. For reliable role targeting prefer ``role_in`` (the canonical role filter).
+</ParamField>
+<ParamField body="role_in" type="string[]">
+Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that expand to many free-text ``occupation`` substrings under the hood - a best-effort convenience over the backend's free-text occupation field. OR-combines with any explicit ``occupation`` filter (the expanded substrings are merged into the occupation dimension). Pass an unknown key to see the full canonical list in the resulting ``[validation_error]``.
+</ParamField>
+<ParamField body="min_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="max_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="visibility" type="string">
+&nbsp;
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="wants_pick" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="wants_ratings" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>

@@ -1,0 +1,197 @@
+---
+title: "Lovable"
+description: "Connect Lovable's agent to the hosted ish MCP server, and point a study at a Lovable URL ish can actually reach."
+mode: "how-to"
+---
+
+Wire Lovable's in-editor agent to the hosted ish MCP server so it can call ish
+tools (`study_create`, `study_add_iteration`, `study_run`, and the rest) while you
+build. The server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and
+signs you in over OAuth on first connect, so no token lands in a config file. For the
+full add mechanism and the OAuth handshake, see
+[connect an agent](/start/connect-an-agent).
+
+The one thing that differs for Lovable: ish runs simulated people from the cloud, so
+the study URL must load **without your Lovable session**. The in-editor preview is
+gated to you, so a URL that works in your tab fails silently for ish. Most of this
+page is about getting that URL right.
+
+## Connect
+
+Add the ish server inside Lovable's MCP settings, pointing at the hosted endpoint:
+
+```
+https://mcp.ishlabs.io/mcp
+```
+
+The agent signs in over OAuth on first connect. ish reads the `clientInfo` Lovable
+sends in the MCP handshake, recognizes the `lovable` client, and tailors the URL
+guidance below to Lovable's share and publish paths.
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that some clients will not follow on a POST, leaving the agent
+  with an empty tool list.
+</Warning>
+
+### Confirm the connection
+
+Ask the agent a read-only question. A read confirms the connection without drawing any
+credits:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+The agent calls `workspace_get` and reports your [workspaces](/concepts/workspace)
+back. A brand-new account shows an empty list, which is still a successful connection.
+
+<Check>
+  The agent returns a workspace list (or an explicit empty list) instead of "no ish
+  tools available". That means the OAuth sign-in landed and the tools are live.
+</Check>
+
+## Point a study at a reachable URL
+
+When you create an [interactive iteration](/concepts/iteration) against a Lovable URL,
+ish has to load that URL from a cloud browser that does not carry your Lovable session.
+The trap: a Lovable preview URL is a public hostname, so it passes ish's
+localhost check, yet still shows a login wall to anyone but you. Pick the link type
+that loads without your session.
+
+| Lovable URL | Reachable for ish? | Use it |
+|---|---|---|
+| In-editor preview (`id-preview--…`, no token) | No, gated to your session | Share or publish first |
+| Share preview link (carries the access token) | Yes, until the token expires (~7 days) | Good for a quick run |
+| Published site (`<slug>.lovable.app`) | Yes, permanently public | Best for a study you reuse |
+
+<Steps>
+  <Step title="Get a public link in Lovable">
+    Open **Share** and pick **Share preview** for a public preview link, or **Publish**
+    and use the published `<slug>.lovable.app` URL. The published URL is permanent; the
+    share-preview link carries a signed access token that expires in about seven days.
+  </Step>
+  <Step title="Create the iteration against that URL">
+    Tell the agent to add an interactive iteration pointed at the link. Under the hood
+    it calls `study_add_iteration` with `platform="browser"` and the public `url`. You
+    set this once per study; later runs reuse the same iteration.
+
+    <CodeGroup>
+    ```text Ask Lovable
+    Create an interactive study for my workspace and add an iteration pointed at
+    https://my-app.lovable.app, then run it for five people.
+    ```
+
+    ```json study_add_iteration args
+    {
+      "study_id": "s-b2c",
+      "name": "Published build",
+      "modality": "interactive",
+      "platform": "browser",
+      "url": "https://my-app.lovable.app"
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Read the reactions">
+    After `study_run` completes, ask the agent for the summary. `study_get` with
+    `view="summary"` returns the journey: what people noticed, where they got stuck, and
+    the reasoning behind each reaction. You get a narrative, not a single score.
+  </Step>
+</Steps>
+
+### What ish tells the agent
+
+ish steers the agent for you. When the iteration's URL is a Lovable host, the
+`study_add_iteration` response carries a `notes` hint resolved from the link itself:
+
+<AccordionGroup>
+  <Accordion title="A bare in-editor or share preview with no access token" icon="triangle-exclamation">
+    ish returns the gated-URL hint: the in-editor preview is login-gated and will fail
+    silently, so open **Share → Share preview** for a public preview link (stays live
+    about seven days), or **Publish** and use the published URL.
+  </Accordion>
+  <Accordion title="A share-preview link that carries the access token" icon="clock">
+    ish confirms the link is reachable now, because the token works without your
+    session, and notes that Lovable preview and share tokens expire in about seven days.
+    If a later run cannot load the page, regenerate the link or publish for a permanent
+    URL.
+  </Accordion>
+  <Accordion title="A published site URL" icon="circle-check">
+    A published `<slug>.lovable.app` URL is permanently public, so ish returns no
+    reachability warning. The study just runs.
+  </Accordion>
+</AccordionGroup>
+
+## When the page needs a login you cannot remove
+
+If the part of the app under test sits behind a real sign-in that you cannot publish
+around, register the access once on the workspace instead of fighting the gate. Then
+every interactive study you point at that origin reuses it.
+
+<CodeGroup>
+
+```text Ask Lovable
+Register a session cookie for my staging origin so ish can load the gated page, then
+run the study.
+```
+
+```python site_access_set
+site_access_set(workspace_id="w-6ec", method="cookie",
+                name="session", value="abc123")
+```
+
+</CodeGroup>
+
+ish can sign in three ways: HTTP basic auth, a session cookie, or a login form the
+participant fills in. See [site access](/concepts/site-access) for which method matches
+your gate and how an origin gets bound.
+
+## Share the results
+
+Lovable's agent can create and run studies, but it cannot mint a public results link.
+Sharing is a [CLI](/cli/overview) action: `ish study share` returns a public, no-login
+`share_url` to paste into an email or hand to a stakeholder. See
+[sharing results](/concepts/sharing) for the lifecycle and what a viewer sees.
+
+<Note>
+  A share link points at one study's results. The Lovable URL above points at the app
+  the simulation experiences. Two different links for two different jobs.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The agent reports no ish tools" icon="plug">
+    The OAuth step did not complete. Reconnect the ish server in Lovable's MCP settings,
+    approve the sign-in in your browser, then ask again. Confirm the URL has no trailing
+    slash.
+  </Accordion>
+  <Accordion title="Every simulated person bounces off a login wall" icon="lock">
+    The study is pointed at a gated URL. The in-editor preview loads only with your
+    session. Switch the iteration to a Share preview link or a published
+    `<slug>.lovable.app` URL, or register a login with `site_access_set`.
+  </Accordion>
+  <Accordion title="A run that worked last week fails now" icon="clock">
+    A Lovable share-preview token expires in about seven days. Regenerate the link in
+    **Share → Share preview** and update the iteration's URL, or publish the site for a
+    permanent URL that never expires.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">
+    Every parameter for `study_create`, `study_add_iteration`, and `study_run`.
+  </Card>
+  <Card title="Site access" icon="lock" href="/concepts/site-access">
+    Reach a gated URL with basic auth, a cookie, or a login form.
+  </Card>
+  <Card title="Sharing results" icon="share" href="/concepts/sharing">
+    Mint a public, no-login link to a study's results from the CLI.
+  </Card>
+  <Card title="Other clients" icon="grid-2" href="/integrations">
+    Wire Replit, Bolt, v0, Claude Code, and more.
+  </Card>
+</Columns>

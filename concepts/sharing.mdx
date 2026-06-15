@@ -1,0 +1,119 @@
+---
+title: Sharing results
+description: How public, no-login links let anyone open a study's results in a browser, and what they see.
+mode: explanation
+---
+
+A share link is a public URL to one study's results. Anyone with the link opens it in a browser, with no ish account, and reads the run as a stakeholder would. This is how you hand a study to someone outside your workspace: a prospect, a manager, a teammate without a seat.
+
+The audience is simulated, but a share link is the literal record of a run. It shows what the simulated people noticed, where they got stuck, and what they would do next.
+
+## What a link points at
+
+A link is scoped to one [study](/concepts/study), not your whole workspace. It opens a read-only mirror of the same result surfaces you see signed in:
+
+<Columns cols={2}>
+  <Card title="Overview" icon="chart-simple">
+    The run summary and the findings from the analysis.
+  </Card>
+  <Card title="Journeys" icon="route">
+    Each simulated person's reported journey, with the reasoning behind every reaction.
+  </Card>
+  <Card title="Frames" icon="image">
+    The interactive frames captured during the run.
+  </Card>
+  <Card title="Segments" icon="layer-group">
+    Per-segment breakdowns for media studies.
+  </Card>
+  <Card title="Timeline" icon="timeline">
+    The run as an ordered sequence of moments.
+  </Card>
+  <Card title="Participants" icon="users">
+    The simulated people behind the run, read-only.
+  </Card>
+</Columns>
+
+The viewer is read-only. A visitor can open a study, switch [iterations](/concepts/iteration), and read every result surface, but cannot edit the study, start a run, or reach anything else in your workspace.
+
+See [reactions and results](/concepts/reactions-and-results) for what each surface holds.
+
+## Who can open a link
+
+The link itself carries the grant: holding the URL is the access. There is no per-viewer login or invite. That is the point. It is also the constraint, so treat the URL like a secret.
+
+A visitor without an ish account reads the results, then sees a prompt to sign up and request access to the workspace. Signing up is never required to read what you shared.
+
+<Warning>
+Anyone with the link can view the study's results without logging in. Send it deliberately, and revoke it when the audience changes.
+</Warning>
+
+## Creating and revoking a link
+
+Share and revoke a study from the [CLI](/cli/overview). Create returns the public `share_url`. Print and send that URL verbatim. The link is hosted on the web app, on a different host than the API, so the CLI never rebuilds it.
+
+<CodeGroup>
+
+```bash Share the active study
+ish study share
+```
+
+```bash Share a specific study
+ish study share s-b2c
+```
+
+```bash Auto-expire in 30 days
+ish study share s-b2c --expires 30
+```
+
+```bash List every link you created
+ish study share --list
+```
+
+```bash Revoke a link
+ish study unshare <token>
+```
+
+</CodeGroup>
+
+In human mode, `ish study share` prints the `share_url` to stdout (it is the deliverable, a URL to paste into an email) and the token, expiry, and revoke hint to stderr. In `--json` mode it returns the full envelope: `{ id, token, share_url, expires_at, created_at }`.
+
+A few details that hold across both:
+
+- `--expires` takes a positive integer of days. Without it a link never expires.
+- `--list` returns one row per link you created, across every study, as `{ token, study, expires_at, is_revoked }`. Only create returns `share_url`. List does not rebuild it.
+- `ish study unshare` takes the raw token, never a study ID or alias. List the tokens with `ish study share --list`. Once revoked, the public URL stops working immediately.
+
+For the full flags and JSON shapes, see [`study share` and `study unshare`](/cli/generated/study-extras).
+
+<Note>
+Sharing is a [CLI](/cli/overview) action. There is no MCP tool for it, so an agent connected over [MCP](/mcp/overview) cannot mint a public link. You can also create and revoke links from the web app's share dialog.
+</Note>
+
+## Make the link worth opening
+
+The viewer is only as good as the run behind it. Before you send a link:
+
+<Steps>
+  <Step title="Run the study with enough participants">
+    Analysis needs at least five completed participants. See [run vs ask](/concepts/run-vs-ask) for how a run produces results.
+  </Step>
+  <Step title="Generate the analysis">
+    Run `ish study analyze` so the overview summary and findings render, not an empty shell. Both `study run` and `study analyze` draw credits, so pass `-y` in a non-interactive context.
+  </Step>
+  <Step title="Label every segment">
+    For media studies, label each [segment](/concepts/iteration) so the per-segment breakdown reads cleanly.
+  </Step>
+  <Step title="Add a workspace logo, optionally">
+    A [workspace](/concepts/workspace) logo brands the shared link.
+  </Step>
+</Steps>
+
+## Lifecycle
+
+A link has two ends: the expiry you set at creation, and the revoke you run by hand.
+
+- A link with no `--expires` stays live until you revoke it.
+- A link with `--expires N` stops working `N` days after creation.
+- `ish study unshare <token>` revokes a link before it expires. The URL stops working immediately, for everyone.
+
+Revoking a link does not touch the study or its results. It only closes the public door. You can share the same study again, which mints a fresh token and a new URL.

@@ -1,0 +1,14 @@
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ command-helpers.ts exit-code map (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+| Code | Meaning |
+| --- | --- |
+| 0 | Success. |
+| 1 | General error (including billing 403: out of credits or usage limit). |
+| 2 | Usage or validation error (bad flags, missing arguments). |
+| 3 | Authentication failure (no or invalid token). |
+| 4 | Not found (the workspace, study, or other entity does not exist). |
+| 5 | Transient error, safe to retry. |
+
+In `--json` mode, errors carry a structured envelope: `error`, `error_code`, `retryable`, and often `suggestions`, `error_kind`, and an `example` invocation that fixes the call.

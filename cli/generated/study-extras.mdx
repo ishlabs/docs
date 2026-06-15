@@ -1,0 +1,158 @@
+---
+title: "Study sub-verbs"
+description: "Command reference: ish Study sub-verbs."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish study participant`
+
+Inspect or manage participants (low-level; usually created via `study run`)
+
+Usage: `ish study participant [id] [options]`
+
+### Arguments
+<ParamField path="id">Participant ID - pass directly to view participant details and results (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the participant)</ParamField>
+<ParamField path="--summary" type="boolean">Lean projection: alias + status + sentiment + comment + error_message. Drops the action timeline / interactions array.</ParamField>
+
+## `ish study participant create`
+
+Create a participant (low-level)
+
+Usage: `ish study participant create [options]`
+
+### Options
+<ParamField path="--iteration <id>" type="string">Iteration ID (or use --study to pick the latest iteration on a study)</ParamField>
+<ParamField path="--study <id>" type="string">Study ID; resolves to the latest iteration on that study (alternative to --iteration)</ParamField>
+<ParamField path="--person <id>" type="string">Participant profile ID Required.</ParamField>
+<ParamField path="--language <lang>" type="string">Language code (e.g. en, sv)</ParamField>
+<ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code)</ParamField>
+<ParamField path="--participant-type <type>" type="string">Participant type (ai, human) Default: "ai".</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study participant batch-create`
+
+Create multiple participants (low-level)
+
+Usage: `ish study participant batch-create [options]`
+
+### Options
+<ParamField path="--iteration <id>" type="string">Iteration ID Required.</ParamField>
+<ParamField path="--file <path>" type="string">JSON file with participants array (alternative to --persons)</ParamField>
+<ParamField path="--persons <ids>" type="string">Comma-separated profile IDs/aliases; shortcut for --file with one participant per profile (mutually exclusive with --file)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study participant delete`
+
+Delete a participant
+
+Usage: `ish study participant delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Participant ID (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study analyze`
+
+Trigger an AI summary + key-insights analysis for a study. First analysis per study is included; subsequent runs draw 10 credits.
+
+Usage: `ish study analyze [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--wait" type="boolean">Poll until the run reaches completed or failed</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300; only with --wait)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+
+## `ish study insights`
+
+Read AI-generated insights from prior `ish study analyze` runs (newest first).
+
+Usage: `ish study insights [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--all" type="boolean">Show every prior run as a compact table (default: latest only)</ParamField>
+<ParamField path="--result <id>" type="string">Fetch a specific result by id rather than the latest</ParamField>
+
+## `ish study screenshots`
+
+List or download screenshots produced by an interactive study run.
+
+Usage: `ish study screenshots`
+
+## `ish study screenshots list`
+
+List screenshots for a study (frame-grouped).
+
+Usage: `ish study screenshots list [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+
+## `ish study screenshots download`
+
+Download screenshot bytes to disk. Pass --id for one, or --all for every screenshot on the study.
+
+Usage: `ish study screenshots download [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--id <screenshot-id>" type="string">Single screenshot ID (mutually exclusive with --all).</ParamField>
+<ParamField path="--all" type="boolean">Download every screenshot on the study into --out (treated as a directory).</ParamField>
+<ParamField path="--out <path>" type="string">Output path. With --id: a file path (defaults to ./&lt;screenshot-id&gt;.&lt;ext&gt;). With --all: a directory (defaults to ./screenshots/).</ParamField>
+
+## `ish study share`
+
+Create a public, no-login link to a study's results (summary, frames, journeys, segments). Anyone with the link can view it - share with prospects.
+
+Usage: `ish study share [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--expires <days>" type="string">Link expires after N days (default: never)</ParamField>
+<ParamField path="--list" type="boolean">List all your study share links instead of creating one</ParamField>
+
+## `ish study unshare`
+
+Revoke a study share link by its token. The public URL stops working immediately.
+
+Usage: `ish study unshare <token> [options]`
+
+### Arguments
+<ParamField path="token">Share link token (from `ish study share` or `ish study share --list`) (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the confirmation prompt</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

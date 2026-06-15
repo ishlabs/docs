@@ -1,0 +1,25 @@
+---
+title: "Resources"
+description: "Every ish:// MCP resource and URI template."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+Resources are read via the MCP `read_resource` call. Some clients (ChatGPT)
+do not read resources; the `docs_get` tool mirrors the docs resources for them.
+
+| URI | Returns | Description |
+| --- | --- | --- |
+| `ish://docs` | application/json | Index of every Ish concept, reference, and guide doc. Returns JSON [&#123;slug, title, description}, ...]; fetch any page by reading ish://docs/&lt;slug>. |
+| `ish://identity/me` | application/json | Currently-authenticated user, decoded from the validated JWT. Returns JSON &#123;user_id, email, role}. role is either 'admin' or 'user'. Use this once at session start to confirm whose workspaces the agent is acting on. |
+| `ish://docs/{slug*}` | text/markdown | Markdown body of one Ish doc page. Slugs use forward-slashes (e.g. 'overview', 'concepts/study', 'reference/aliases'). List every available slug via the ish://docs index resource. |
+| `ish://reference/content-types/{modality}` | application/json | Legal content_type values for a study modality. Returns JSON &#123;modality, values: [...]}. Read before study_create when the modality is video / image / document / audio / text; interactive and chat return an empty list. |
+| `ish://study/{study_id}/screenshots` | application/json | JSON index of every screenshot on a study, grouped by frame. Each screenshot entry carries a `resource_uri` (`ish://study/&lt;sid>/screenshot/&lt;scid>`) - read that to fetch the image bytes. Use this before pulling individual screenshots so the agent can pick representative frames rather than reading every one. |
+| `ish://study/{study_id}/transcripts` | application/json | JSON list of flattened chat transcripts for a chat study - one per completed participant on external-chatbot iterations, or one per conversation on participant-pair iterations. Same shape as `study_get(view='transcripts')`. Errors on non-chat studies (no transcripts to surface). |
+| `ish://study/{study_id}/screenshot/{screenshot_id}` | image/png | Image bytes for one screenshot on a study. The server resolves the screenshot's storage URL (Supabase Storage) and streams the body back as a base64-encoded BlobResourceContents with the upstream mime type. Discover screenshot ids via the ish://study/&lt;study_id>/screenshots index. |
+| `ish://iteration/{iteration_id}/media` | application/json | JSON index of the media URLs on an iteration: content_url (video/audio/document), image_urls (image), and featured_image_url (text). Each item carries a `resource_uri` (`ish://iteration/&lt;id>/media/&lt;kind>/&lt;index>`) the agent can read to fetch the bytes. |
+| `ish://iteration/{iteration_id}/media/{kind}/{index}` | application/octet-stream | Bytes for one media item on an iteration. `kind` is one of `content` (video/audio/document content_url, index always 0), `image` (one entry of image_urls, indexed from 0), or `featured_image` (text iteration's featured_image_url, index always 0). Discover the available items via the ish://iteration/&lt;id>/media index. |
+| `ish://workspace/{workspace_id}/secrets` | application/json | Metadata for every secret registered on a workspace (keys, scope, variable_type, timestamps). Values are never returned. Read this before pointing a chatbot endpoint header at &#123;&#123;secret:KEY}} to confirm the key exists. Secret writes happen via the ish CLI (`ish secret set`). |

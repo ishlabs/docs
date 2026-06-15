@@ -1,0 +1,164 @@
+---
+title: "workspace"
+description: "Command reference: ish workspace."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ workspace (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish workspace list`
+
+List all workspaces
+
+Usage: `ish workspace list`
+
+## `ish workspace create`
+
+Create a new workspace (or reuse an existing one with --ensure)
+
+Usage: `ish workspace create [options]`
+
+### Options
+<ParamField path="--name <name>" type="string">Workspace name Required.</ParamField>
+<ParamField path="--description <description>" type="string">Workspace description</ParamField>
+<ParamField path="--base-url <url>" type="string">Default base URL</ParamField>
+<ParamField path="--ensure" type="boolean">Idempotent: if a workspace with this exact name already exists in the caller's account, return it instead of creating. Useful on saturated accounts where create would 402/usage_limit_reached.</ParamField>
+
+## `ish workspace get`
+
+Get workspace details
+
+Usage: `ish workspace get <id>`
+
+### Arguments
+<ParamField path="id">Workspace ID (required)</ParamField>
+
+## `ish workspace update`
+
+Update a workspace
+
+Usage: `ish workspace update <id> [options]`
+
+### Arguments
+<ParamField path="id">Workspace ID (required)</ParamField>
+
+### Options
+<ParamField path="--name <name>" type="string">Workspace name</ParamField>
+<ParamField path="--description <description>" type="string">Workspace description</ParamField>
+<ParamField path="--base-url <url>" type="string">Default base URL</ParamField>
+<ParamField path="--logo <url>" type="string">Brand logo image URL (shown on the workspace and on shared study links)</ParamField>
+
+## `ish workspace delete`
+
+Delete a workspace (and ALL nested studies, asks, people, secrets, configs, sources, chat endpoints)
+
+Usage: `ish workspace delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Workspace ID (required)</ParamField>
+
+### Options
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+
+## `ish workspace site-access`
+
+Manage credentials for gated test sites (basic auth, session cookie, login form)
+
+Usage: `ish workspace site-access`
+
+## `ish workspace site-access status`
+
+Show which site-access methods are configured
+
+Usage: `ish workspace site-access status [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access basic-auth`
+
+Set HTTP basic auth credentials
+
+Usage: `ish workspace site-access basic-auth [options]`
+
+### Options
+<ParamField path="--username <u>" type="string">Username (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--password <p>" type="string">Password (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--origin <url>" type="string">Origin to bind credentials to; defaults to workspace base_url</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access cookie`
+
+Set a session cookie for sites that gate on a token (Vercel preview, Lovable, etc.)
+
+Usage: `ish workspace site-access cookie [options]`
+
+### Options
+<ParamField path="--name <n>" type="string">Cookie name Required.</ParamField>
+<ParamField path="--value <v>" type="string">Cookie value (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--origin <url>" type="string">Origin to bind cookie to; defaults to workspace base_url</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access login`
+
+Set login form credentials a participant will type into the site
+
+Usage: `ish workspace site-access login [options]`
+
+### Options
+<ParamField path="--username <u>" type="string">Username (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--password <p>" type="string">Password (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access affirm-public`
+
+Mark the site as not requiring credentials
+
+Usage: `ish workspace site-access affirm-public [options]`
+
+### Options
+<ParamField path="--origin <url>" type="string">Origin to mark public; defaults to workspace base_url</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access clear`
+
+Clear configured site-access credentials
+
+Usage: `ish workspace site-access clear <method> [options]`
+
+### Arguments
+<ParamField path="method">basic-auth | cookie | login | public | all (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace info`
+
+Show workspace details + plan-limit usage counters
+
+Usage: `ish workspace info [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace use`
+
+Set the active workspace (saved to ~/.ish/config.json)
+
+Usage: `ish workspace use [id] [options]`
+
+### Arguments
+<ParamField path="id">Workspace alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--clear" type="boolean">Remove the active workspace from config</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

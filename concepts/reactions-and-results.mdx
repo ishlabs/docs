@@ -1,0 +1,204 @@
+---
+title: "Reactions and results"
+description: "What a run produces: a reported journey of transcripts, signals, and the reasoning behind them, not a score."
+mode: "explanation"
+---
+
+A run does not return a grade. It returns a reported journey. Each simulated
+person experiences the iteration you pointed them at, and reports back what they
+noticed, where they got stuck, what felt good, and what they would do next.
+ish records that as text, signals, and (for interactive runs) screenshots, and
+every signal carries the reasoning behind it.
+
+This page is the mental model for that output: where it comes from, the layers
+it has, and why there is no single number at the top.
+
+## A run is a panel of participants
+
+[`ish study run`](/cli/generated/study-run) dispatches a panel against one
+[iteration](/concepts/iteration) of a [study](/concepts/study). Each
+[simulated person](/concepts/people) becomes a participant: one persona's run
+against that iteration. A participant walks a lifecycle of
+`draft` to `pending` to `running` to a terminal state of `completed`, `failed`,
+or `cancelled`. Results accrue per participant, so a study with 80 participants
+holds 80 separate reported journeys, plus the aggregates across them.
+
+There is no separate "results" object to fetch. You read the study, and the
+[`study_get`](/mcp/generated/tools-study) `view` (or the
+[`ish study results`](/cli/generated/study-results) flags) decides how much of
+each journey you see.
+
+<Note>
+`completed_count > 0` is the honest "this study has finished data" check.
+A study's `status` is the authoring lifecycle field; it can read `draft` while
+36 participants have already completed.
+</Note>
+
+## The layers of a reported journey
+
+The output is the same shape under both surfaces. Think of it as four layers,
+from the widest read down to the verbatim source.
+
+<Columns cols={2}>
+  <Card title="Aggregate" icon="layer-group">
+    Counts and a sentiment histogram across the whole panel. One read tells you
+    how many ran, how many completed, and the spread of how it landed.
+  </Card>
+  <Card title="Per participant" icon="user">
+    One row per participant: status, a session sentiment label and valence, and
+    a synthesized highlight. Enough to triage who to drill into.
+  </Card>
+  <Card title="The journey" icon="footprints">
+    One participant's full run: their interactions in order, what they did at
+    each step, the verbatim think-aloud, and the post-task retrospective.
+  </Card>
+  <Card title="Clips" icon="image">
+    The captured surface. For interactive runs, the screenshots each participant
+    reached, grouped by frame. For chat, the flattened transcript turns.
+  </Card>
+</Columns>
+
+### Aggregate
+
+The default read returns the aggregate plus a thin per-participant list. It
+carries `participant_count`, `completed_count`, `failed_count`, and a
+`sentiment` histogram (sentiment label to count) computed from completed
+participants only. A `partial` flag marks when more sentiment may still come in
+because a participant is non-terminal or failed.
+
+This is the widest view, and it is still not a score. A histogram of
+`{Satisfied: 9, Frustrated: 3}` tells you the spread; it does not collapse the
+run to one number, and the reasoning behind each of those labels lives one layer
+down.
+
+<CodeGroup>
+```bash CLI
+ish study results s-b2c --summary
+```
+
+```text MCP
+study_get(study_id="s-b2c", view="summary")
+```
+</CodeGroup>
+
+### Per participant
+
+The summary's per-participant rows carry identity, run `status`, an optional
+`error_message`, a session `sentiment_label` and `sentiment_valence`, and a
+`summary_highlight`.
+
+The highlight is synthesized, often with bold evidence phrases. It is not a
+verbatim quote. Treat it as a pointer that tells you which participant is worth
+opening, not as something to cite as a participant's words.
+
+### The journey
+
+Drill into one participant to read the journey itself. This view returns that
+participant's `interactions[]` in order, each carrying the action taken, a
+per-interaction sentiment, and the verbatim `comment` (the in-flight
+think-aloud). The post-task retrospective lives on `participant_summary.comment`.
+These two are the real source quotes; the highlight above is a synthesis of them.
+
+For studies with [assignments](/concepts/assignment-questionnaire), each participant's
+`participant_assignments[]` carry the parent task inline, and any graded steps
+roll up as `step_results[]`: a per-step verdict (passed, failed, inconclusive)
+with the reason behind it. That is where completion stops being a count and
+becomes "who got through this step, and why the others did not."
+
+<CodeGroup>
+```bash CLI
+ish study results s-b2c --participant pt-d4e
+```
+
+```text MCP
+study_get(study_id="s-b2c", view="per_participant", participant_id="t-d4e")
+```
+</CodeGroup>
+
+### Clips
+
+The captured surface depends on the modality.
+
+- **Interactive** runs capture screenshots of the frames each participant
+  reached. The summary names a `screenshots_resource` URI; read the
+  [screenshots index](/mcp/generated/resources) to pick representative frames,
+  then read individual screenshot URIs for the image bytes. The CLI mirror is
+  [`ish study screenshots`](/cli/generated/study-extras).
+- **Chat** runs flatten into transcripts: paired bot and participant turns with
+  a per-turn sentiment and the action type behind each turn. Read them with
+  `view="transcripts"` or the `transcripts_resource` URI.
+
+## Signals carry their reasoning
+
+ish surfaces signals: sentiment (a label plus a numeric valence), engagement,
+step verdicts, completion. None of them stand alone. Every signal is anchored to
+the text that produced it.
+
+A `Frustrated` label is not the finding. The finding is the participant saying
+the pricing toggle did not update the total, and the `Frustrated` label is how
+ish indexes that moment so you can filter to it. You can
+[slice results](/mcp/generated/tools-study) by sentiment, frame, segment, turn,
+assignment, or step, but the slice always carries `sample_comments` and the
+per-participant drill always carries the verbatim `comment`. The trail back to
+the source quote is never cut.
+
+This is why the output reads as findings and reactions: it is the narrative
+record of what each (approximate) person experienced, with the evidence
+attached, rather than a dashboard number.
+
+<Tip>
+The sentiment histogram is computed from completed participants only. When you
+filter by sentiment, runs that failed for infrastructure reasons are excluded by
+default, so their `BrowserComputer not initialized`-style labels do not pollute
+the read. That is a deliberate guard, not a silent drop.
+</Tip>
+
+## Findings are not the same as analysis
+
+Everything above is the raw record: the journeys, the signals, the quotes. It is
+present the moment participants complete, with no extra step.
+
+[Analysis](/cli/generated/study-extras) is a separate, optional pass.
+`ish study analyze` (MCP: `study_analyze`) synthesizes the panel into one
+narrative summary plus a categorized list of key findings, each tagged as
+`friction`, `confusion`, `blocker`, `observation`, or `positive`, and each tied
+to the participants and interactions it came from. Read prior analysis runs with
+[`ish study insights`](/cli/generated/study-extras) (MCP:
+`study_get(view="insights")`).
+
+Two things to keep straight:
+
+<AccordionGroup>
+  <Accordion title="Analysis is derived, the journeys are the source">
+    The summary and key findings are a synthesis over the raw journeys. When you
+    need to know exactly what a participant said, the per-participant `comment`
+    is the source of truth, not the synthesized summary or the findings list.
+  </Accordion>
+  <Accordion title="Analysis has prerequisites and a cost">
+    Analysis runs on `interactive`, `video`, `audio`, `text`, `image`, and
+    `document` studies (chat is ineligible) and needs a minimum number of
+    completions. The first analysis per study is included; each subsequent run
+    draws 10 credits from the workspace pool. See
+    [credits](/concepts/credits-and-limits) for the model.
+  </Accordion>
+</AccordionGroup>
+
+The literal command name is `ish study insights`. The output it returns is
+findings: a categorized, evidence-linked record, not a score.
+
+## Why there is no score
+
+ish is honest about approximation. A simulated person is close enough to make a
+better decision, not a precise prediction, so reducing a panel to one grade
+would overclaim what the run can tell you. The value is the reasoning: you see
+why the checkout stalled, in the participant's own words, anchored to the frame
+where it happened. That is what a number throws away.
+
+<Columns cols={2}>
+  <Card title="Run a study" icon="play" href="/cli/generated/study-run">
+    Dispatch a panel and produce the journeys.
+  </Card>
+  <Card title="Read the views" icon="table-list" href="/mcp/generated/tools-study">
+    Every `study_get` view and the slicing filters in full.
+  </Card>
+</Columns>

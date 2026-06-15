@@ -1,0 +1,161 @@
+---
+title: Authentication
+description: How the ish CLI resolves a token, where credentials are stored, and the login, logout, and status commands.
+mode: "reference"
+---
+
+The CLI authenticates every API call with a bearer token. It resolves that token from one of five sources, in a fixed order, and persists browser-login credentials to a config file under `~/.ish`.
+
+## Token resolution order
+
+Every command resolves a token before it calls the API. The first source that produces a token wins.
+
+| # | Source | How it is supplied |
+|---|---|---|
+| 1 | `--token <token>` | Global flag on any command. |
+| 2 | `--token-file <path>` | Global flag. The file is read and trimmed; an empty file is an error. Prefer this over `--token` so the token is not visible in shell history or the process list. |
+| 3 | `ISH_TOKEN` | Environment variable. |
+| 4 | Saved OAuth session | `access_token` plus `refresh_token` in `~/.ish/config.json`, written by `ish login`. A stale access token is refreshed automatically (see [token refresh](#token-refresh)). |
+| 5 | Legacy token | A single `token` value in `~/.ish/config.json`, pasted by hand on older setups. No refresh. |
+
+If none produce a token, the command fails with:
+
+```
+No auth token found. Run "ish login", set ISH_TOKEN, or pass --token <token> / --token-file <path>.
+```
+
+<Note>
+`--token` and `--token-file` are global flags, documented with the other globals on every generated command page. See [`ish session`](/cli/generated/session) and any command's global-flags table.
+</Note>
+
+## Token refresh
+
+The saved OAuth session (source 4) holds an `access_token`, a `refresh_token`, and the `oauth_client_id` minted at login. When a command runs and the access token is expired or within five minutes of expiry, the CLI refreshes it against Supabase, saves the rotated pair back to `~/.ish/config.json`, and continues. The refresh token rotates on each use, so a session persists with regular use without a re-login.
+
+Refresh outcomes:
+
+- **Success.** The command proceeds with the new access token.
+- **Network failure during refresh.** The command fails with `Could not refresh session (network error). Check your connection or run "ish login".` Tokens are left intact.
+- **Permanent failure** (Supabase 4xx, such as `refresh_token_not_found` or `invalid_grant`). The dead `access_token`, `refresh_token`, and legacy `token` fields are cleared from the config so the next run does not retry the doomed refresh. The command fails with `Session expired. Run "ish login" to re-authenticate.` Add `--verbose` to append the raw Supabase response.
+
+A resolved token (sources 4 and 5) is verified against the API before use. If the API rejects it, the command fails with `Saved token is invalid. Run "ish login" to re-authenticate.` A dev or prod environment mismatch (a token minted by one Supabase project but presented to the other API) appends a hint explaining which side to change.
+
+<Note>
+Auth failures exit with code `3` and carry `error_code: "auth_failed"` in JSON output. Branch on either to re-prompt for login. A billing or quota wall arrives as HTTP 403 but exits `1`, not `3`, so a login retry loop never triggers on a credit cap.
+</Note>
+
+## Commands
+
+### `ish login`
+
+Open the browser, sign in, and save the resulting OAuth session to `~/.ish/config.json`.
+
+```bash
+ish login
+```
+
+`login` always runs the full browser flow and re-authenticates. There is no "already logged in" short-circuit; that check is `ish status`. A routine token refresh does not go through `login`. Each login mints a fresh OAuth client.
+
+### `ish logout`
+
+Remove saved credentials and clear the active context.
+
+```bash
+ish logout
+```
+
+`logout` deletes `access_token`, `refresh_token`, the legacy `token`, and `oauth_client_id`, and it also clears the active [workspace](/concepts/workspace), [study](/concepts/study), ask, and chat-endpoint selections. Those selections are identity-scoped, so they are meaningless to the next account that signs in.
+
+### `ish status`
+
+Show the active session: signed-in user, active workspace, study, ask, chat endpoint, installed skill, config home, and API URL. Aliased as `ish whoami`.
+
+```bash
+ish status
+```
+
+`status` is the first command to run when starting cold. It does not error when no token is present: it returns `user: null` with a hint instead of exiting, so it is safe to run pre-login. JSON output is safe to pipe.
+
+For the full command list and flags, see the generated reference: [`ish session`](/cli/generated/session).
+
+## Config file
+
+Saved credentials and the active context live in a single JSON file.
+
+- **Path.** `~/.ish/config.json`.
+- **Permissions.** The CLI creates the `~/.ish` directory with mode `0700` and writes the config file with mode `0600`. Writes are atomic (temp file plus rename).
+- **A corrupted file is ignored.** The CLI treats an unparsable config as empty rather than failing.
+
+Fields the CLI reads and writes:
+
+<ParamField path="access_token" type="string">
+OAuth access token from the last `ish login`. Auto-refreshed when stale.
+</ParamField>
+
+<ParamField path="refresh_token" type="string">
+OAuth refresh token. Rotates on each refresh.
+</ParamField>
+
+<ParamField path="oauth_client_id" type="string">
+OAuth client id minted at login. Required to refresh the OAuth session.
+</ParamField>
+
+<ParamField path="token" type="string">
+Legacy single token pasted by hand. No refresh. Absent on OAuth setups.
+</ParamField>
+
+<ParamField path="workspace" type="string">
+Active [workspace](/concepts/workspace) id, set by `ish workspace use`.
+</ParamField>
+
+<ParamField path="study" type="string">
+Active [study](/concepts/study) id, set by `ish study use`.
+</ParamField>
+
+<ParamField path="ask" type="string">
+Active ask id.
+</ParamField>
+
+<ParamField path="chat_endpoint" type="string">
+Active chatbot endpoint id, set by `ish chat endpoint use`.
+</ParamField>
+
+## ISH_HOME
+
+By default the CLI stores everything under `~/.ish`. Set `ISH_HOME` to relocate that root, the same way `gh` uses `GH_CONFIG_DIR` and `aws` uses `AWS_CONFIG_FILE`. When `ISH_HOME` is set, `config.json`, `aliases.json`, the downloaded binary, browsers, and simulation artifacts all live under it.
+
+```bash
+ISH_HOME=/path/to/state ish status
+```
+
+`ish status` prints the resolved home directory in its `home` field, so you can confirm which root is in effect.
+
+## Environment variables
+
+<ParamField path="ISH_TOKEN" type="string">
+Auth token (token-resolution source 3). Overridden by `--token` and `--token-file`.
+</ParamField>
+
+<ParamField path="ISH_HOME" type="string">
+Override the `~/.ish` state root for config, aliases, and cached binaries.
+</ParamField>
+
+<ParamField path="ISH_API_URL" type="string">
+Override the backend API base. Default `https://api.ishlabs.io`.
+</ParamField>
+
+<ParamField path="ISH_APP_URL" type="string">
+Override the web app URL used in the browser login flow. Default `https://app.ishlabs.io`.
+</ParamField>
+
+<ParamField path="ISH_SUPABASE_URL" type="string">
+Override the Supabase project URL used for login and token refresh. Set with `ISH_SUPABASE_ANON_KEY`.
+</ParamField>
+
+<ParamField path="ISH_SUPABASE_ANON_KEY" type="string">
+Override the Supabase publishable key paired with `ISH_SUPABASE_URL`.
+</ParamField>
+
+<Note>
+`NO_COLOR` is also honored: set it (or pass `--no-color`) to disable colored output.
+</Note>

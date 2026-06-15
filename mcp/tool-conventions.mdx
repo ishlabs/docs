@@ -1,0 +1,142 @@
+---
+title: "Tool conventions"
+description: "The naming, polymorphism, safety-annotation, and id rules every ish MCP tool follows."
+mode: "reference"
+---
+
+Every tool on the ish MCP server follows four conventions. Learn them once and the
+[whole catalog](/mcp/generated/index) reads the same way: you can predict a tool's name, its
+read shape, and whether a host will gate it before you call it.
+
+## Naming: `noun_verb`
+
+Tool names are `<noun>_<verb>`, underscore-separated, lowercase. The noun is the domain
+primitive; the verb is the workflow outcome.
+
+| Part | Values |
+| --- | --- |
+| Noun | `workspace`, `brand`, `study`, `ask`, `person`, `chatbot`, `simulation`, `site_access`, `upload`, `connect`, `me`, `docs` |
+| Verb | the outcome, for example `create`, `get`, `run`, `add_iteration`, `revise`, `delete`, `setup`, `extend` |
+
+Names use an underscore, never a dot. Underscore grouping resolves the same across every MCP
+client (Claude Code, Cursor, Claude Desktop) with no sanitization step.
+
+Verbs name a workflow outcome, not a CRUD operation on a row. `study_run` resolves the
+audience, materializes the people, and dispatches the modality batch in one call, then polls
+to a terminal state when you pass `wait=True`. `chatbot_setup` absorbs detection, creation, and
+a smoke test. One tool stands in for what a resource-per-CRUD surface needs four to seven calls
+to do.
+
+<Note>
+  The noun keeps the domain distinction legible. `study_*` is the journey primitive (how do
+  people experience this end to end), `ask_*` is the comparison primitive (which of these
+  lands). You pick the right tool from its name, before reading any description.
+</Note>
+
+## Polymorphic `_get`
+
+Each readable noun has one `_get` tool. It is the list reader, the single-entity reader, and
+the projection reader, discriminated by which optional id you set, never by an `action=`
+enum.
+
+<ParamField path="workspace_id (or no id)" type="alias | uuid">
+  List mode. Returns a paginated envelope of entities under that scope.
+</ParamField>
+
+<ParamField path="<entity>_id" type="alias | uuid">
+  Single-entity read. An optional `view=` selects a projection: `summary`, `full`,
+  `per_participant`, `transcripts`, or `insights`.
+</ParamField>
+
+<ParamField path="<entity>_ids" type="(alias | uuid)[]">
+  Cross-entity read. Used for benchmark comparisons across several entities at once.
+</ParamField>
+
+Set exactly one discriminating id. Zero or more than one raises `[validation_error]` before
+any backend call. Because every mode is a read, the `read-only` annotation (below) holds
+across all of them.
+
+The `_get` tools: [`workspace_get`](/mcp/generated/tools-workspace),
+[`brand_get`](/mcp/generated/tools-brand), [`study_get`](/mcp/generated/tools-study),
+[`ask_get`](/mcp/generated/tools-ask), [`person_get`](/mcp/generated/tools-person),
+[`chatbot_get`](/mcp/generated/tools-chatbot). The status reads
+([`connect_status`](/mcp/generated/tools-connect),
+[`site_access_get`](/mcp/generated/tools-site-access),
+[`upload_status`](/mcp/generated/tools-upload)) follow the same read-only contract.
+
+Mutations are never polymorphic across verbs. Create, run, revise, and delete are separate
+named tools so the safety annotation cannot collapse.
+
+## Annotation tiers
+
+Every tool carries one MCP annotation tier. Hosts read the tier to decide what to auto-approve
+and what to gate. The per-tool tier is on each tool's [reference page](/mcp/generated/index)
+and in the catalog index.
+
+| Tier | `readOnlyHint` | `idempotentHint` | `destructiveHint` | What it means |
+| --- | --- | --- | --- | --- |
+| `read-only` | true | true | (n/a) | Reads only. Safe to auto-approve. |
+| `write` | (n/a) | false | false | Creates or changes data; not destructive. |
+| `long-running` | (n/a) | false | false | A write that dispatches a simulation or generation job. Same wire shape as `write` today; the separate label flags the blocking, billable contract. |
+| `destructive` | (n/a) | false | true | Removes persisted data. Gate before calling. |
+
+<Warning>
+  `destructive` is reserved for tools that remove persisted user data: `workspace_delete`,
+  `study_delete`, `ask_delete`, `brand_delete`, `person_delete`, `chatbot_delete`,
+  `chatbot_delete_configuration`. Each one is a separately named tool, never a
+  `delete` mode on a polymorphic tool, so the `destructiveHint` survives at the schema level.
+</Warning>
+
+A lifecycle flip is not destructive. `simulation_cancel` walks a person to `cancelled` without
+removing any artifact, so it is `write`, not `destructive`. `simulation_extend` resumes a
+terminal person with more steps, so it is `long-running`. Reserve `destructive` for actual data
+removal.
+
+## Ids: alias or UUID
+
+Every id parameter accepts the full UUID or the entity's short [alias](/concepts/overview).
+The two forms are interchangeable anywhere an id is expected; pass back whichever the previous
+tool returned.
+
+```text
+study_get(study_id="s-b2c")    # alias
+study_get(study_id="b2c1a9e4-...-d4f")  # full UUID
+```
+
+Each noun owns a fixed alias prefix:
+
+| Entity | Prefix | Entity | Prefix |
+| --- | --- | --- | --- |
+| workspace, brand | `w-` | ask | `a-` |
+| study | `s-` | ask round | `r-` |
+| iteration | `i-` | chatbot endpoint | `ep-` |
+| person | `tp-` | chatbot configuration | `cc-` |
+| participant | `t-` | frame | `f-` |
+
+An id parameter validates the prefix: pass a `w-` workspace alias where a study id is expected
+and it raises `[validation_error]` before any backend call. A brand resolves through the
+workspace prefix, since a brand is a workspace underneath.
+
+<Note>
+  Aliases are minted per server instance and held in memory, so an alias from one session may
+  be unknown to another. When an alias is not recognized, the error names the read tool that
+  re-mints it (for example `study_get(workspace_id=...)`), or pass the full UUID from the
+  entity's `id` field. The [overview](/concepts/overview) defines the alias model in full.
+</Note>
+
+## See also
+
+<Columns cols={2}>
+  <Card title="Tool catalog" href="/mcp/generated/index">
+    Every tool with its annotation tier and domain page.
+  </Card>
+  <Card title="Resources" href="/mcp/generated/resources">
+    The `ish://` resources that mirror reads without a tool call.
+  </Card>
+  <Card title="Concepts overview" href="/concepts/overview">
+    The entity tree and the alias model both conventions build on.
+  </Card>
+  <Card title="Study tools" href="/mcp/generated/tools-study">
+    The `study_*` namespace, where most conventions are visible at once.
+  </Card>
+</Columns>

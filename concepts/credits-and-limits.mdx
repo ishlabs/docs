@@ -1,0 +1,131 @@
+---
+title: "Credits and limits"
+description: "How credits work as a usage allowance, the per-tier entity caps, and the 20-participant cap on every dispatch."
+mode: "explanation"
+---
+
+ish bills along two independent axes, and they answer two different questions.
+
+- **Credits** answer *how much can I run.* They are a usage allowance that every run draws down.
+- **Limits** answer *how much can I have.* They cap the number of entities (workspaces, studies, people) your tier lets you keep around.
+
+A third number, the **per-dispatch cap**, is structural rather than billing: every run sends at most 20 participants at once. The three are unrelated. A run can pass the dispatch cap, fit inside your entity limits, and still fail because the credit balance is too low, or the reverse. This page is the mental model for all three so the [CLI](/cli/overview) and [MCP](/mcp/overview) reference pages can assume you know how each behaves.
+
+## Credits are a usage allowance, not money
+
+A credit is a unit of simulation, not a unit of currency. Every run draws credits from the account balance: a [study run](/concepts/run-vs-ask), an [ask round](/concepts/ask-and-round), a chat, a second `ish study insights` analysis. Drawing credits is the normal, expected way to use ish. There is no per-call invoice and nothing to ration by hand. The balance is just a number to be aware of, the same way you stay aware of any rate-limited resource.
+
+Where the balance comes from depends on the plan.
+
+- **Paid plans** (Starter, Pro, Enterprise) get a **monthly allowance** that refills each billing cycle. The user picks a credit bucket at subscription time, so the exact number varies inside the tier.
+- **The free tier** gets a **one-time grant of 200 credits at signup**. It is *not* refilled. Once it is drawn down, the user tops up or upgrades.
+
+<Note>
+  The backend is the authoritative source for the balance. The CLI and MCP server can preview how much a run will draw, but the final word on whether a run fits is the backend's, surfaced as the `insufficient_credits` rejection below.
+</Note>
+
+### How a run's draw is shaped
+
+The draw has one shape across every modality, `max(1, round(steps × rate))` per principal, but the inputs differ. The rate is modality-specific (interactive costs the most because each step adds a screenshot and a vision pass; text costs the least), and the per-participant cost multiplies by the number of participants.
+
+| Surface | Per-principal draw | Total |
+|---|---|---|
+| Interactive, text, image, video, audio, document | `max(1, round(steps × rate))` | `participants × per-participant` |
+| Chat (solo) | `max(1, round(turns × rate))` | `participants × per-participant` |
+| Chat (participant pair) | `max(1, round(turns × rate))` | `conversations × per-side × 2` (both sides draw) |
+| Ask round | one credit per successful response | `successful_participants` |
+| `ish study insights` | first analysis included, then 10 flat | n/a |
+
+Every number is an **upper bound**. Early termination, refusals, and backend trimming can only reduce the actual draw, never raise it. Treat the per-modality rates as the current calibration; they evolve as ish differentiates per-modality compute. The CLI mirrors the backend's formula client-side, so the preview matches the charge as long as the two stay in sync, and the rejection envelope is the tiebreaker if they drift.
+
+### Previewing a draw before you dispatch
+
+Both surfaces show a usage upper bound before anything is dispatched, so an agent never blindly drains a small balance.
+
+- On the CLI, [`ish study run`](/cli/generated/study-run) prints a `Credits (est)` line in the confirmation block (human mode) and a `credit_estimate` object with a stable `formula` key in `--json` mode (under `pair_preview` for pair chat, top-level otherwise).
+- On both surfaces, check headroom with the workspace usage call: `ish workspace info` on the CLI, or `workspace_get` with a `workspace_id` on the [MCP server](/mcp/generated/tools-workspace), which returns the credit pool alongside the entity counters.
+
+Because dispatching credits is the point, the confirmation gate is tuned to let it through, not to block it. In an interactive terminal the prompt defaults to yes. Only an unattended agent (`--json`, piped, or non-TTY) must pass `-y` / `--yes`, a single fail-closed case so a loop cannot silently drain a balance. See [run vs ask](/concepts/run-vs-ask) for where the gate applies.
+
+### When the balance runs out
+
+A run that would exceed the available balance is rejected with HTTP 402 and `error_code: insufficient_credits`. The envelope carries the live `required` and `available` pair plus an `upgrade_url`.
+
+```json
+{
+  "error": "Insufficient credits.",
+  "error_code": "insufficient_credits",
+  "status": 402,
+  "retryable": false,
+  "required": 30,
+  "available": 8,
+  "upgrade_url": "https://app.ishlabs.io/billing"
+}
+```
+
+This is not retryable. Don't poll. Surface `required`, `available`, and `upgrade_url` to the user; they upgrade or free up credits before re-dispatching.
+
+## Limits cap how much you can have
+
+Separate from credits, your tier caps the number of entities an account can hold. The backend enforces every cap; there is no client-side bypass. The same `POST` over `curl` hits the same gate.
+
+| Limit | Free | Starter | Pro | Enterprise |
+|---|---|---|---|---|
+| Workspaces (`maxProducts`) | 1 | 3 | unlimited | unlimited |
+| Studies per workspace | 3 | 15 | unlimited | unlimited |
+| Asks per workspace | 3 | 15 | unlimited | unlimited |
+| Iterations per study | 2 | 5 | unlimited | unlimited |
+| Custom people | 3 | 10 | unlimited | unlimited |
+| Participants per run | 3 | 10 | 50 | unlimited |
+| Seats | 1 | 1 | 10 | unlimited |
+
+A create operation that would cross a cap is rejected with HTTP 403 and `error_code: usage_limit_reached`, carrying the `tier`, `limit` name, `current` count, and `max`. Like the credit rejection, it is not retryable: the user upgrades or deletes an existing entity to free headroom. Inspect usage first (`ish workspace info`, or `workspace_get`) rather than burning a doomed create call. See the [cold start guidance](/concepts/workspace) for why a fresh `workspace create` is not safe to call blind on a saturated account.
+
+<Note>
+  "Participants per run" (`maxConcurrentParticipants`) is the cumulative cap on how many participants one iteration or ask can hold, and it is enforced when participants are added, not at dispatch. It is the entity limit, not the structural cap covered next.
+</Note>
+
+## The 20-participant dispatch cap
+
+Independent of tier and credits, the backend caps every single dispatch at **20 participants**. Each `study run`, `ask run`, and `chat` sends at most 20 simulated people at once. This is a structural limit on one request, not a billing knob: Pro and Enterprise raise the entity limits to unlimited but the per-dispatch cap stays at 20 for everyone.
+
+The CLI enforces the cap client-side before the network round-trip, so an over-large `--sample` or an unbounded `--all` returns a clear error instead of a confusing server-side validation failure.
+
+```
+$ ish study run --sample 25
+Error: --sample 25 exceeds the per-dispatch participant cap of 20.
+  Pass --sample 20 or fewer, or split the run into multiple dispatches.
+```
+
+For a larger panel, run the dispatch several times against different slices (`--country SE`, then `--country GB`) or use the web UI, which batches behind the scenes. See [run vs ask](/concepts/run-vs-ask) for how participant selection flags resolve.
+
+<Warning>
+  Do not confuse the dispatch cap with the CLI's `--max-interactions` default, which is also 20. The dispatch cap limits *how many people* run at once; `--max-interactions` limits *how many steps* each person takes on an interactive or media surface, to prevent a stuck participant from running up the credit draw. They are different knobs that happen to share a number.
+</Warning>
+
+## How the three relate
+
+A run has to clear all three independently. They are gates, not steps: the order below is for explanation, not a sequence the reader walks.
+
+- **The dispatch cap.** 20 participants or fewer in this one dispatch. Larger panels split into multiple runs.
+- **The entity limits.** Creating the study, iteration, or people did not cross a tier cap. Checked when entities are created, not at run time.
+- **The credit balance.** The account has enough credits for the upper-bound draw. Checked by the backend at dispatch; previewed beforehand by the CLI and MCP.
+
+A `usage_limit_reached` (an entity cap) and an `insufficient_credits` (the allowance) are distinct rejections with distinct fixes: one is solved by deleting an entity or upgrading the tier, the other by topping up credits or upgrading.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Run vs ask" href="/concepts/run-vs-ask">
+    Where the credit-spend gate applies and how participant selection resolves.
+  </Card>
+  <Card title="Workspace" href="/concepts/workspace">
+    The account scope that holds usage counters and the credit pool.
+  </Card>
+  <Card title="ish study run" href="/cli/generated/study-run">
+    The CLI reference, including the `credit_estimate` envelope.
+  </Card>
+  <Card title="workspace_get" href="/mcp/generated/tools-workspace">
+    The MCP call that returns usage counters and the credit pool.
+  </Card>
+</Columns>

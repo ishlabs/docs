@@ -1,0 +1,178 @@
+---
+title: "person"
+description: "Command reference: ish person."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ person (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish person list`
+
+List people (defaults to AI people in your workspace; pass --visibility platform for the shared pool)
+
+Usage: `ish person list [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Filter by workspace ID</ParamField>
+<ParamField path="--search <query>" type="string">Substring match against person name</ParamField>
+<ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
+<ParamField path="--type <type>" type="string">Person type: ai, human, all (default: ai) Default: "ai".</ParamField>
+<ParamField path="--gender <gender>" type="string">Filter by gender (repeatable) Default: [].</ParamField>
+<ParamField path="--country <country>" type="string">Filter by country code, e.g. US (repeatable) Default: [].</ParamField>
+<ParamField path="--min-age <n>" type="string">Minimum age</ParamField>
+<ParamField path="--max-age <n>" type="string">Maximum age</ParamField>
+<ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your own people - the DEFAULT) | shared (community-published) | platform (the full shared pool, ~13.6k) (legacy 'private'/'public' accepted as aliases)</ParamField>
+<ParamField path="--limit <n>" type="string">Max results (default 50) Default: "50".</ParamField>
+<ParamField path="--offset <n>" type="string">Offset for pagination Default: "0".</ParamField>
+
+## `ish person create`
+
+Create a person from an exact JSON spec (no LLM). Accepts inline flags or --file.
+
+Usage: `ish person create [options]`
+
+### Options
+<ParamField path="--file <path>" type="string">JSON file with person data (or '-' for stdin). Escape hatch for fields not covered by inline flags.</ParamField>
+<ParamField path="--name <text>" type="string">Person name (required if --file omitted)</ParamField>
+<ParamField path="--type <value>" type="string">Person type: ai | human (default: ai when --file omitted)</ParamField>
+<ParamField path="--description <text>" type="string">Person description</ParamField>
+<ParamField path="--bio <text>" type="string">Person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Occupation</ParamField>
+<ParamField path="--country <code>" type="string">Country code, e.g. US</ParamField>
+<ParamField path="--gender <g>" type="string">Gender, e.g. female</ParamField>
+<ParamField path="--date-of-birth <YYYY-MM-DD>" type="string">Date of birth</ParamField>
+<ParamField path="--education-level <value>" type="string">Education level. One of: less_than_secondary, secondary, some_post_secondary, vocational_or_associate, bachelor, graduate</ParamField>
+<ParamField path="--household <value>" type="string">Household composition (MECE). One of: single, couple_no_kids, couple_with_kids, single_parent, shared_housing, adult_with_parents, multi_generational. A couple raising children is couple_with_kids, not couple_no_kids; "single" means lives alone with no partner, roommates, parents, or children in the household.</ParamField>
+<ParamField path="--locale-type <value>" type="string">Self-described neighborhood type. One of: urban, suburban, small_town, rural</ParamField>
+<ParamField path="--income-level <value>" type="string">Self-identified relative socioeconomic position. One of: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say</ParamField>
+<ParamField path="--employment-status <value>" type="string">Primary daytime activity / labor-force status. One of: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other</ParamField>
+<ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
+
+## `ish person generate`
+
+Generate people plus evidence-grounded scenarios from a brief and/or sources
+
+Usage: `ish person generate [options]`
+
+### Options
+<ParamField path="--description <text>" type="string">Description / researcher brief (use @path to read from file)</ParamField>
+<ParamField path="--description-file <path>" type="string">Read description from a file</ParamField>
+<ParamField path="--source <id-or-path>" type="string">Source UUID or local file path; auto-uploads paths (repeatable) Default: [].</ParamField>
+<ParamField path="--source-description <text>" type="string">Per-source researcher note - how the person reacted to THAT file. Paired with --source by index (repeatable). Only applies to local-path sources; for already-uploaded aliases the note is whatever was set at upload time. Default: [].</ParamField>
+<ParamField path="--diarize" type="boolean">Apply speaker diarization to audio sources (silently ignored for text/image)</ParamField>
+<ParamField path="--count <n>" type="string">Number of people to generate (1-10). Omit to let the model propose a count</ParamField>
+<ParamField path="--propose-count" type="boolean">Print the LLM's suggested count for a single processed source and exit (no generation)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
+<ParamField path="--no-scenarios" type="boolean">Skip fetching the evidence-grounded scenarios for each generated person</ParamField>
+<ParamField path="--no-wait" type="boolean">Don't poll source-processing status. Only relevant when --source is a local path (paths get auto-uploaded and processed).</ParamField>
+<ParamField path="--source-timeout <seconds>" type="string">Source-processing poll timeout in seconds. Only relevant when --source is a local path. Default: "300".</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Generation-job poll timeout in seconds (default 180; pass a larger value for long-running jobs). The job keeps running server-side past this; re-poll later or re-run with a longer --timeout - don't re-enqueue, that would duplicate the work. Default: "180".</ParamField>
+
+## `ish person get`
+
+Get person details (accepts multiple IDs for batched lookup)
+
+Usage: `ish person get <ids>... [options]`
+
+### Arguments
+<ParamField path="ids">Person ID(s) - one or more aliases/UUIDs (space- or comma-separated) (required, variadic)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person update`
+
+Update a person
+
+Usage: `ish person update <id> [options]`
+
+### Arguments
+<ParamField path="id">Person ID (required)</ParamField>
+
+### Options
+<ParamField path="--file <path>" type="string">JSON file with update data (escape hatch for fields not covered by inline flags)</ParamField>
+<ParamField path="--name <text>" type="string">Person name</ParamField>
+<ParamField path="--description <text>" type="string">Person description</ParamField>
+<ParamField path="--bio <text>" type="string">Person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Occupation</ParamField>
+<ParamField path="--country <code>" type="string">Country code, e.g. US</ParamField>
+<ParamField path="--gender <g>" type="string">Gender, e.g. female</ParamField>
+<ParamField path="--date-of-birth <YYYY-MM-DD>" type="string">Date of birth</ParamField>
+<ParamField path="--education-level <value>" type="string">Education level. One of: less_than_secondary, secondary, some_post_secondary, vocational_or_associate, bachelor, graduate</ParamField>
+<ParamField path="--household <value>" type="string">Household composition (MECE). One of: single, couple_no_kids, couple_with_kids, single_parent, shared_housing, adult_with_parents, multi_generational. A couple raising children is couple_with_kids, not couple_no_kids; "single" means lives alone with no partner, roommates, parents, or children in the household.</ParamField>
+<ParamField path="--locale-type <value>" type="string">Self-described neighborhood type. One of: urban, suburban, small_town, rural</ParamField>
+<ParamField path="--income-level <value>" type="string">Self-identified relative socioeconomic position. One of: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say</ParamField>
+<ParamField path="--employment-status <value>" type="string">Primary daytime activity / labor-force status. One of: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other</ParamField>
+<ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person delete`
+
+Delete a person
+
+Usage: `ish person delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Person ID (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the person)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+
+## `ish person suggest-scenarios`
+
+Ask the LLM for scenario probes to craft a specific simulated person
+
+Usage: `ish person suggest-scenarios [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
+<ParamField path="--context <text>" type="string">What you already know about this participant. Use @path to read from file.</ParamField>
+<ParamField path="--context-file <path>" type="string">Read --context from a file</ParamField>
+<ParamField path="--count <n>" type="string">Number of scenarios to return (1-10, default 5)</ParamField>
+<ParamField path="--previous-answers <json-or-@path>" type="string">Answers already collected this session. Inline JSON, @/path/to.json, or - for stdin. Array of &#123;type, prompt, answer&#125;; max 40.</ParamField>
+<ParamField path="--already-surfaced <json-or-@path>" type="string">Prompt labels already shown this session, so the LLM avoids paraphrasing them. Inline JSON, @/path, or -. Array of strings; max 40.</ParamField>
+
+## `ish person evidence`
+
+Manage scenario-answer evidence on a person
+
+Usage: `ish person evidence`
+
+## `ish person evidence add`
+
+Persist scenario answers as structured evidence on a person
+
+Usage: `ish person evidence add <id> [options]`
+
+### Arguments
+<ParamField path="id">Person ID (alias or UUID) (required)</ParamField>
+
+### Options
+<ParamField path="--traces <json-or-@path>" type="string">Array of &#123;text, source, scenario_prompt?, raw_response?&#125; where source ∈ situation|voice|binary|micro-story. Inline JSON, @/path/to.json, or - for stdin.</ParamField>
+<ParamField path="--traces-file <path>" type="string">Read --traces from a JSON file</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person evidence list`
+
+List evidence traces persisted on a person (newest first)
+
+Usage: `ish person evidence list <id> [options]`
+
+### Arguments
+<ParamField path="id">Person ID (alias or UUID) (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

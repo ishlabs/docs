@@ -1,0 +1,210 @@
+---
+title: "Server instructions"
+description: "What the ish MCP server tells a connecting client in its instructions block, and how an agent should read it."
+mode: "explanation"
+---
+
+When a client connects to the ish MCP server, the handshake carries more than a
+tool catalog. The server returns an `instructions` string in its `serverInfo`,
+a block of prose written for the model on the other end. It is the server
+briefing the agent on what ish is, when to reach for it, and how its tools fit
+together, before the agent reads a single tool description.
+
+This page explains what that block contains and why it is shaped the way it is.
+It is not the block itself. The block lives in `ish-mcp` (`server.py`,
+`INSTRUCTIONS`) and is the source of truth; this page describes its job.
+
+## Why a server sends instructions at all
+
+A tool catalog tells an agent what each tool does in isolation. It does not tell
+the agent which tool to reach for, in what order, or how the tools relate.
+`study_run` and `ask_run` both dispatch a simulation; nothing in their schemas
+says one answers "how do people experience this end to end" and the other
+answers "which of these variants lands". The instructions block carries that
+judgment.
+
+So the block does the work a good README does for a human, scoped to an agent
+that has the whole catalog in context but no prior exposure to ish. It frames
+the product, fixes the vocabulary, and sketches the common workflows so the
+agent strings tools together correctly on the first attempt instead of probing.
+
+<Note>
+  The block is advertised once, at connect time, as part of the MCP handshake.
+  It is not a tool and not a [resource](/mcp/generated/resources): an agent does
+  not call it. A well-behaved client surfaces it to the model as system context
+  alongside the catalog.
+</Note>
+
+## What the block frames
+
+### What ish is, and what it is not
+
+The block opens with the same framing the rest of these docs use: ish is a
+simulated human experience engine. Simulated people experience the thing the
+user is making (a landing page, an ad, a pitch, an onboarding flow, a draft of
+copy, a video, an image, a document) and report back what they noticed, where
+they got stuck, and what they would do next, before it ships. The output is a
+reported journey, not a rating on a rubric.
+
+It is just as explicit about what ish is not. ish is not an analytics tool
+(analytics reports what already happened); not a chatbot (nobody talks to a
+profile, profiles experience things and report back); not a survey or scoring
+platform. The block tells the agent to lean into the approximation: an "ish" of
+someone is close enough to make a better decision, not a precise prediction, and
+to frame results to the user the same way rather than overclaim. That last
+instruction matters because the agent is the surface the user reads results
+through. See [reactions and results](/concepts/reactions-and-results) for the
+shape of what a run returns.
+
+### The vocabulary
+
+Tool descriptions assume a handful of terms. The block defines them once so the
+agent reads the rest of the catalog without guessing: workspace, study,
+iteration, person, simulation, and ask. It also flags the one place the
+agent-facing name and the backend name diverge: the block surfaces `workspace`,
+while the backend calls the same container a "product". Each of these has a
+dedicated concept page that goes deeper than the block does:
+
+<Columns cols={2}>
+  <Card title="Workspace" href="/concepts/workspace">
+    The top-level container for studies, asks, people, and sources.
+  </Card>
+  <Card title="Study and iteration" href="/concepts/study">
+    The persistent research artifact and its configured runs.
+  </Card>
+  <Card title="People" href="/concepts/people">
+    The simulated participants, synthetic (`type="ai"`) or human.
+  </Card>
+  <Card title="Run vs ask" href="/concepts/run-vs-ask">
+    When to run a study, and when to compare variants with an ask.
+  </Card>
+</Columns>
+
+### Typical workflows
+
+The block sketches the common paths as tool sequences, not as steps to copy
+verbatim. Discover and run a study; generate an audience; compare variants with
+an ask; [benchmark](/concepts/benchmarking) a study against competitor brands;
+edit and clean up; cancel runs; run a chat-modality study. Each sketch names the
+tools in order and the decision points between them (for example, the optional
+`dispatch=False` review checkpoint that stages a panel before any credits are
+drawn).
+
+The point of these sketches is sequencing. They tell the agent that
+`study_add_iteration` carries the URL or media, not `study_create`; that
+`person_generate` blocks by default and hands back `person_ids` ready to pass
+into `study_run`; that `study_benchmark` clones a study but does not run the
+clones. The [run vs ask](/concepts/run-vs-ask) concept page and the
+[tool reference](/mcp/generated/index) carry the full parameter detail; the
+block carries only the order.
+
+<Tip>
+  The tool to add a configured run to a study is `study_add_iteration`. An older
+  draft of the briefing called it `study_iterate`; the current block and catalog
+  use `study_add_iteration`. When a name in any prose disagrees with the live
+  catalog, the [catalog](/mcp/generated/index) wins.
+</Tip>
+
+### The operational contracts
+
+A run of related sections covers the contracts an agent has to honor to drive
+the tools without surprises. Each has a concept page that holds the binding
+detail:
+
+- **Audience selection.** `study_run` and `ask_run` take an `audience` filter:
+  either explicit `person_ids` or `sample=N` / `all_matching=True`, which are
+  mutually exclusive. Within a dimension, values OR; across dimensions, they AND.
+  The [people](/concepts/people) page holds the model.
+- **Wait and poll.** Dispatching tools accept `wait=True` and `timeout`. Without
+  `wait`, the agent gets IDs back and polls itself via `study_get` or `ask_get`.
+- **Cost model.** Simulation runs draw from the workspace credit pool, not money
+  per call. Two rules the block puts up front: no per-dispatch approval prompt
+  (gate on a headroom check, not "are you sure?"), and credits debit only on
+  successful participant completion, so a doomed run costs zero and can be
+  retried after fixing the input. The
+  [credits and limits](/concepts/credits-and-limits) page is the full model.
+- **Errors.** Every API failure surfaces as a tool error whose message starts
+  with a bracketed code (`[auth_failed]`, `[validation_error]`,
+  `[empty_audience]`, `[insufficient_credits]`, and the rest). The block tells
+  the agent to pattern-match on the prefix and names the remedy inline.
+  [MCP overview](/mcp/overview#errors) lists the codes.
+
+### How identity travels: aliases
+
+The block explains the alias model because it governs every multi-call sequence.
+Each entity result carries a short, deterministic handle (`w-6ec` for a
+workspace, `s-b2c` for a study, `i-d4e` for an iteration). The full UUID is
+omitted to keep payloads lean, and anywhere a tool takes an entity id, the alias
+is accepted in its place. The cache is in-memory and resets on server restart,
+so the block warns the agent to re-list before reusing a handle from an earlier
+session. [Tool conventions](/mcp/tool-conventions) carries the prefix table and
+the validation behavior.
+
+### Where to read more
+
+The block does not try to be the whole manual. It points the agent at the deeper
+docs, which ship as [MCP resources](/mcp/generated/resources): read `ish://docs`
+for the index, then `ish://docs/<slug>` for any page. It also points at the
+[session and reference resources](/mcp/generated/resources) (`ish://identity/me`
+to confirm whose workspaces the agent is acting on, the per-modality content
+types, workspace secrets) and the binary study media resources (screenshots,
+transcripts, iteration media) that an agent reads on demand to look at what the
+simulated people actually saw, rather than bloating every tool response with it.
+
+### Tool tags
+
+The block documents the two tags every tool carries: a `domain` tag (workspace,
+brand, study, ask, person, chatbot, simulation, connect, docs, upload) and a
+`mode` tag (read, write, dispatch, delete). A client that filters tools by tag
+can scope the catalog: show only `read`-tagged tools during exploration, hide
+`delete`-tagged tools by default. The block also notes the `connect_*` tunnel
+tools carry a `local-only` tag and are hidden when the server runs hosted,
+because the server's `localhost` is not the user's machine.
+
+## How the block adapts to the host
+
+The instructions are not byte-identical for every connection.
+
+Some sections are spliced in only when the server is configured to expose an
+optional namespace, so the briefing always matches the live tool surface for
+that connection. A standard hosted connection sees the default surface.
+
+<Note>
+  Server instructions and the brand icons the server advertises (`serverInfo.icons`)
+  are separate fields in the same handshake. The icons let a client show the ish
+  mark in its consent dialog; they are not part of the instructions prose.
+</Note>
+
+## What a client does with the block
+
+A server can advertise instructions, but it cannot make a client use them. How
+the block lands depends on the host:
+
+- **Claude (Claude Code, Claude Desktop)** reads the instructions and the
+  resources, so the full briefing reaches the model.
+- **ChatGPT** reads the tool catalog but ignores server instructions and does
+  not read resources. The framing in the block does not reach an ish session
+  there, which is why the `docs_get` tool exists: it mirrors the docs resources
+  for clients that will not read `ish://docs`.
+
+The practical consequence: do not rely on the block being in the model's context
+on every host. The tool descriptions stand on their own, the
+[concept pages](/concepts/overview) are the durable reference for a human, and
+`docs_get` is the in-band fallback for an agent on a host that skips resources.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="MCP overview" href="/mcp/overview">
+    Endpoint, transport, auth, and the surface the block describes.
+  </Card>
+  <Card title="Tool conventions" href="/mcp/tool-conventions">
+    The naming, polymorphism, and alias rules the block assumes.
+  </Card>
+  <Card title="Tool catalog" href="/mcp/generated/index">
+    Every tool with its annotation tier and domain. The catalog wins over prose.
+  </Card>
+  <Card title="Resources" href="/mcp/generated/resources">
+    The `ish://` resources the block points an agent toward.
+  </Card>
+</Columns>

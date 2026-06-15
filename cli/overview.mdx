@@ -1,0 +1,190 @@
+---
+title: "CLI overview"
+description: "Install the ish CLI, keep it current, and find the right command."
+mode: "reference"
+---
+
+The ish CLI (`@ishlabs/cli`, binary `ish`) drives ish from a terminal or a coding agent. It ships as a single standalone binary (from the install script or Homebrew) or as a global npm package. Both expose the same commands.
+
+For a guided first run, see the [quickstart](/quickstart). For the full per-command flag tables, see the [command index](/cli/generated/index). Global flags, the auth token resolution order, and exit codes live on the [global flags](/cli/global-flags) page.
+
+## Install
+
+Pick one method. The install script and Homebrew give you a self-contained binary; the install-script binary self-updates with [`ish upgrade`](#upgrade), Homebrew updates with `brew upgrade ish`. npm gives you the same CLI as a global package managed by npm.
+
+<CodeGroup>
+
+```bash macOS / Linux
+curl -fsSL https://ishlabs.io/install.sh | sh
+```
+
+```powershell Windows
+irm https://ishlabs.io/install.ps1 | iex
+```
+
+```bash Homebrew
+brew install ishlabs/tap/ish
+```
+
+```bash npm
+npm install -g @ishlabs/cli
+```
+
+</CodeGroup>
+
+Confirm the install:
+
+```bash
+ish --version
+```
+
+### Method comparison
+
+| Method | Command | Self-update | Platforms |
+| --- | --- | --- | --- |
+| Install script | `curl -fsSL https://ishlabs.io/install.sh \| sh` | `ish upgrade` | macOS, Linux |
+| PowerShell script | `irm https://ishlabs.io/install.ps1 \| iex` | `ish upgrade` | Windows |
+| Homebrew | `brew install ishlabs/tap/ish` | `brew upgrade ish` | macOS, Linux |
+| npm | `npm install -g @ishlabs/cli` | `npm install -g @ishlabs/cli@latest` | Any with Node 18+ |
+
+### Supported targets
+
+The standalone binary is built per platform and architecture. The install scripts detect your platform and download the matching binary.
+
+| Platform | Architectures |
+| --- | --- |
+| macOS (`darwin`) | `arm64`, `x64` |
+| Linux | `arm64`, `x64` |
+| Windows | `x64` |
+
+The npm package requires Node 18 or newer (`engines.node` is `>=18.0.0`). Homebrew installs `node` and `cloudflared` as dependencies; `cloudflared` is used by [`ish connect`](/cli/generated/connect).
+
+### Install location and PATH
+
+The install script writes the binary to `~/.ish/bin/ish` and appends a PATH line to your shell profile (`.zshrc`, `.bashrc` / `.bash_profile`, or `config.fish`). If `ish` is not found after install, open a new terminal or source your profile.
+
+<ParamField path="ISH_INSTALL_DIR" type="env var">
+  Override the install directory. Defaults to `~/.ish/bin` (`%USERPROFILE%\.ish\bin` on Windows).
+</ParamField>
+
+<ParamField path="ISH_NO_PATH" type="env var">
+  Set to `1` to skip the shell-profile PATH edit (for ephemeral or sandbox installs). You then add the install directory to PATH yourself.
+</ParamField>
+
+<ParamField path="ISH_HOME" type="env var">
+  Override where the CLI reads and writes session state (`config.json`, `aliases.json`). Defaults to `~/.ish`.
+</ParamField>
+
+<Note>
+  `cloudflared` is not bundled. The install scripts print how to add it (`brew install cloudflare/cloudflare/cloudflared`, `winget install Cloudflare.cloudflared`). It is only needed for [`ish connect`](/cli/generated/connect).
+</Note>
+
+## Upgrade
+
+```bash
+ish upgrade
+```
+
+`ish upgrade` downloads the latest standalone binary from `https://ishlabs.io/api/releases/` and atomically replaces the running executable (typically `~/.ish/bin/ish`). The download is TLS-verified. When you are already on the latest version it is a no-op.
+
+Pin a specific release with `--release` (note: `--version` is the global flag that prints the CLI version, not an upgrade target):
+
+```bash
+ish upgrade --release 0.28.2
+```
+
+<Warning>
+  `ish upgrade` only updates a standalone binary install (install script or Homebrew). On an npm install it refuses with a usage error (exit code 2) rather than overwriting the `node` binary. Update those installs with their package manager instead.
+</Warning>
+
+| Install method | How to update |
+| --- | --- |
+| Install script | `ish upgrade` |
+| Homebrew | `brew upgrade ish` |
+| npm | `npm install -g @ishlabs/cli@latest` |
+
+See [`ish upgrade`](/cli/generated/upgrade-feedback) for the full reference.
+
+## Command index
+
+Every command takes the same [global flags](/cli/global-flags) (`--json`, `--token`, `--workspace`, and more). The [command index](/cli/generated/index) is the complete table with subcommands; the groups below orient you.
+
+### Session and connection
+
+<Columns cols={2}>
+
+<Card title="Auth and session" href="/cli/generated/session">
+  `ish login`, `ish logout`, `ish status` (alias `whoami`). Sign in, sign out, and show the active session.
+</Card>
+
+<Card title="Local tunnel" href="/cli/generated/connect">
+  `ish connect`, `ish disconnect`. Expose a `localhost` service so a simulated person can reach it.
+</Card>
+
+</Columns>
+
+### Studies and runs
+
+<Columns cols={2}>
+
+<Card title="Studies" href="/cli/generated/study">
+  `ish study` plus `create`, `run`, `results`, `analyze`, `share`, and more. Shape a study and read what people reported back.
+</Card>
+
+<Card title="Iterations" href="/cli/generated/iteration">
+  `ish iteration`. Manage the run-time configurations of a study (the URL, media, or chatbot endpoint each run uses).
+</Card>
+
+<Card title="Asks" href="/cli/generated/ask">
+  `ish ask`. Quick variant comparisons: pose questions to people and read their answers.
+</Card>
+
+<Card title="Chat studies" href="/cli/generated/chat">
+  `ish chat`. Author chatbot endpoints and run chat-modality studies.
+</Card>
+
+</Columns>
+
+### People and inputs
+
+<Columns cols={2}>
+
+<Card title="People" href="/cli/generated/person">
+  `ish person`. Manage, generate, and inspect the simulated people in a workspace.
+</Card>
+
+<Card title="Sources" href="/cli/generated/source">
+  `ish source`. Upload and inspect attachments (transcripts, audio, images) used as generation inputs.
+</Card>
+
+<Card title="Workspaces" href="/cli/generated/workspace">
+  `ish workspace`. Create, list, and switch the [workspace](/concepts/workspace) your commands act on.
+</Card>
+
+<Card title="Secrets and configs" href="/cli/generated/config">
+  `ish config` and [`ish secret`](/cli/generated/secret). Manage simulation configs and workspace secrets.
+</Card>
+
+</Columns>
+
+### Setup and agents
+
+<Columns cols={2}>
+
+<Card title="Agent skill and MCP" href="/cli/generated/mcp">
+  `ish init` installs the ish agent skill into a project; `ish mcp` wires the ish MCP server into Cursor, VS Code, Claude Code, Claude Desktop, and Windsurf.
+</Card>
+
+<Card title="Offline docs" href="/cli/generated/docs">
+  `ish docs`. The mental model, concept pages, and search, available from the CLI for agents.
+</Card>
+
+<Card title="Local setup check" href="/cli/generated/check">
+  `ish check` and `ish setup`. Verify and install local-simulation dependencies (Chromium, the iOS runner, adb).
+</Card>
+
+<Card title="Upgrade and feedback" href="/cli/generated/upgrade-feedback">
+  `ish upgrade` keeps the CLI current; `ish feedback` reports a bug or sends a note to the ish team.
+</Card>
+
+</Columns>

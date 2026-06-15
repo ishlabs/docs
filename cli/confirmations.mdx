@@ -1,0 +1,203 @@
+---
+title: "Confirmations and caps"
+description: "How the CLI gates credit-spending and destructive commands, the -y / ISH_ASSUME_YES opt-in, and the 20-participant dispatch cap."
+mode: "reference"
+---
+
+Two safety gates sit in front of certain `ish` commands: a confirmation gate (for
+credit-spending and destructive verbs) and a hard cap on how many participants one
+dispatch can carry. Both are client-side. This page is the complete reference for
+both.
+
+The gate logic lives in `confirmDestructive` and `assumeYes`
+(`ish-cli/src/lib/command-helpers.ts`); the cap is `PARTICIPANT_BATCH_CAP`.
+
+## The confirmation gate
+
+A gated command asks for confirmation before it acts. There are two classes.
+
+| Class | What it protects | TTY prompt default | Example commands |
+| --- | --- | --- | --- |
+| `billable` | A credit draw (a dispatch) | `[Y/n]` (Enter proceeds) | `study run`, `study analyze`, `ask run` |
+| `destructive` | Data loss (a delete or revoke) | `[y/N]` (Enter aborts) | `study delete`, `person delete`, `study unshare` |
+
+Behavior depends on whether stdout is an interactive terminal.
+
+- **Interactive TTY.** The command prints a prompt and waits. Billable verbs also
+  print a one-line credit estimate and a pointer to the credits reference above the
+  prompt; they default to yes, because you already typed the billable command.
+  Destructive verbs default to no.
+- **`--json` or any non-TTY** (piped stdout, CI, an agent). The command refuses
+  rather than prompt or proceed silently. It exits 2 with a `ConfirmationRequired`
+  error and a copy-pasteable `example` field showing the same command with `--yes`
+  appended. See [Refusal in non-interactive contexts](#refusal-in-non-interactive-contexts).
+
+Credits draw from your usage allowance, not a per-call bill. The gate exists for
+human review, not to discourage spending. See
+[credits and limits](/concepts/credits-and-limits) for the cost model and
+[run vs ask](/concepts/run-vs-ask) for what each verb dispatches.
+
+## Confirming a gated command
+
+Pass `-y` (or `--yes`) to skip the prompt. Both flags are identical.
+
+```bash
+ish study run --sample 5 --country SE -y
+ish study delete s-b2c --yes
+ish study delete s-b2c --json --yes   # JSON consumers must be explicit
+```
+
+To opt in once for a whole session instead of repeating `-y`, set the
+`ISH_ASSUME_YES` environment variable. It mirrors `-y` exactly and applies to both
+billable and destructive gates.
+
+```bash
+export ISH_ASSUME_YES=1
+ish study run --sample 5      # no -y needed
+ish ask run --new --sample 3  # still no -y needed
+```
+
+<ParamField path="-y, --yes" type="flag">
+  Skip the confirmation prompt for this one command. Required in `--json` or any
+  non-TTY context for a gated command to proceed.
+</ParamField>
+
+<ParamField path="ISH_ASSUME_YES" type="env">
+  Truthy value (`1`, `true`, `yes`, or `on`, case-insensitive) pre-authorizes every
+  gated command for the session. Mirrors `-y`. Session-scoped and never written to
+  config, so it cannot silently pre-authorize a future run.
+</ParamField>
+
+<Note>
+  `ISH_ASSUME_YES` is read from the environment on every command and is never
+  persisted. Unset it (or open a new shell) to restore the gate.
+</Note>
+
+## Gated commands
+
+### Billable (credit-spend)
+
+These dispatch simulations and draw credits, so each one is gated as `billable`.
+
+| Command | Gate prompt |
+| --- | --- |
+| [`study run`](/cli/generated/study-run) | Dispatch simulations (draws credits)? |
+| [`study analyze`](/cli/generated/study-extras) | Trigger analysis? The first analysis per study is free; each subsequent run draws 10 credits. |
+| [`ask run`](/cli/generated/ask) | Create and dispatch a new ask round? |
+| [`ask create`](/cli/generated/ask) (dispatching) | Create and dispatch this ask? |
+| [`ask dispatch`](/cli/generated/ask) | Dispatch this draft ask? |
+| [`ask add-round`](/cli/generated/ask) | Append and dispatch a new ask round? |
+| [`ask add-questions`](/cli/generated/ask) | Add questions and re-dispatch this round? |
+| [`ask retry`](/cli/generated/ask) | Re-dispatch the errored responses on this round? |
+
+<Note>
+  `ish ask create --no-dispatch` is the one exempt billable path. It creates the ask
+  in draft and dispatches nothing, so it draws no credits and needs no confirmation.
+  Start the draft later with `ish ask dispatch <id>`, which is gated.
+</Note>
+
+### Destructive
+
+These delete or revoke and cannot be undone, so each is gated as `destructive`.
+
+| Command | What it removes |
+| --- | --- |
+| [`workspace delete`](/cli/generated/workspace) | A workspace |
+| [`study delete`](/cli/generated/study) | A study |
+| [`iteration delete`](/cli/generated/iteration) | An iteration |
+| [`person delete`](/cli/generated/person) | A person |
+| [`source delete`](/cli/generated/source) | A profile source |
+| [`ask delete`](/cli/generated/ask) | An ask |
+| [`secret delete`](/cli/generated/secret) | A workspace secret |
+| [`chat endpoint delete`](/cli/generated/chat) | A chat endpoint |
+| [`chat config delete`](/cli/generated/chat) | A chat configuration |
+| [`config delete`](/cli/generated/config) | A saved config |
+| [`study unshare`](/cli/generated/study-extras) | A public share link (the URL stops working) |
+| [`mcp add`](/cli/generated/mcp) / [`mcp remove`](/cli/generated/mcp) | Edits to client MCP config files |
+
+## Refusal in non-interactive contexts
+
+When a gated command runs under `--json` or any non-TTY and you have not passed `-y`
+or set `ISH_ASSUME_YES`, the CLI refuses. This is the agent and CI default. It is a
+usage error, not a fault, so it exits 2 with no "report a bug" nudge. See
+[exit codes](/cli/exit-codes) for the full table.
+
+| Field | Value |
+| --- | --- |
+| Exit code | `2` |
+| `error_code` | `validation_error` |
+| `error_kind` | `ConfirmationRequired` |
+| `example` | The same command with `--yes` appended (any `--token` / `--token-file` value redacted) |
+
+The refusal message differs by class. Billable verbs reframe around spending and
+point at `ISH_ASSUME_YES`; destructive verbs keep firmer fail-closed wording.
+
+```json
+{
+  "error_code": "validation_error",
+  "error_kind": "ConfirmationRequired",
+  "example": "ish study run --sample 5 --country SE --yes"
+}
+```
+
+<Tip>
+  An agent that hits this can read `example` and re-run it verbatim, or set
+  `ISH_ASSUME_YES=1` once at the start of the session to pre-authorize every gated
+  command.
+</Tip>
+
+## The 20-participant dispatch cap
+
+The backend caps each dispatch at **20 participants**. The CLI enforces this
+client-side so an over-cap selection fails with a clear message instead of an opaque
+backend `validation_error` after a wasted round-trip.
+
+`PARTICIPANT_BATCH_CAP` is `20`. It applies to the person-selection flags shared by
+[`study run`](/cli/generated/study-run) and [`ask`](/cli/generated/ask) commands.
+See [people](/concepts/people) for how selection works and what each flag matches.
+
+The cap fires in two places.
+
+- **`--sample N` over the cap.** Caught before any API call, since the value alone
+  is over the limit.
+
+  ```text
+  --sample 25 exceeds the per-dispatch participant cap of 20. Pass --sample 20
+  or fewer, or split the run into multiple dispatches.
+  ```
+
+- **`--all` or filter flags resolving to more than 20.** Caught after the pool is
+  fetched, when the match count exceeds the cap. `--all` is only safe when the
+  matching pool is 20 or fewer.
+
+  ```text
+  Resolved 200 participants (no filter) but the backend caps each dispatch at 20.
+  Pass `--sample 20` to randomly subsample the pool, narrow your filters, or run
+  the dispatch multiple times against different slices.
+  ```
+
+Both refusals are usage errors and exit 2.
+
+To run a cohort larger than 20, split it into slices and dispatch each slice
+separately. `--sample 20` randomly subsamples a larger matching pool; narrower
+filters select a different slice each time.
+
+<Info>
+  Explicit `--person <id>` selection is also subject to the backend cap. Passing
+  more than 20 IDs reaches the backend and returns its `validation_error`. Keep
+  explicit selections to 20 or fewer per dispatch.
+</Info>
+
+## The MCP server
+
+The MCP server has no `-y` equivalent. Confirming a credit draw is the calling
+agent's job, not ish's: a dispatch tool runs when called. The advice in the server
+instructions is to check pool headroom with
+[`workspace_get`](/mcp/generated/tools-workspace) (`.credits`) before a large run,
+rather than gate each dispatch behind a prompt. See
+[tool conventions](/mcp/tool-conventions).
+
+The 20-participant cap is a backend constraint, so it applies to MCP dispatches too.
+The MCP [simulation tools](/mcp/generated/tools-simulation) and
+[ask tools](/mcp/generated/tools-ask) surface an over-cap selection as a backend
+validation error.

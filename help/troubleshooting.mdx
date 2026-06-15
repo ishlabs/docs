@@ -1,0 +1,384 @@
+---
+title: Troubleshooting
+description: "Symptom, cause, and fix for the failures you hit most with the ish CLI and MCP server (auth, tunnels, gated previews, and OAuth)."
+mode: "how-to"
+---
+
+Find the symptom you are seeing, read the cause, apply the fix. Each entry links to the
+reference page that explains the full behavior.
+
+Two fast checks before you read on:
+
+- **CLI:** run `ish check`. It prints a checklist of your account, active
+  [workspace](/concepts/workspace), and local simulation setup, and exits non-zero when
+  something is blocking. See [`ish check`](/cli/generated/check).
+- **MCP:** ask the agent to confirm who you are and list your workspaces. A read-only
+  reply means the connection and sign-in landed. See [Connecting](/mcp/connecting).
+
+## Auth failures
+
+The CLI resolves a token from five sources in a fixed order before every call: `--token`,
+`--token-file`, `ISH_TOKEN`, the saved OAuth session in `~/.ish/config.json`, then a legacy
+pasted token. The first source that produces a token wins. See
+[Authentication](/cli/auth) for the full order and the config file shape.
+
+<AccordionGroup>
+  <Accordion title="No auth token found">
+    **Symptom.** A command exits 3 with:
+
+    ```text
+    No auth token found. Run "ish login", set ISH_TOKEN, or pass --token <token> / --token-file <path>.
+    ```
+
+    **Cause.** No source produced a token. You have not signed in, and no `--token`,
+    `--token-file`, or `ISH_TOKEN` is set.
+
+    **Fix.** For interactive use, run `ish login` once. For CI and automation, set one of
+    the explicit sources instead:
+
+    ```bash
+    ish login                                   # interactive: opens the browser
+    ISH_TOKEN=<token> ish status                # CI: env var
+    ish status --token-file ./ish-token         # CI: file, kept out of shell history
+    ```
+  </Accordion>
+
+  <Accordion title="Session expired">
+    **Symptom.** A command exits 3 with:
+
+    ```text
+    Session expired. Run "ish login" to re-authenticate.
+    ```
+
+    **Cause.** The saved OAuth session could not refresh. The CLI normally rotates a stale
+    access token automatically from the saved refresh token, but the refresh failed
+    permanently (the refresh token was revoked, expired, or invalid). The dead tokens have
+    already been cleared from the config so the next run does not retry the doomed refresh.
+
+    **Fix.** Run `ish login` to sign in again. Add `--verbose` to see the raw response if
+    you need to understand why the refresh failed.
+
+    <Note>
+      `ish login` always runs the full browser flow. You rarely need to re-run it just
+      because time passed: every command auto-refreshes a stale token with regular use. To
+      *check* whether you are signed in, run `ish status`, not `ish login`.
+    </Note>
+  </Accordion>
+
+  <Accordion title="Saved token is invalid">
+    **Symptom.** A command exits 3 with `Saved token is invalid. Run "ish login" to
+    re-authenticate.`, sometimes with a trailing hint about a dev or prod environment.
+
+    **Cause.** The saved token is not expired locally but the API rejected it. The common
+    case is an environment mismatch: a token minted by the dev Supabase project presented to
+    the prod API, or the reverse. The two sign with different keys, so each rejects the
+    other's tokens.
+
+    **Fix.** Match the token to the API it is presented to. The hint in the error names
+    which side to change:
+
+    ```bash
+    # Token is for prod, but you are calling dev: add --dev (or point ISH_API_URL at dev).
+    ish status --dev
+
+    # Token is for dev, but you are calling prod: re-login with no --dev and no overrides.
+    ish login
+    ```
+
+    Then confirm the API host and token environment line up:
+
+    ```bash
+    ish status
+    ```
+  </Accordion>
+
+  <Accordion title="ish check reports a failed account, but my token is fine">
+    **Symptom.** `ish check` shows `[FAIL] Account  not logged in` even though you pass a
+    token through `--token`, `--token-file`, or `ISH_TOKEN`.
+
+    **Cause.** This was a defect in older builds that read only the config file. Current
+    `ish check` resolves auth the same way every other command does, so a token-file or
+    `ISH_TOKEN` runner reads `[ OK ]`.
+
+    **Fix.** Upgrade the CLI, then re-run with the token source you use in CI:
+
+    ```bash
+    ish check --token-file ./ish-token
+    ```
+
+    A passing run prints your account email on the Account row.
+  </Accordion>
+
+  <Accordion title="MCP tool returns [auth_failed] or [forbidden]">
+    **Symptom.** An agent calling an ish tool gets a tool error whose message starts with
+    `[auth_failed]` or `[forbidden]`.
+
+    **Cause.** `[auth_failed]` means the session token is missing or rejected. `[forbidden]`
+    means you are signed in but lack access to that resource. A billing wall does not arrive
+    as `[auth_failed]`: it surfaces as `[usage_limit_reached]` or `[insufficient_credits]`.
+
+    **Fix.** On `[auth_failed]`, reconnect the client so it runs sign-in again (see
+    [Connecting](/mcp/connecting)). On `[forbidden]`, confirm you are in the right
+    [workspace](/concepts/workspace) and that the resource belongs to your account. Do not
+    re-login on `[usage_limit_reached]` or `[insufficient_credits]`: check
+    [credits and limits](/concepts/credits-and-limits) instead.
+  </Accordion>
+</AccordionGroup>
+
+## OAuth sign-in
+
+Both surfaces sign in over OAuth in the browser. The CLI listens on a loopback address
+(`127.0.0.1` on an OS-assigned port) and opens your browser at the sign-in URL; the
+provider redirects back to that loopback with the result. MCP clients run the same kind of
+browser flow on first connect.
+
+<AccordionGroup>
+  <Accordion title="ish login: the browser did not open">
+    **Symptom.** `ish login` prints `Opening browser to sign in...` and then waits, but no
+    browser window appears (common over SSH, in a container, or on a headless host).
+
+    **Cause.** The CLI cannot launch a browser in this environment. The loopback server is
+    still listening and the sign-in URL is still valid.
+
+    **Fix.** `ish login` prints the URL right after the "opening browser" line:
+
+    ```text
+    If the browser doesn't open, visit:
+      https://<your-project>.supabase.co/auth/v1/oauth/authorize?...
+    ```
+
+    Open that URL in any browser that can reach the loopback host, sign in, and the CLI
+    captures the redirect. For a fully headless CI runner, skip the browser flow entirely
+    and authenticate with `--token-file` or `ISH_TOKEN` (see
+    [Authentication](/cli/auth)).
+  </Accordion>
+
+  <Accordion title="ish login: timed out, or OAuth state mismatch">
+    **Symptom.** `ish login` ends with `Login timed out. Please try again.`, or with an
+    `OAuth state mismatch` error that flags a possible CSRF attempt and asks you to try
+    again.
+
+    **Cause.** The timeout means no redirect reached the loopback server in time (the
+    browser never completed sign-in, or it could not reach `127.0.0.1`). The state mismatch
+    means the value returned by the provider did not match the one the CLI sent, so the CLI
+    refuses the response.
+
+    **Fix.** Run `ish login` again and complete sign-in promptly in the browser that
+    opens. Use the same machine for the browser and the CLI so the browser can reach the
+    loopback address. If a local firewall or VPN blocks loopback redirects, allow them, or
+    authenticate with `--token-file` or `ISH_TOKEN` instead.
+  </Accordion>
+
+  <Accordion title="MCP client: the agent reports no ish tools">
+    **Symptom.** After adding the server, the agent says it has no ish tools, or it never
+    prompted you to sign in.
+
+    **Cause.** First-connect sign-in did not complete. The client discovers the OAuth flow,
+    opens your browser, and stores the token it receives; if that never finishes, the tools
+    do not load.
+
+    **Fix.** Reconnect or restart the client so it opens the server again, then approve
+    access in the browser. Confirm with a read-only ask:
+
+    ```text
+    Use the ish tools to confirm who I am and list my workspaces.
+    ```
+
+    A workspace list (even an empty one) means OAuth landed. See
+    [Connecting](/mcp/connecting) for per-client steps.
+
+    <Warning>
+      Connect the CLI and clients to the endpoint with **no trailing slash**:
+      `https://mcp.ishlabs.io/mcp`. Some clients downgrade a `.../mcp/` redirect and the
+      OAuth flow fails. Use the exact form `ish mcp add` writes.
+    </Warning>
+  </Accordion>
+</AccordionGroup>
+
+## Tunnels and localhost
+
+`ish study run` dispatches to ish's remote fleet by default, where the browser runs in the
+cloud. A remote run needs the iteration URL to be publicly reachable. There are two ways to
+point the fleet at work on your machine, and they are easy to confuse.
+
+<Info>
+  For a local web app, prefer `ish study run --local`: it runs the browser on your machine
+  with Playwright, directly against the URL, including a plain `http://localhost:3000`, with
+  **no tunnel**. Reach for `ish connect` only when you specifically need the remote fleet
+  (cloud browser, larger pool, more parallelism) to reach your localhost. See
+  [`ish study run`](/cli/generated/study-run) and [`ish connect`](/cli/generated/connect).
+</Info>
+
+<AccordionGroup>
+  <Accordion title="Remote run can't reach my localhost URL">
+    **Symptom.** A remote `ish study run` against `http://localhost:3000` produces empty or
+    failed participants because the cloud browser cannot open your machine.
+
+    **Cause.** The remote fleet runs in the cloud. It cannot reach a `localhost` URL on your
+    machine without a tunnel.
+
+    **Fix.** Either run locally, or open a tunnel and point the iteration at the public URL:
+
+    ```bash
+    # Run on your machine, no tunnel:
+    ish iteration create --url http://localhost:3000
+    ish study run --local --sample 3 -y --wait
+
+    # Or expose localhost to the remote fleet:
+    ish connect 3000                       # prints a https://*.trycloudflare.com URL
+    ish iteration create --url https://<random>.trycloudflare.com
+    ish study run --sample 3 -y --wait
+    ```
+  </Accordion>
+
+  <Accordion title="ish connect needs a port">
+    **Symptom.** `ish connect` exits with `Pass a port: ish connect <port> (e.g. ish connect
+    3000).` or `Invalid port: ...`.
+
+    **Cause.** `connect` requires the local port your dev server listens on, as a number
+    between 1 and 65535.
+
+    **Fix.** Pass the port:
+
+    ```bash
+    ish connect 3000
+    ```
+
+    To fan one tunnel across several local services, add `--proxy /<prefix>=<port>`
+    (repeatable):
+
+    ```bash
+    ish connect 3000 --proxy /api=8000
+    ```
+  </Accordion>
+
+  <Accordion title="Chatbot endpoint fails with TunnelInactive">
+    **Symptom.** A chatbot run against a tunnel-backed endpoint exits 5 with
+    `error_kind: "TunnelInactive"`:
+
+    ```text
+    This endpoint is configured to use a local tunnel, but no active tunnel was found. Run `ish connect <port>` first, then retry.
+    ```
+
+    On MCP, `chatbot_setup` and `chatbot_test` return a structured failure carrying the same
+    `error_kind: "TunnelInactive"` from the smoke probe (not `[network_error]`, which is the
+    general transport-failure case).
+
+    **Cause.** The endpoint is marked tunnel-backed but no tunnel is currently active. The
+    CLI runs a pre-flight check before dispatch and refuses to run a chatbot that ish cannot
+    reach.
+
+    **Fix.** Open the tunnel first, then run:
+
+    ```bash
+    ish connect <port>
+    ish chat endpoint test -m "Hello"
+    ```
+
+    Exit 5 is transient: the cause is fixable and the command is safe to retry once the
+    tunnel is up. See [Exit codes and errors](/cli/exit-codes) and
+    [Connect tools](/mcp/generated/tools-connect).
+  </Accordion>
+
+  <Accordion title="The connect verb is missing on a hosted MCP client">
+    **Symptom.** Asking a hosted ish MCP client to open a tunnel does nothing, or the
+    `connect` tool (actions `start` / `status` / `stop`) is absent or refused.
+
+    **Cause.** The hosted server exposes two tools. The tunnel-control verb `connect` is
+    local-only and hidden when the server runs hosted (JWT mode), because the hosted
+    server's `localhost` is the cloud loopback, not your machine. Only the read-only
+    `connect_status` tool stays available when hosted: it reads the backend's tunnel state
+    rather than spawning one.
+
+    **Fix.** Open the tunnel from a terminal with `ish connect <port>`, then create the
+    endpoint as tunnel-backed. To get the `connect` verb itself, run the MCP locally with
+    `ISH_AUTH_MODE=local`. Or host the bot at a public URL and create the endpoint with no
+    tunnel. See the [Connect tools](/mcp/generated/tools-connect).
+  </Accordion>
+</AccordionGroup>
+
+## Gated previews and protected URLs
+
+A remote run needs to reach the iteration URL the way a real visitor would. A URL behind a
+password, a preview-deploy cookie, or a login form will block participants unless ish has
+the credentials. Configure them once on the [workspace](/concepts/site-access); participants
+reuse them on any study that points at a matching origin. Credentials are encrypted at rest
+and never read back.
+
+<AccordionGroup>
+  <Accordion title="Participants land on a login or password wall">
+    **Symptom.** A remote run against a staging gate, a Vercel or Lovable preview, or a
+    login-protected app produces participants that never get past the first screen.
+
+    **Cause.** The URL is gated. ish has no credentials for that origin, so the simulated
+    visitor sees the wall, not your app.
+
+    **Fix.** Configure the matching method on the workspace, then re-run. Pick the one your
+    site uses:
+
+    ```bash
+    ish workspace site-access status                                  # what's configured
+    ish workspace site-access basic-auth --username alice --password hunter2
+    ish workspace site-access cookie --name session --value abc123
+    ish workspace site-access login --username demo --password demo
+    ```
+
+    See [Site access](/concepts/site-access) for what each method covers.
+  </Accordion>
+
+  <Accordion title="A short-lived tokenized preview link expired mid-run">
+    **Symptom.** A run worked, then later runs against the same preview link fail at the
+    door. The link carried a token in its query string (a Lovable, Vercel, or similar
+    in-editor preview).
+
+    **Cause.** Tokenized preview links expire. Once the token lapses, the URL is gated
+    again, even though it loaded fine before.
+
+    **Fix.** Get a fresh link from the preview tool, update the iteration URL, and re-run.
+    For a durable setup, deploy the build to a stable URL or configure
+    [site access](/concepts/site-access) so the link's own token is not the only key.
+
+    ```bash
+    ish iteration create --url https://<fresh-preview-url>
+    ish study run --sample 3 -y --wait
+    ```
+  </Accordion>
+
+  <Accordion title="A public URL is still being treated as gated">
+    **Symptom.** ish keeps prompting about credentials for a URL that is genuinely public.
+
+    **Cause.** ish cannot always tell a public page from a soft wall, so it asks.
+
+    **Fix.** Mark the origin public to silence the prompt:
+
+    ```bash
+    ish workspace site-access affirm-public
+    ```
+
+    To remove a method you set by mistake, clear it:
+
+    ```bash
+    ish workspace site-access clear cookie
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Still stuck
+
+<Columns cols={2}>
+  <Card title="Exit codes and errors" icon="hashtag" href="/cli/exit-codes">
+    What each exit code means and how to read the JSON error envelope.
+  </Card>
+  <Card title="Authentication" icon="key" href="/cli/auth">
+    Token resolution order, the config file, and the login, logout, and status commands.
+  </Card>
+  <Card title="Connecting an agent" icon="plug" href="/mcp/connecting">
+    Wire the MCP server into your client and sign in on first connect.
+  </Card>
+  <Card title="ish check" icon="stethoscope" href="/cli/generated/check">
+    Run a full local diagnostic checklist and gate a run on a green result.
+  </Card>
+</Columns>
+
+To report a genuine fault, run `ish feedback` from the CLI. See
+[`ish feedback`](/cli/generated/upgrade-feedback).

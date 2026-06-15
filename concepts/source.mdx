@@ -1,0 +1,85 @@
+---
+title: "Sources"
+description: "The real evidence behind a generated person: transcripts, audio, images, and PDFs that ground a simulated persona in how someone actually reacted."
+mode: "explanation"
+---
+
+A **source** is a piece of real evidence you hand to person generation: an interview transcript, a call recording, a screenshot, a support email, a PDF. When you describe an audience and attach a source, the generated [person](/concepts/people) is grounded in how someone actually reacted, not just in a prompt. This page is the mental model: what a source is, what it does to a generated person, and how it lives over time. For exact flags and parameters, follow the links to the [CLI](/cli/generated/source) and [MCP](/mcp/generated/tools-person) reference.
+
+## What a source does
+
+A brief alone produces a plausible persona. A brief plus a source produces a persona pinned to evidence. The generation job reads the file and folds what it finds into the profile it builds: the vocabulary in a transcript, the objection in an email, the friction visible in a screenshot. The richer the input, the less the generated person is invented and the more it reflects a real reaction you have already seen.
+
+You can attach more than one source to a single generation, and pair each one with a short note about how that person reacted to that artifact. The note rides along with the file so the persona reflects the reaction, not just the document.
+
+<Note>
+A source grounds a simulated person; it does not turn the output into a real human. ish leans into the approximation. An "ish" of someone built from a real transcript is closer to the mark than one built from a prompt, but it is still simulation. Frame the findings the same way.
+</Note>
+
+## Source kinds
+
+Every source is one of three kinds, and both surfaces auto-detect it from the file extension or MIME type:
+
+| Kind | What it covers |
+|---|---|
+| `text_file` | PDF, plain text, Markdown, CSV, JSON, HTML, and Word documents |
+| `audio` | `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac` |
+| `image` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp` |
+
+Detection is by extension first, then MIME type. When neither resolves, override it explicitly (the CLI takes `--kind text_file|audio|image`; hyphen and underscore variants are accepted). Audio sources are transcribed by a worker, with speaker diarization on by default.
+
+## Two ways to use a source
+
+How a source reaches generation depends on whether you use it once or reuse it.
+
+<Columns cols={2}>
+  <Card title="Inline" icon="bolt">
+    Pass a local path straight to person generation. The file is uploaded and processed as part of the run, then discarded from your attention. Reach for this when the source belongs to one generation.
+  </Card>
+  <Card title="Upload then reuse" icon="recycle">
+    Upload the source once, get an ID back, and reference that ID from many generations without re-uploading. Reach for this when one transcript should ground several audiences.
+  </Card>
+</Columns>
+
+Inline is the common path. In the CLI, `ish person generate --source ./call.mp3` uploads and processes the file before building the persona. In MCP, `person_generate(source_paths=[...])` does the same inline.
+
+Upload then reuse separates the upload into its own step. `ish source upload` returns a `ps-` alias you hand to later `ish person generate --source ps-...` runs. The MCP `source_upload` tool returns a `source_upload_id` you pass as `person_generate(source_upload_ids=[...])`. The exact arguments live in the [CLI](/cli/generated/source) and [MCP person](/mcp/generated/tools-person) reference.
+
+<Tip>
+The note that captures how a real person reacted (`--source-description` in the CLI, `reaction` in MCP, capped at 500 characters) only applies when you upload a file. For a source you uploaded earlier, generation uses whatever note you set at upload time.
+</Tip>
+
+## Where the bytes come from
+
+The CLI reads sources from your local filesystem. The MCP server runs the upload on its own machine, so its `source_upload` accepts three input shapes:
+
+- a path the **MCP process** can read on its filesystem,
+- an `http(s)://` URL, fetched server-side (SSRF-guarded, with a 10 MB cap),
+- a `data:` URL, or raw `inline_base64` bytes with a `file_name`, for hosted clients that can pass bytes but not a path.
+
+This matters when an agent runs against the hosted MCP server: a path that exists on your laptop is not on the server, so pass the bytes or a reachable URL instead.
+
+## Processing and status
+
+A source is not ready the instant the bytes land. After the upload, ish kicks off processing: text and images are parsed inline, audio is transcribed by an async worker. A source moves toward one of two terminal states, `processed` or `failed`. Inline generation waits for processing automatically; the standalone CLI upload polls until the source is terminal, with `--no-wait` to return early and a poll timeout you can raise from its 300-second default.
+
+A `failed` source carries an error you can read back. Inspect any source by ID at any time with `ish source get`.
+
+## How a source lives over time
+
+A source outlives the generation that consumed it. Two facts shape that life.
+
+First, deletes are ref-counted. `ish source delete` removes the source row and its uploaded file only when no generated profile still maps to it. A person already built from a source keeps that seed mapping until the person itself is deleted, so deleting a source never silently rewrites the people it grounded. Like every removal in ish, the delete asks for confirmation and is not reversible.
+
+Second, the alias prefix differs by surface. The CLI tags a source with a `ps-` alias; the MCP server uses `tps-` for the same family of attachments. Both resolve to the same underlying file. Use whichever prefix the surface you are on returns; do not assume one carries over to the other.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="People and audiences" icon="users" href="/concepts/people">
+    What a person is and how a source grounds the personas you generate.
+  </Card>
+  <Card title="Workspaces" icon="folder" href="/concepts/workspace">
+    Sources are scoped to a workspace, alongside the people they ground.
+  </Card>
+</Columns>

@@ -1,0 +1,202 @@
+---
+title: "Probe a chatbot"
+description: "Stand up an external_chatbot study so simulated people talk to your HTTP chatbot and report back where the conversation breaks."
+mode: "how-to"
+---
+
+Point a [study](/concepts/study) at your own chatbot and let simulated people hold a real conversation with it. This is the `external_chatbot` shape of the [chat modality](/concepts/modalities): each participant sends turns to your HTTP endpoint, reads the bot's replies, and reports what they noticed, where they stalled, and whether they finished the [assignment](/concepts/assignment-questionnaire). For two simulated people rehearsing a conversation against each other (a pitch, a hard sell, a support escalation), see the chat-pair guide instead.
+
+The shape of the job: save the endpoint, author a configuration on it, create a chat study, run it, read the [results](/concepts/reactions-and-results).
+
+<Note>
+  This guide assumes you have authenticated the CLI or connected an agent, and that you have an [active workspace](/concepts/active-context). If not, start with the [CLI quickstart](/start/cli-quickstart) or [connect an agent](/start/connect-an-agent).
+</Note>
+
+## Before you start
+
+You need a reachable HTTP chatbot. ish makes the call itself, so the bot has to answer a POST (or PUT) with a parseable reply. Two reachability cases:
+
+<Columns cols={2}>
+  <Card title="A hosted bot" icon="globe">
+    A public URL ish can reach from the cloud. Nothing else to set up. If the call needs an API key, store it once with [`ish secret set`](/concepts/secrets) and reference it as `{{secret:KEY}}` in the endpoint config.
+  </Card>
+  <Card title="A localhost bot" icon="laptop-code">
+    A bot running on your machine (`http://localhost:3000`). Mark the endpoint tunnel-backed and open a Cloudflare tunnel with `ish connect <port>` so the remote fleet can reach it. The endpoint stays unreachable until a tunnel is live.
+  </Card>
+</Columns>
+
+## Steps
+
+<Steps>
+  <Step title="Save the chatbot endpoint">
+    An **endpoint** is the saved wire contract: the URL, method, headers, the request body template, and the response paths ish reads the reply from. Author it once and reuse it across studies.
+
+    The fastest path is `init`: hand it a curl sample, a JSON request/response sample, or a known-good template, and ish infers the [`ChatbotEndpointConfig`](/cli/generated/chat) for you. Templates are `openai`, `anthropic`, `voiceflow`, `dialogflow-cx`, and `botframework`. The MCP equivalent, `chatbot_setup`, infers, smoke-tests, and persists in one call.
+
+    <CodeGroup>
+    ```bash CLI
+    # Infer the shape from a curl sample and save it
+    ish chat endpoint init --from-curl ./bot.curl --name "Support bot"
+
+    # Or start from a known-good template
+    ish chat endpoint init --template openai --name "Support bot"
+    ```
+
+    ```text MCP
+    chatbot_setup(
+      workspace_id="w-6ec",
+      paste="curl https://api.example.com/chat -d '{\"message\":\"hi\"}'",
+      name="Support bot"
+    )
+    ```
+    </CodeGroup>
+
+    `init` prints the saved endpoint's alias (`Created endpoint ep-abc`) and returns it as `alias` in the JSON. Reference the endpoint by that `ep-` alias (or its UUID) in every later step. `--name` only sets the display name; it does not resolve an endpoint. The examples below use `ep-abc`, the alias `init` returned.
+
+    Templates use `{{secret:NAME}}` placeholders for auth. Set the matching workspace [secret](/concepts/secrets) before you test, or the call goes out with an empty key and the bot answers 401.
+
+    For a localhost bot, add `--tunnel-backed` (CLI) or `is_tunnel_backed=true` (MCP). A localhost URL is auto-detected as a tunnel hint, but the endpoint is only created tunnel-backed when you set the flag.
+  </Step>
+
+  <Step title="Probe the connection">
+    Send one synthetic turn before you commit a study to it. This is a smoke test, not a simulation: it draws no [credits](/concepts/credits-and-limits) and tells you whether the wire contract holds.
+
+    <CodeGroup>
+    ```bash CLI
+    ish chat endpoint test ep-abc -m "Hello"
+    ```
+
+    ```text MCP
+    chatbot_test(workspace_id="w-6ec", endpoint_id="ep-abc", message="Hello")
+    ```
+    </CodeGroup>
+
+    `chatbot_setup` runs this probe for you when `smoke_test=True` (the default) and refuses to persist the endpoint if the test fails. Branch on the returned `error_kind`, not the message:
+
+    | `error_kind` | What it means | What to do |
+    |---|---|---|
+    | `BotUnreachable` | DNS or connection refused | Fix the URL, or confirm the bot is up |
+    | `TunnelInactive` | Tunnel-backed endpoint, no live tunnel | Run `ish connect <port>` and retry |
+    | `BotAuthError` | 401 or 403 | Check `outgoing.headers` and the `{{secret:KEY}}` it resolves |
+    | `BotResponseError` | HTTP non-2xx | Inspect `raw_excerpt` |
+    | `BotInvalidResponseError` | Reply missed the configured `incoming.*` paths | Re-infer the shape with `init` / `chatbot_setup(paste=...)` |
+
+    The [chatbot tools reference](/mcp/generated/tools-chatbot) lists every `error_kind`.
+  </Step>
+
+  <Step title="Author a default configuration">
+    A **configuration** captures what the bot is for this run: model, system prompt, tools, sub-agents, and custom fields. It is distinct from the endpoint's wire contract, and it lives N-per-endpoint so you can compare bot setups across [iterations](/concepts/iteration).
+
+    A chat study needs a **default** configuration on its endpoint. An endpoint alone is not enough: `ish study create --modality chat` resolves the endpoint's default configuration at creation time. Author one with `--default` first.
+
+    <CodeGroup>
+    ```bash CLI
+    ish chat config set --endpoint ep-abc \
+      --name v1 --model claude-sonnet-4-6 \
+      --system-prompt-file ./prompt.txt --default
+    ```
+
+    ```text MCP
+    # chatbot_setup folds the configuration into the same call
+    chatbot_setup(
+      workspace_id="w-6ec",
+      paste="...",
+      name="Support bot",
+      configuration={"name": "v1", "model": "claude-sonnet-4-6"},
+      is_configuration_default=true
+    )
+    ```
+    </CodeGroup>
+
+    Each iteration freezes a snapshot of the configuration at creation, so editing it later never rewrites a past run. To change the bot setup, author a new configuration with a fresh name.
+  </Step>
+
+  <Step title="Create the chat study">
+    Create the study against the saved endpoint. ish resolves the endpoint's default configuration and builds the first iteration inline. Give it at least one assignment so participants have a goal.
+
+    <CodeGroup>
+    ```bash CLI
+    ish study create --name "Onboarding bot" --modality chat \
+      --endpoint ep-abc \
+      --assignment "Sign up:Complete the signup flow" \
+      --max-turns 20
+    ```
+
+    ```text MCP
+    study_create(
+      workspace_id="w-6ec", name="Onboarding bot", modality="chat",
+      chat_mode="external_chatbot",
+      assignments=["Sign up: Complete the signup flow"]
+    )
+    study_add_iteration(
+      study_id="s-abc", name="A", modality="chat",
+      chatbot_endpoint_id="ep-abc", max_turns=20
+    )
+    ```
+    </CodeGroup>
+
+    `--max-turns` caps the conversation per participant; see the [study create reference](/cli/generated/study-create) for the default. To embed the endpoint without saving it first, pipe a `ChatbotEndpointConfig` into `--endpoint-config -` instead of `--endpoint`; the two flags are mutually exclusive. Assignments may carry steps, which are honored for `external_chatbot` chat. See the [study create reference](/cli/generated/study-create) and [study tools](/mcp/generated/tools-study) for the full flag set.
+  </Step>
+
+  <Step title="Run it and read what came back">
+    People are selected at run time, not at create time. For a tunnel-backed bot, open the tunnel first.
+
+    <CodeGroup>
+    ```bash CLI
+    # If the bot is on localhost, open the tunnel first:
+    ish connect 3000
+
+    ish study run --study s-abc --sample 5 --wait
+    ish study results s-abc
+    ```
+
+    ```text MCP
+    study_run(study_id="s-abc", audience={"sample": 5}, wait=true)
+    study_get(study_id="s-abc", view="full")
+    ```
+    </CodeGroup>
+
+    `--sample` caps at 20 people per dispatch; split larger cohorts across slices. `--wait` blocks until every conversation reaches a terminal state. The results carry the full transcript per participant plus the reasoning behind each reaction, not a single score. See [reactions and results](/concepts/reactions-and-results) and the [study run reference](/cli/generated/study-run).
+  </Step>
+</Steps>
+
+## Variations
+
+<AccordionGroup>
+  <Accordion title="The bot runs on localhost">
+    Mark the endpoint tunnel-backed (`--tunnel-backed`), open a Cloudflare tunnel with `ish connect <port>` before probing or running, and keep it open for the duration of the run. A probe against a tunnel-backed endpoint with no live tunnel returns `error_kind=TunnelInactive`. The [`ish connect` reference](/cli/generated/connect) covers `--detach` and multi-service `--proxy` routing.
+  </Accordion>
+
+  <Accordion title="The bot is stateful">
+    A stateful bot tracks a session and returns a `conversation_id`. The endpoint config's `outgoing.mode` is `stateful` (versus `stateless`), and `{{conversation_id}}` threads the bot-supplied id back into each turn. When probing across invocations, pass `--conversation-id` (CLI) or `conversation_id` (MCP) to maintain the thread.
+  </Accordion>
+
+  <Accordion title="The bot streams or polls instead of one request per turn">
+    The endpoint config dispatches on `transport`: `sync` (one HTTP request per turn, the common case), `async_poll` (an initial POST returns a job id that ish polls), or `streaming` (SSE or chunked-stream, with `eventFormat` set to `openai`, `anthropic`, or `raw`). Infer the shape from a real sample with `init` / `chatbot_setup(paste=...)` rather than hand-writing it.
+  </Accordion>
+
+  <Accordion title="You only have documentation, not a curl sample">
+    `ish chat endpoint map --docs ./api.md` runs the same inference engine as `init` but fuses a draft endpoint's URL and headers with freeform docs (a README chunk, an OpenAPI excerpt), and probes the live bot to refine the mapping when the URL is reachable. The output is read-only: pipe `inferred_config` into `ish chat endpoint create --endpoint-config -` to persist.
+  </Accordion>
+
+  <Accordion title="You want to compare two bot setups">
+    Author a second configuration with a new `--name`, add a second iteration referencing it, and run both. Each iteration freezes its configuration snapshot, so the comparison stays reproducible. See [benchmarking](/concepts/benchmarking).
+  </Accordion>
+</AccordionGroup>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="ish chat reference" icon="terminal" href="/cli/generated/chat">
+    Every flag for `chat endpoint` and `chat config`, including `init`, `test`, `map`, and the config fields.
+  </Card>
+  <Card title="chatbot tools" icon="plug" href="/mcp/generated/tools-chatbot">
+    `chatbot_setup`, `chatbot_test`, `chatbot_get`, and the full `error_kind` vocabulary.
+  </Card>
+  <Card title="Secrets" icon="key" href="/concepts/secrets">
+    Store the bot's API key once and reference it as `{{secret:KEY}}` on the wire.
+  </Card>
+  <Card title="Modalities" icon="layer-group" href="/concepts/modalities">
+    Where chat sits among interactive, text, image, video, audio, and document.
+  </Card>
+</Columns>

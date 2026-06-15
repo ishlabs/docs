@@ -1,0 +1,159 @@
+---
+title: "Studies"
+description: "The persistent unit in ish: show simulated people something and read their reactions, then change it and run again."
+mode: "explanation"
+---
+
+A study is the durable thing you keep coming back to. You make something, point a
+study at it, and simulated people experience it and report back. Then you change
+the thing, run the study again, and compare. The study persists across all of
+that. The runs come and go.
+
+Think of a study as the question you are asking, held steady while the answer
+gets refined. "Does the onboarding land for first-time visitors?" is a study.
+The five variations of the onboarding you try, and the panels you run against
+each, are not the study. They live inside it.
+
+## What a study holds
+
+A study is the recipe, not the dish. It defines how an experience should be
+observed, and it does not carry the link or file being observed. That separation
+is the whole point: it lets one study outlive many drafts of the thing it tests.
+
+A study carries:
+
+- A **[modality](/concepts/modalities)**: the kind of artifact simulated people
+  experience. One of `interactive` (they drive a real browser), `text`, `video`,
+  `audio`, `image`, `document` (they read, watch, or listen and react), or `chat`
+  (a multi-turn conversation). The modality is fixed when the study is created and
+  decides the mechanics of every run.
+- A **content type** for media studies (for example `email`, `ad`, `social_post`).
+  It frames what the simulated person is looking at, so a draft read as an email
+  is observed differently from the same words read as a blog post.
+- **Assignments**: the tasks each simulated person attempts (sign up, skim the
+  article, find the price). See [assignments](/concepts/assignment-questionnaire).
+- **Interview questions**: the free-text questions each person answers after the
+  experience. See [questionnaire](/concepts/assignment-questionnaire).
+
+What a study does **not** hold is the URL, the file, or the chatbot endpoint
+being tested. That belongs to its iterations.
+
+## Studies, iterations, and runs
+
+The piece a study deliberately leaves out (the concrete thing under test) lives
+on an [iteration](/concepts/iteration). An iteration attaches one URL, one media
+file, or one chatbot endpoint, and it is the unit that actually gets executed. A
+study has one or more iterations, labelled `A`, `B`, `C`, and so on. Two
+iterations on the same study are how you A/B a change: same assignments, same
+questions, different artifact.
+
+A **run** dispatches a panel of simulated people against one iteration. The run
+draws on your workspace credits and produces the reactions: a reported journey
+per person, with sentiment, friction, blockers, positive moments, completion, and
+the reasoning behind each. Runs accumulate on the iteration. The study and its
+iterations stay put.
+
+<Note>
+  The split is recursive. The study is the persistent question, the iteration is
+  the persistent variant, and a run is one transient observation of that variant.
+  Drafts move; the study holds the line.
+</Note>
+
+A study always belongs to exactly one [workspace](/concepts/workspace). Delete
+the workspace and its studies go with it.
+
+## The loop a study is built for
+
+A study earns its persistence by being run more than once. Its normal shape is a
+cycle, not a one-shot. The study sets the question once, fixing the modality,
+assignments, and questions. An iteration points it at the first draft. A run
+dispatches a panel and the reactions come back. Then the draft changes, a new
+iteration captures the change, another run reads the reactions again, and the two
+iterations sit side by side so you can see whether the change landed.
+
+You are not setting up a fresh experiment each time. You are keeping one question
+open and watching the answer move as the work improves. That is why the study,
+not the run, is the unit you name, save, and share.
+
+## Two ways to drive a study
+
+Studies are first-class on both developer surfaces, and the verbs line up: the
+study you create, the iteration you attach, the run you dispatch, and the
+reactions you read are the same four moves on the CLI and through MCP. The
+example below shows the parity, not a procedure to follow step by step.
+
+<CodeGroup>
+
+```bash CLI
+# Create the study (the recipe), with zero iterations
+ish study create \
+  --name "Onboarding UX" \
+  --modality interactive \
+  --assignment "Sign up:Complete the signup flow" \
+  --question "How easy was it?"
+
+# Attach the thing under test, then run a panel against it
+ish iteration create --url https://example.com
+ish study run --sample 5 --country SE -y
+
+# Read the reactions
+ish study results s-b2c
+```
+
+```python MCP
+# Create the study, attach an iteration, then run a panel
+study_create(
+    workspace_id="w-6ec",
+    name="Onboarding UX",
+    modality="interactive",
+    assignments=["Sign up:Complete the signup flow"],
+    questions=["How easy was it?"],
+)
+study_add_iteration(
+    study_id="s-b2c",
+    name="A",
+    modality="interactive",
+    url="https://example.com",
+    platform="browser",
+    screen_format="desktop",
+)
+study_run(study_id="s-b2c", audience={"sample": 5})
+
+# Read the reactions
+study_get(study_id="s-b2c", view="summary")
+```
+
+</CodeGroup>
+
+A study created without any inline content starts with zero iterations on purpose:
+there is no placeholder draft to run against by accident. Add the first iteration
+when you have something concrete to show.
+
+## Lifecycle
+
+A study moves through a small set of states: `draft`, `running`, `completed`, and
+`cancelled`. The state reflects the study as a whole, aggregated from the runs on
+its iterations.
+
+Two studies can also be linked. Cloning a study for benchmarking (running the same
+recipe against several brand workspaces) records the original it was copied from,
+so the comparison keeps its lineage.
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
+    The variants inside a study: each one carries the URL, media, or endpoint a
+    run executes against.
+  </Card>
+  <Card title="Modalities" icon="shapes" href="/concepts/modalities">
+    The seven kinds of artifact a study can observe, and what each changes about
+    a run.
+  </Card>
+  <Card title="study commands" icon="terminal" href="/cli/generated/study">
+    Every CLI flag for `study create`, `study run`, and reading results.
+  </Card>
+  <Card title="study tools" icon="plug" href="/mcp/generated/tools-study">
+    The MCP study tool space: parameters, return shapes, and views.
+  </Card>
+</Columns>

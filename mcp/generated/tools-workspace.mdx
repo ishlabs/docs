@@ -1,0 +1,99 @@
+---
+title: "workspace tools"
+description: "MCP tool reference for the workspace domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `workspace_create`
+
+**Tier:** write · **Tags:** workspace, write
+
+Create a new top-level container for studies, asks, and people.
+
+On a saturated account this returns ``[usage_limit_reached]``; inspect
+existing workspaces and reuse one instead - see
+``docs_get("guides/cold-start")``.
+
+`name`: human-readable workspace name (required).
+`description`: optional description.
+`base_url`: optional default URL studies in this workspace target.
+
+**Returns** ``Workspace``; on failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;auth_failed, forbidden, validation_error,
+usage_limit_reached, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="base_url" type="string">
+&nbsp;
+</ParamField>
+
+## `workspace_delete`
+
+**Tier:** destructive · **Tags:** delete, workspace
+
+Permanently delete a workspace. **DESTRUCTIVE** - cascades to every
+study, ask, person, audience source, brand, and chatbot endpoint inside
+it, and is irreversible (no soft-archive). Confirm with the user first.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) to delete.
+
+**Returns** ``&#123;"deleted": True, "workspace_id": &lt;id>}``; on failure
+raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
+not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `workspace_get`
+
+**Tier:** read-only · **Tags:** read, workspace
+
+Read workspaces. Polymorphic on ``workspace_id``.
+
+- **No ``workspace_id``** → list every accessible workspace, ordered
+  most-recently-active first (idle ones last, then alphabetical). Each
+  item carries ``has_headroom`` (a cheap affordability hint - whether the
+  workspace can still create a study under its tier cap); pass an id for
+  the full quota counters and credit pool.
+- **With ``workspace_id``** → that workspace's details plus plan-limit
+  usage counters (studies/people used + cap, tier) and the
+  simulation-credit pool drawn on dispatch. A ``None`` cap means
+  "unlimited"; treat ``None`` and ``0`` differently. When
+  ``credits.unlimited`` is True, skip the headroom check - balances are
+  untracked (``None``), not empty. See ``docs_get("concepts/workspace")``.
+
+Use the list form to discover workspace IDs, or an id to branch on plan
+caps before a create that would return ``[usage_limit_reached]`` (see
+``docs_get("guides/cold-start")``) or to check credits before dispatch.
+Brands are separate - use ``brand_get(workspace_id)``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``). Omit to list.
+`name`: list-mode only - case-insensitive substring filter on the workspace
+name, applied after the fetch. Use it to find a workspace by name without
+the "list all then scan" round-trip (e.g. ``workspace_get(name="Test")``).
+Ignored when ``workspace_id`` is set.
+
+**Returns** ``PaginatedList[Workspace]`` (iterate ``.items``) when no id,
+else ``WorkspaceInfo``; on failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found, server_error,
+network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>

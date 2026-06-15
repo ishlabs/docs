@@ -1,0 +1,33 @@
+---
+title: "check, setup"
+description: "Command reference: ish check, setup."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ check+setup (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish check`
+Alias: `ish doctor`.
+
+Check your local simulation setup for a platform (ios | android | web), or everything
+
+Usage: `ish check [platform]`
+
+### Arguments
+<ParamField path="platform">(optional)</ParamField>
+
+## `ish setup`
+
+Fetch/install local-simulation dependencies (Chromium, iOS runner, adb) and show what's left to do
+
+Usage: `ish setup`
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

@@ -1,0 +1,71 @@
+---
+title: "config"
+description: "Command reference: ish config."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ config (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish config list`
+
+List all simulation configs
+
+Usage: `ish config list`
+
+## `ish config create`
+
+Create a simulation config
+
+Usage: `ish config create [options]`
+
+### Options
+<ParamField path="--file <path>" type="string">JSON file with config data Required.</ParamField>
+
+## `ish config get`
+
+Get simulation config details
+
+Usage: `ish config get <id>`
+
+### Arguments
+<ParamField path="id">Config ID (required)</ParamField>
+
+## `ish config schema`
+
+Get simulation config schema with defaults (admin-only - non-admin accounts: ask an admin to share an existing config ID and pass it via `ish study run --config &lt;id&gt;`).
+
+Usage: `ish config schema`
+
+## `ish config update`
+
+Update a simulation config
+
+Usage: `ish config update <id> [options]`
+
+### Arguments
+<ParamField path="id">Config ID (required)</ParamField>
+
+### Options
+<ParamField path="--file <path>" type="string">JSON file with update data Required.</ParamField>
+
+## `ish config delete`
+
+Delete a simulation config
+
+Usage: `ish config delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Config ID (required)</ParamField>
+
+### Options
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json / non-TTY)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

@@ -1,0 +1,204 @@
+---
+title: "Site access"
+description: "How ish reaches what it reacts to when the URL is gated: public, basic auth, session cookie, or login form."
+mode: "explanation"
+---
+
+For most studies ish reaches the artifact directly. You point an
+[iteration](/concepts/iteration) at a public URL, attach a file, or wire up a
+chatbot endpoint, and the simulation runs. Site access is for the case where the
+URL is not reachable as-is: a staging gate, a preview link behind a token, a page
+that only renders after a login.
+
+Site access lives on the [workspace](/concepts/workspace). You configure how ish
+should get past the gate once, and every study in that workspace whose URL matches
+reuses it. It applies to URLs ish loads in a real browser, so it is an
+`interactive`-study concern, not a media or chatbot one.
+
+## When you need it
+
+An `interactive` study sends simulated people through a real cloud browser pointed
+at the iteration's URL. If that browser cannot load the page, the simulation has
+nothing to react to. Site access closes that gap for the three common ways a URL is
+gated:
+
+- A staging site behind **HTTP basic auth** (the browser dialog that wants a
+  username and password before any page loads).
+- A preview link gated on a **session cookie**: a Vercel preview, a Lovable
+  preview, anything that checks for a token cookie and otherwise shows a wall.
+- A site behind a **login form**: a real sign-in page the participant fills in and
+  submits to reach the part of the product under test.
+
+If the URL is already public, you do not need site access at all. A study against
+a live marketing page or a published prototype just runs.
+
+## Public versus gated
+
+ish does not require you to declare that a public site is public. The default is
+that no credentials are attached and the browser loads the URL as any anonymous
+visitor would. The one thing the public method adds is an explicit affirmation:
+you are telling ish, on the record, that this origin needs nothing. Tools and UI
+read that flag to stop nudging you about credentials on a URL you have already
+confirmed is open.
+
+That makes "public" a real, separate state, not the absence of configuration:
+
+| State | What it means | What ish does |
+|---|---|---|
+| Nothing configured | No credentials, no affirmation | Loads the URL anonymously; may still prompt "does this need access?" |
+| Public affirmed | You confirmed the origin is open | Loads anonymously; stops prompting for that origin |
+| A method configured | basic auth, cookie, or login is set | Applies that method when a study targets the matching origin |
+
+Saving any credential (basic auth, cookie, or login) clears a prior public
+affirmation. The two are mutually exclusive by design: an origin you just handed a
+password to is not one you are also calling open.
+
+## The four methods
+
+Each method matches how the gate actually works. Pick the one that describes the
+wall in front of your URL.
+
+<AccordionGroup>
+  <Accordion title="Basic auth" icon="lock">
+    HTTP basic auth: the credentials the browser sends before any page renders,
+    the username and password behind the native browser prompt. Configured as a
+    username plus a password, bound to an origin. ish presents them to the matching
+    origin so the page loads.
+  </Accordion>
+  <Accordion title="Session cookie" icon="cookie">
+    A cookie ish sets on the browser before loading the URL, for sites that gate on
+    a token rather than a prompt: a Vercel preview, a Lovable preview, a staging
+    link behind a bypass cookie. Configured as a cookie name plus a value, bound to
+    an origin.
+  </Accordion>
+  <Accordion title="Login form" icon="key">
+    Username and password for a real sign-in form. Unlike basic auth and cookie,
+    these are not handed to the browser up front: the participant types them into
+    the site's own login page and submits it, the way a real person signs in. Not
+    bound to an origin, because the login happens wherever the study sends the
+    participant.
+  </Accordion>
+  <Accordion title="Public" icon="globe">
+    Not a credential. An affirmation that the origin needs no access at all, which
+    silences the prompt asking whether it does. Bound to an origin like the other
+    URL-based methods.
+  </Accordion>
+</AccordionGroup>
+
+## How an origin gets matched
+
+Three of the four methods (basic auth, session cookie, and public) bind to an
+**origin**: the bare `https://host` form of a URL, scheme and host only, no path.
+When a study runs against a URL, ish checks whether a configured method binds to
+that URL's origin and applies it. The login method is the exception, since it has
+no fixed origin to bind to; the participant signs in wherever the study takes them.
+
+You do not have to spell out the origin every time. If you leave it off, ish binds
+to the workspace's `base_url`. So a workspace whose `base_url` is set to your
+staging host can attach basic auth with no origin argument, and it binds to that
+host. If neither an explicit origin nor a `base_url` is available, the call fails
+and tells you to pass one or set the workspace `base_url` first. ish never guesses
+the origin.
+
+<Note>
+  An origin is host-level, not path-level. Basic auth bound to
+  `https://staging.example.com` covers every URL on that host. To gate a different
+  host, configure that origin separately.
+</Note>
+
+## Where the credentials live
+
+Site-access credentials are workspace-level secrets, stored encrypted at rest.
+Neither the CLI nor the MCP server ever reads a password or a cookie value back:
+both report only which methods are configured and the origin each is bound to. The
+origins are stored as plain values, not secrets, so a status read can show you the
+bound host to confirm you wired the right one.
+
+Because credentials sit on the workspace, every study in that workspace inherits
+them. Configure access to your staging host once, and every `interactive` study
+you point at that host reuses it without re-entering anything.
+
+<Warning>
+  Site-access keys are reserved. Do not write or delete them through the plain
+  secret commands: those reject the reserved keys and point you back here. The
+  paired keys (a basic-auth username and its password, a cookie name and its value)
+  are created together in one write, so the pairing invariant the backend enforces
+  is never half-satisfied. Always go through the site-access surface.
+</Warning>
+
+## Reading and changing it
+
+Both developer surfaces expose the same four configure verbs plus a status read
+and a clear. The status read tells you which methods are set and the bound origin;
+it never returns a secret value. The example below shows the parity across
+surfaces, not a procedure to follow in order.
+
+<CodeGroup>
+
+```bash CLI
+# What is configured on the active workspace
+ish workspace site-access status
+
+# A staging gate (basic auth), bound to the workspace base_url
+ish workspace site-access basic-auth --username alice --password hunter2
+
+# A preview cookie (Vercel, Lovable, etc.)
+ish workspace site-access cookie --name session --value abc123
+
+# A login form the participant fills in
+ish workspace site-access login --username demo --password demo
+
+# Affirm a public origin to silence the prompt
+ish workspace site-access affirm-public
+
+# Clear one method, or everything
+ish workspace site-access clear cookie
+ish workspace site-access clear all
+```
+
+```python MCP
+# What is configured
+site_access_get(workspace_id="w-6ec")
+
+# Configure one method (polymorphic on `method`)
+site_access_set(workspace_id="w-6ec", method="basic_auth",
+                username="alice", password="hunter2")
+site_access_set(workspace_id="w-6ec", method="cookie",
+                name="session", value="abc123")
+site_access_set(workspace_id="w-6ec", method="login",
+                username="demo", password="demo")
+site_access_set(workspace_id="w-6ec", method="public")
+
+# Clear one method, or all of them
+site_access_clear(workspace_id="w-6ec", method="cookie")
+site_access_clear(workspace_id="w-6ec", method="all")
+```
+
+</CodeGroup>
+
+<Tip>
+  Keep secrets out of your shell history. On the CLI, pass `-` for `--password` or
+  `--value` and pipe the value on stdin:
+  `printf %s "$STAGING_PW" | ish workspace site-access basic-auth --username alice --password -`.
+</Tip>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Workspaces" icon="folder-open" href="/concepts/workspace">
+    Where site-access credentials live, and how `base_url` supplies the default
+    origin they bind to.
+  </Card>
+  <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
+    The unit that carries the URL a run targets. Site access decides whether ish
+    can reach it.
+  </Card>
+  <Card title="site_access tools" icon="plug" href="/mcp/generated/tools-site-access">
+    Every parameter and return shape for `site_access_get`, `site_access_set`, and
+    `site_access_clear`.
+  </Card>
+  <Card title="workspace commands" icon="terminal" href="/cli/generated/workspace">
+    Full flags for `ish workspace site-access` and the rest of the workspace
+    surface.
+  </Card>
+</Columns>

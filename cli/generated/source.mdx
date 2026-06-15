@@ -1,0 +1,59 @@
+---
+title: "source"
+description: "Command reference: ish source."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ source (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish source upload`
+
+Upload a file as a participant attachment and wait for processing
+
+Usage: `ish source upload <file> [options]`
+
+### Arguments
+<ParamField path="file">Local file path (transcript, audio, image, PDF, etc.) (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
+<ParamField path="--kind <kind>" type="string">Attachment kind: text_file | audio | image (auto-detected if omitted; hyphen/underscore variants accepted)</ParamField>
+<ParamField path="--description <text>" type="string">Context note attached to the file (max 500 chars)</ParamField>
+<ParamField path="--diarize" type="boolean">Accepted for backward compat; audio diarization is the worker default and the flag is ignored.</ParamField>
+<ParamField path="--no-wait" type="boolean">Don't poll until terminal status - return after confirm</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Poll timeout in seconds (default 300) Default: "300".</ParamField>
+
+## `ish source get`
+
+Get a participant attachment's current status
+
+Usage: `ish source get <id> [options]`
+
+### Arguments
+<ParamField path="id">Attachment ID or alias (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish source delete`
+
+Delete a participant attachment plus its uploaded file
+
+Usage: `ish source delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Attachment ID or alias (required)</ParamField>
+
+### Options
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

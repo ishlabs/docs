@@ -1,0 +1,196 @@
+---
+title: "VS Code"
+description: "Connect VS Code to the hosted ish MCP server and sign in over OAuth, even though VS Code binds a fresh loopback port every session."
+mode: "how-to"
+---
+
+Wire VS Code to the hosted ish MCP server so Copilot agent mode can call ish tools
+(`study_run`, `ask_run`, `person_generate`, and the rest) from inside your editor. The
+server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in
+over OAuth on first connect, so no token lands in a config file. For the full add
+mechanism and the OAuth handshake, see [connect an agent](/start/connect-an-agent).
+
+VS Code holds MCP servers under a top-level `servers` key (most other clients use
+`mcpServers`), and each ish block is `{ "type": "http", "url": "..." }`.
+
+## Connect
+
+Pick one path. All three write the same VS Code MCP config and end with the same OAuth
+sign-in.
+
+<Tabs>
+  <Tab title="With the ish CLI">
+    Install the CLI and let it write VS Code's config block:
+
+    ```bash
+    npm i -g @ishlabs/cli
+    ish mcp add --client vscode --yes
+    ```
+
+    Run `ish mcp add` with no flags first for a dry-run plan, then re-run with `--yes` to
+    commit. The command writes only the server URL, never a token. See the
+    [`ish mcp` reference](/cli/generated/mcp) for every flag.
+  </Tab>
+  <Tab title="VS Code CLI">
+    Add the server from your terminal with the built-in `code` command:
+
+    ```bash
+    code --add-mcp '{"name":"ish","type":"http","url":"https://mcp.ishlabs.io/mcp"}'
+    ```
+
+    This writes the same block to your user MCP config.
+  </Tab>
+  <Tab title="By hand">
+    Open your user MCP config and add the ish server under `servers`. Create the file if
+    it does not exist, and keep any servers already there:
+
+    ```json mcp.json
+    {
+      "servers": {
+        "ish": {
+          "type": "http",
+          "url": "https://mcp.ishlabs.io/mcp"
+        }
+      }
+    }
+    ```
+
+    The file lives at:
+
+    | OS | Path |
+    | --- | --- |
+    | macOS | `~/Library/Application Support/Code/User/mcp.json` |
+    | Linux | `~/.config/Code/User/mcp.json` |
+    | Windows | `%APPDATA%\Code\User\mcp.json` |
+
+    You can also add it from the Command Palette: run `MCP: Add Server`, choose the HTTP
+    transport, and paste the URL above. Either route writes the same block.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that some clients will not follow on a POST, leaving the agent with
+  an empty tool list.
+</Warning>
+
+## Sign in and confirm
+
+VS Code prompts you to trust a server the first time it starts, then runs the OAuth flow.
+
+<Steps>
+  <Step title="Start the server">
+    Open the Command Palette and run `MCP: List Servers`, then start `ish`. The first
+    start prompts you to trust the server; confirm it, or ish will not load.
+  </Step>
+  <Step title="Approve the sign-in">
+    VS Code opens your browser to sign in as your ish account. Approve access. The token
+    it receives is stored for you; you never handle it.
+  </Step>
+  <Step title="Ask the agent a read">
+    In Copilot agent mode, ask a read-only question:
+
+    ```text
+    Use the ish tools to confirm who I am and list my workspaces.
+    ```
+
+    The agent calls `workspace_get` and reports your [workspaces](/concepts/workspace)
+    back. A brand-new account shows an empty list, which is still a successful connection.
+  </Step>
+</Steps>
+
+<Check>
+  The agent returns a workspace list (or an explicit empty list) instead of "no ish tools
+  available". That means the OAuth sign-in landed and the tools are live.
+</Check>
+
+## Why VS Code needs the OAuth proxy
+
+VS Code binds a fresh, random loopback port every session for its OAuth redirect. Most
+clients (Cursor, Claude Code, the app builders) keep one consistent redirect from
+registration through sign-in, so they never hit this. VS Code does not: the port it
+registers and the port it later listens on differ.
+
+ish handles this server-side. Without the fix, the upstream auth server matches the
+redirect address by exact string and would reject VS Code's shifted port with
+`invalid redirect_uri`. The hosted ish server fronts that auth server with a proxy: it
+advertises itself as the authorization server, accepts any loopback port VS Code throws
+at it, and holds one fixed redirect upstream. So from your side, sign-in just works. You
+do not configure anything for this. It is named here only so a stray `invalid redirect_uri`
+error points you at the right place: a redirect mismatch, not your config.
+
+<Note>
+  This is handled on the hosted server at `https://mcp.ishlabs.io/mcp`. If you run your
+  own ish MCP server, the operator must register an upstream OAuth client and set the
+  proxy credentials, or VS Code's dynamic port will fail to sign in.
+</Note>
+
+## Manage the connection
+
+`ish mcp list` shows which clients are wired and their status (`present-up-to-date`,
+`present-drifted`, `absent`, or `no-config-file`). It only reads, never writes.
+
+```bash
+ish mcp list
+```
+
+Inside VS Code, run `MCP: List Servers` to start, stop, or inspect `ish`, and
+`MCP: Reset Trust` to clear the trust prompt and re-approve.
+
+If a drifted ish block is already in your VS Code config, `ish mcp add` refuses rather
+than overwriting. Pass `--force` to replace it; unrelated servers are preserved:
+
+```bash
+ish mcp add --client vscode --force --yes
+```
+
+To unwire VS Code, remove the ish block (every other server stays in place):
+
+```bash
+ish mcp remove --client vscode --yes
+```
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The agent reports no ish tools" icon="plug">
+    The server did not start or OAuth did not complete. Run `MCP: List Servers`, start
+    `ish`, confirm the trust prompt, and approve the browser sign-in. Confirm the URL has
+    no trailing slash.
+  </Accordion>
+  <Accordion title="Sign-in fails with invalid redirect_uri" icon="key">
+    A redirect mismatch, not a config error. The hosted server at
+    `https://mcp.ishlabs.io/mcp` handles VS Code's dynamic loopback port through its OAuth
+    proxy, so confirm you are pointed at the hosted URL. If you run your own ish MCP
+    server, the operator has not registered the upstream OAuth client; sign-in cannot
+    succeed until they do.
+  </Accordion>
+  <Accordion title="A blocking run returns nothing" icon="clock">
+    Long simulations can outrun a client's tool-call window. Dispatch with `wait=false`
+    (the default) and poll with `study_get(view="summary")` until every participant
+    reaches a terminal state. Full contract in the
+    [`study_run` reference](/mcp/generated/tools-study).
+  </Accordion>
+  <Accordion title="ish mcp add refuses to write" icon="file-pen">
+    A drifted ish block is in your VS Code config, or the file is not valid JSON. Inspect
+    it by hand, or re-run with `ish mcp add --client vscode --force --yes` to overwrite the
+    ish block. Unrelated servers are preserved.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain.
+  </Card>
+  <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">
+    Create, iterate, run, and read studies across every modality.
+  </Card>
+  <Card title="Connect an agent" icon="link" href="/start/connect-an-agent">
+    The add mechanism and OAuth, in full.
+  </Card>
+  <Card title="Other clients" icon="grid-2" href="/integrations">
+    Wire Claude Code, Cursor, ChatGPT, and more.
+  </Card>
+</Columns>

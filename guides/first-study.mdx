@@ -1,0 +1,189 @@
+---
+title: "Run a study end to end"
+description: "Create a study, point it at a URL, simulate visits, and read the reported journey, on the CLI or the MCP server."
+mode: "how-to"
+---
+
+This is the full happy path: define a study, give it something to experience, dispatch simulated people, and read back what they noticed. Every step shows the [CLI](/cli/overview) and the [MCP server](/mcp/overview) side by side. New to the building blocks? Skim [study](/concepts/study), [iteration](/concepts/iteration), and [people](/concepts/people) first; this page assumes them.
+
+The example runs an interactive study against a live URL. The same shape works for the other modalities (text, video, audio, image, document, chat) by swapping the content flag.
+
+## Before you start
+
+- The CLI installed and signed in (`ish login`), or an agent wired to the hosted MCP server. See the [CLI quickstart](/start/cli-quickstart) or [connect an agent](/start/connect-an-agent).
+- A [workspace](/concepts/workspace) to work in. The CLI uses your active workspace; the MCP server takes a `workspace_id` (for example `w-6ec`).
+- A public URL to point at.
+
+<Steps>
+
+<Step title="Create the study and point it at a URL">
+
+A study is the persistent shape of what you want to learn: a modality, the [assignments](/concepts/study) people work through, and the questions they answer. Passing `--url` on the CLI creates the first [iteration](/concepts/iteration) in the same call, so you go from nothing to runnable at once. On the MCP server, create the study, then add iteration A with `study_add_iteration`.
+
+<CodeGroup>
+
+```bash CLI
+ish study create \
+  --name "Landing page first look" \
+  --modality interactive \
+  --url https://example.com \
+  --assignment "First look:Land on the page and decide if you would keep reading" \
+  --question "What stood out, and what was confusing?"
+```
+
+```python MCP
+# create the study shell, then add iteration A
+study_create(
+    workspace_id="w-6ec",
+    name="Landing page first look",
+    modality="interactive",
+    assignments=[
+        {"name": "First look", "instructions": "Land on the page and decide if you would keep reading"}
+    ],
+    questions=["What stood out, and what was confusing?"],
+)
+
+study_add_iteration(
+    study_id="s-b2c",
+    name="A",
+    modality="interactive",
+    url="https://example.com",
+)
+```
+
+</CodeGroup>
+
+The CLI prints the new study id and an alias like `s-b2c`, and remembers it as your active study, so later commands need no id. On the MCP server, pass the returned `study_id` to the next call.
+
+<Note>
+  `--assignment` takes one task as `Name:Instructions`. Add more by repeating the flag. For multi-step checklists or richer question types, see [`study create`](/cli/generated/study-create) and the [study tools](/mcp/generated/tools-study).
+</Note>
+
+</Step>
+
+<Step title="Choose who experiences it">
+
+A run with no audience reuses whatever participants already exist on the iteration. To resolve a fresh group, sample from the pool or generate people to fit a brief. Selection is shared across both surfaces. See [people and audiences](/concepts/people).
+
+<CodeGroup>
+
+```bash CLI
+# sample three Swedish people aged 35 to 50 (deferred to the run step below)
+# or generate people first when the pool is thin for your archetype
+ish person generate \
+  --description "Tech-savvy millennials in the US who use mobile banking" \
+  --count 3
+```
+
+```python MCP
+person_generate(
+    workspace_id="w-6ec",
+    description="Tech-savvy millennials in the US who use mobile banking",
+    count=3,
+)
+```
+
+</CodeGroup>
+
+You can skip this step and let the run sample directly from the pool. Each dispatch is capped at 20 participants; for a bigger panel, run several slices.
+
+</Step>
+
+<Step title="Simulate the visits">
+
+Dispatch the simulation against the latest iteration. Pass an audience to resolve a fresh group, or none to reuse the iteration's existing participants.
+
+<CodeGroup>
+
+```bash CLI
+# sample one person and block until the run finishes
+ish study run --sample 1 -y --wait
+
+# or a demographic slice
+ish study run --country SE --min-age 35 --max-age 50 --sample 3 -y --wait
+```
+
+```python MCP
+# dispatch and poll later (recommended for interactive runs)
+study_run(study_id="s-b2c", audience={"sample": 1})
+
+# reuse the iteration's existing panel
+study_run(study_id="s-b2c", audience=None)
+```
+
+</CodeGroup>
+
+A study run draws credits per participant who completes. The two surfaces guard the spend differently:
+
+- The **CLI** refuses without `-y` / `--yes` in a non-interactive context (the default for agents and CI), exiting `2` with `error_kind: "ConfirmationRequired"`. Pass `-y` to confirm.
+- The **MCP server** is subscription-funded, so no per-dispatch approval is needed. To add a checkpoint before drawing credits, stage participants with `study_run(dispatch=False)` and dispatch them later with `audience=None`.
+
+The full model is in [runs and asks](/concepts/run-vs-ask).
+
+<Warning>
+  Interactive and media runs take one to five minutes. Many MCP clients cap a single tool call at about 30 seconds, which overrides `timeout`, so a blocking `wait=True` aborts before the run finishes. Prefer the default `wait=False` and poll with the returned `next_action` hint. On the CLI, `--wait` blocks safely from the terminal.
+</Warning>
+
+</Step>
+
+<Step title="Read the reported journey">
+
+Read back what each simulated person noticed, where they got stuck, and the answers to your questions. See [reactions and results](/concepts/reactions-and-results).
+
+<CodeGroup>
+
+```bash CLI
+# full results: per-participant sentiment, interview answers, interactions
+ish study results
+
+# leaner roll-up: counts, sentiment, one comment per participant
+ish study results --summary
+```
+
+```python MCP
+# default summary view: counts, sentiment, per-participant rows
+study_get(study_id="s-b2c", view="summary")
+
+# the full payload
+study_get(study_id="s-b2c", view="full")
+```
+
+</CodeGroup>
+
+You see the reasoning behind every reaction, not just a number. To slice by assignment, sentiment, frame, or segment, see [slicing results](/cli/generated/study-results) on the CLI and the [study tools](/mcp/generated/tools-study) on the MCP.
+
+<Tip>
+  If a run you just finished still reports `status: draft`, read `runtime_status` instead. The raw `status` column updates lazily and can lag a completed run.
+</Tip>
+
+</Step>
+
+</Steps>
+
+## What you just did
+
+You defined a study, gave it a URL to experience, dispatched simulated people, and read their reported journey, before putting the page in front of anyone.
+
+Your audience, ish.
+
+## Next steps
+
+<Columns cols={2}>
+
+<Card title="Compare two versions" href="/concepts/iteration" icon="code-compare">
+  Add a second iteration with a changed URL or content, run it, and read the two side by side.
+</Card>
+
+<Card title="Run a wider panel" href="/cli/generated/study-run" icon="users">
+  Sample by country, age, gender, or occupation, or split a large cohort across several dispatches.
+</Card>
+
+<Card title="React to creative instead" href="/concepts/run-vs-ask" icon="square-poll-horizontal">
+  When the question is "which of these lands?", reach for an ask rather than a study.
+</Card>
+
+<Card title="Share the results" href="/cli/generated/study-extras" icon="link">
+  Hand a public, read-only link to a stakeholder with `ish study share`.
+</Card>
+
+</Columns>

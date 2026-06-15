@@ -1,0 +1,801 @@
+---
+title: "study tools"
+description: "MCP tool reference for the study domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `study_add_iteration`
+
+**Tier:** long-running · **Tags:** dispatch, study
+
+Add a NEW iteration - a content version (the URL / media / endpoint
+participants experience) - to a study. Pick ``modality`` and supply only that
+modality's fields. A study has 1..N iterations; ``study_run`` defaults to the
+latest. This *creates* a version; it does NOT re-run the study
+(``study_run``), edit an existing iteration in place
+(``study_update_iteration``), or change study-level metadata
+(``study_revise``). Concept: ``docs_get("concepts/iteration")``.
+
+- ``interactive``: ``url``, ``platform`` (browser / android / figma / code),
+  ``screen_format`` (mobile_portrait / desktop). Optional ``locale``,
+  ``flow_name``. ``platform="figma"`` also needs ``file_key`` +
+  ``start_node_id``. The ``url`` is reached by ish's cloud testers, so it
+  must load WITHOUT your session: use a published / share-preview link, not
+  a login-gated editor preview (Lovable / Replit / Bolt / v0 previews are
+  session-gated) - localhost needs ``ish connect``. You set this once per
+  study; later runs reuse the iteration. Credentialed pages: register a
+  login once with ``site_access_set``. Builder clients get a tailored
+  ``notes`` hint on the response.
+- ``video`` / ``audio`` / ``document``: ``content_url`` (local path or hosted
+  URL). Optional ``segmentation``, ``content_config``, ``copy_content``
+  (video/audio), ``title``, ``mime_type``.
+- ``text``: ``content_text`` (inline, or ``@path`` for a local file).
+  Optional ``content_html``, ``sender_name`` / ``sender_email``,
+  ``featured_image_url``, ``segmentation``, ``content_config``, ``title``.
+- ``image``: ``image_urls`` (non-empty; local paths and/or hosted URLs).
+  Optional ``copy_content``, ``segmentation``, ``content_config``, ``title``.
+- ``chat``, two mutually-exclusive sub-modes:
+  * ``external_chatbot`` - pass ``chatbot_endpoint_id`` (saved) OR an inline
+    ``endpoint`` dict.
+  * ``participant_pair`` (AI ↔ AI) - pass ``chat_pair=ChatPairConfig(...)``.
+    Drive each side from ``role_criteria_a`` / ``role_criteria_b`` (backend
+    resolves pools at create time) or from explicit ``group_a`` / ``group_b``
+    (equal counts zip 1:1, or one side of 1 broadcasts). Scenarios on
+    ``scenario_a``/``scenario_b``. RoleCriteria enum/accessibility fields:
+    ``docs_get("guides/chat-pair")``.
+  ``chat_pair`` with ``endpoint``/``chatbot_endpoint_id`` is a validation
+  error. Optional ``max_turns``, ``early_termination`` on both sub-modes.
+
+Local uploads: ``content_url`` / ``image_urls`` accept local paths (uploaded
+and resolved to hosted URLs); ``content_text`` accepts ``@path``.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
+
+**Returns** an ``IterationCreateResponse`` envelope discriminated by ``ok``;
+branch on it and read ``error_kind`` / ``suggestions`` on failure. Media
+pre-flight and argument errors come back as ``ok=False`` (not exceptions) -
+same shape as ``chatbot_test``.
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="modality" type="&quot;interactive&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;text&quot; | &quot;image&quot; | &quot;document&quot; | &quot;chat&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="platform" type="&quot;browser&quot; | &quot;android&quot; | &quot;figma&quot; | &quot;code&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="screen_format" type="&quot;mobile_portrait&quot; | &quot;desktop&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="file_key" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="start_node_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="locale" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="flow_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_text" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_html" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="image_urls" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="title" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="mime_type" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="sender_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="sender_email" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="featured_image_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="segmentation" type="object">
+&nbsp;
+</ParamField>
+<ParamField body="content_config" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="early_termination" type="boolean">
+If true, end the participant session once all selected segments are seen. Default: `false`.
+</ParamField>
+<ParamField body="selected_segment_indices" type="integer[]">
+Subset of segment indices to include; ``None`` (default) means all.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="copy_content" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="text" type="string" required>
+Caption plain text.
+</ParamField>
+<ParamField body="html" type="string">
+Optional HTML version (e.g. from a rich-text editor).
+</ParamField>
+<ParamField body="segmentation" type="object">
+Optional sub-segmentation of the caption itself.
+</ParamField>
+<ParamField body="position" type="&quot;before&quot; | &quot;after&quot;">
+Whether the copy is shown before or after the media. Default: `"after"`.
+</ParamField>
+<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot;">
+Optional social-platform skin for the rendered post.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="endpoint" type="object">
+&nbsp;
+</ParamField>
+<ParamField body="chatbot_endpoint_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="max_turns" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="early_termination" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="chat_pair" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="role_criteria_a" type="object">
+**Recommended** for side A. Demographic criteria (occupation, age, gender, country, plus the five enum list-filters `education_level_in` / `household_in` / `locale_type_in` / `income_level_in` / `employment_status_in` and the coarse accessibility booleans). Backend resolves to a profile pool at iteration create time. Use this whenever the agent doesn't already know the specific person ids. To pre-flight a side's pool size before committing the iteration, call `person_get(workspace_id, country=..., education_level_in=..., requires_captions=..., limit=10)` - `PaginatedList.total` is the match count for the same filter shape.
+<Expandable title="properties">
+<ParamField body="occupation" type="string[]">
+Job titles to match (case-insensitive). Empty/null = no filter.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower bound on participant age.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper bound on participant age.
+</ParamField>
+<ParamField body="gender" type="&quot;male&quot; | &quot;female&quot; | &quot;non-binary&quot;[]">
+Gender values to match. Mirrors the frontend Gender enum (male / female / non-binary).
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO 3166 alpha-2 country codes.
+</ParamField>
+<ParamField body="education_level_in" type="string[]">
+Education levels to match (any-of). Values: less_than_secondary, secondary, some_post_secondary, vocational_or_associate, bachelor, graduate. ISCED 2011 aligned.
+</ParamField>
+<ParamField body="household_in" type="string[]">
+Household compositions to match (any-of). Values: single, couple_no_kids, couple_with_kids, single_parent, shared_housing, adult_with_parents, multi_generational.
+</ParamField>
+<ParamField body="locale_type_in" type="string[]">
+Locale types to match (any-of). Values: urban, suburban, small_town, rural.
+</ParamField>
+<ParamField body="income_level_in" type="string[]">
+Income levels to match (any-of). Values: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say.
+</ParamField>
+<ParamField body="employment_status_in" type="string[]">
+Employment statuses to match (any-of). Values: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other.
+</ParamField>
+<ParamField body="requires_captions" type="boolean">
+True keeps participants whose `accessibility_profile.auditory.captions_required` is true. False excludes them. None = no filter.
+</ParamField>
+<ParamField body="uses_screen_reader" type="boolean">
+True keeps participants whose `accessibility_profile.visual.uses_screen_reader` is true.
+</ParamField>
+<ParamField body="prefers_reduced_motion" type="boolean">
+True keeps participants whose `accessibility_profile.cognitive.reduce_motion` is true.
+</ParamField>
+<ParamField body="prefers_high_contrast" type="boolean">
+True keeps participants whose `accessibility_profile.visual.contrast_preference` is `"more"`.
+</ParamField>
+<ParamField body="has_any_accessibility_need" type="boolean">
+True keeps participants with any non-default accessibility leaf or a non-empty `assistive_tech` list. False keeps participants with an empty / fully-default `accessibility_profile`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="role_criteria_b" type="object">
+**Recommended** for side B. See ``role_criteria_a``.
+<Expandable title="properties">
+<ParamField body="occupation" type="string[]">
+Job titles to match (case-insensitive). Empty/null = no filter.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower bound on participant age.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper bound on participant age.
+</ParamField>
+<ParamField body="gender" type="&quot;male&quot; | &quot;female&quot; | &quot;non-binary&quot;[]">
+Gender values to match. Mirrors the frontend Gender enum (male / female / non-binary).
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO 3166 alpha-2 country codes.
+</ParamField>
+<ParamField body="education_level_in" type="string[]">
+Education levels to match (any-of). Values: less_than_secondary, secondary, some_post_secondary, vocational_or_associate, bachelor, graduate. ISCED 2011 aligned.
+</ParamField>
+<ParamField body="household_in" type="string[]">
+Household compositions to match (any-of). Values: single, couple_no_kids, couple_with_kids, single_parent, shared_housing, adult_with_parents, multi_generational.
+</ParamField>
+<ParamField body="locale_type_in" type="string[]">
+Locale types to match (any-of). Values: urban, suburban, small_town, rural.
+</ParamField>
+<ParamField body="income_level_in" type="string[]">
+Income levels to match (any-of). Values: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say.
+</ParamField>
+<ParamField body="employment_status_in" type="string[]">
+Employment statuses to match (any-of). Values: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other.
+</ParamField>
+<ParamField body="requires_captions" type="boolean">
+True keeps participants whose `accessibility_profile.auditory.captions_required` is true. False excludes them. None = no filter.
+</ParamField>
+<ParamField body="uses_screen_reader" type="boolean">
+True keeps participants whose `accessibility_profile.visual.uses_screen_reader` is true.
+</ParamField>
+<ParamField body="prefers_reduced_motion" type="boolean">
+True keeps participants whose `accessibility_profile.cognitive.reduce_motion` is true.
+</ParamField>
+<ParamField body="prefers_high_contrast" type="boolean">
+True keeps participants whose `accessibility_profile.visual.contrast_preference` is `"more"`.
+</ParamField>
+<ParamField body="has_any_accessibility_need" type="boolean">
+True keeps participants with any non-default accessibility leaf or a non-empty `assistive_tech` list. False keeps participants with an empty / fully-default `accessibility_profile`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="group_a" type="string[]">
+Side A person ids (UUIDs or 'tp-' aliases). Use this when you already have specific participants in mind; otherwise leave empty and pass ``role_criteria_a`` instead.
+</ParamField>
+<ParamField body="group_b" type="string[]">
+Side B person ids. When both sides are explicit, counts must match (zip) or one side must be exactly 1 (broadcast). Leave empty to resolve from ``role_criteria_b``.
+</ParamField>
+<ParamField body="scenario_a" type="string" required>
+Side A's scenario + goal. Side B never sees this.
+</ParamField>
+<ParamField body="scenario_b" type="string" required>
+Side B's scenario + goal. Side A never sees this.
+</ParamField>
+<ParamField body="initiator_side" type="&quot;a&quot; | &quot;b&quot;">
+Which side speaks turn 0. Default: `"a"`.
+</ParamField>
+</Expandable>
+</ParamField>
+
+## `study_analyze`
+
+**Tier:** long-running · **Tags:** dispatch, study
+
+Trigger an AI analysis run for a study and optionally wait for it.
+Synthesizes a narrative summary plus a categorised ``KeyInsight`` list
+(friction / confusion / blocker / observation / positive). Read prior runs
+via ``study_get(view="insights")``.
+
+Prerequisites (server-enforced): modality in &#123;interactive, video, audio,
+text, image, document} (chat ineligible) and a minimum-completions floor. If
+it errors on the floor, wait for more completions or fall back to
+``study_get(view='summary', group_by='segment'|'frame')``.
+
+**Credit cost:** first analysis per study is free; each subsequent run costs
+10 credits from the workspace's plan pool. Empty pool →
+``[insufficient_credits]``. Model: ``docs_get("reference/credits")``.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``wait=True`` polls to ``completed``/``failed`` (raises ``ToolError`` on
+``failed``); default returns the ``pending`` envelope with a poll hint.
+``timeout`` defaults to 300s.
+
+**Returns** a ``StudyResult`` - ``pending`` when ``wait=False``, else the
+terminal ``completed`` envelope (``summary`` + ``key_insights`` populated).
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `300.0`.
+</ParamField>
+
+## `study_benchmark`
+
+**Tier:** long-running · **Tags:** dispatch, study
+
+Clone a source study (name, description, assignments, interview
+questions) to one or more competitor brand workspaces for cross-read.
+**Clones are draft - this DOES NOT run them; ``study_run`` each yourself,
+then ``study_get(study_ids=[source, *clones])``.** Iterations, participants,
+and frames are not copied. Brands (``brand_create``) and the source must
+share a parent workspace.
+
+Each clone is born with an empty placeholder iteration ``A``, surfaced as
+``placeholder_iteration_ids[&lt;cloned_study_alias>]``. Fill it with
+``study_update_iteration`` (PATCH the placeholder), NOT ``study_add_iteration``
+(which would append a second iteration ``B`` and leave ``A`` empty). Skipped
+clones appear in ``skipped`` with a reason - handle before assuming a clean
+cohort.
+
+`source_study_id`: UUID or alias (e.g. ``s-b2c``) of the source study.
+`brand_ids`: list of brand workspace UUIDs / aliases (``w-...``).
+
+**Returns** ``&#123;"cloned": [&lt;Study>, ...], "placeholder_iteration_ids":
+&#123;&lt;alias>: &lt;iteration_id>}, "skipped": [&#123;"brand_id", "reason",
+"existing_study_id?"}]}``. Reasons: ``"no_access"`` or ``"already_cloned"``
+(``existing_study_id`` points at the prior clone).
+
+### Parameters
+<ParamField body="source_study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="brand_ids" type="string[]" required>
+&nbsp;
+</ParamField>
+
+## `study_create`
+
+**Tier:** write · **Tags:** study, write
+
+Create a study in a workspace. ``modality`` picks the artifact kind.
+Returns a ``StudyCreateResponse`` - ``study`` (id / alias / workspace_id /
+status all ride on it) plus ``notes`` naming the next steps: add content with
+``study_add_iteration``, then dispatch with ``study_run``. To clone for
+benchmarking, see ``study_benchmark``. Concept: ``docs_get("concepts/study")``.
+
+``assignments`` (the tasks participants attempt) accepts:
+
+- strings or ``Assignment`` dicts (``&#123;name, instructions, test_context?}``).
+  Bare strings ≤255 chars become ``&#123;name, instructions}``; longer strings
+  auto-split at the first sentence boundary (name capped at 255, full string
+  → instructions). Use for single-task non-chat and ``external_chatbot`` chat.
+- ``Assignment`` objects - required for ``participant_pair`` chat: two
+  side-tagged rows (``side="a"``/``"b"``) with ``name`` (role),
+  ``instructions`` (scenario), optional ``test_context`` (goal).
+
+``Assignment`` may carry a ``steps`` checklist (``steps=[AssignmentStep(...)]``)
+- atomic actions an LLM verifier grades per participant, rolled up into
+``Assignment.step_completion`` on ``study_get(view='full')``. Steps are
+interactive / external_chatbot-chat only. See ``docs_get("concepts/assignment")``.
+
+``chat_mode`` (required when ``modality="chat"``): ``external_chatbot`` (talk
+to a bot endpoint) or ``participant_pair`` (AI ↔ AI). For ``participant_pair``
+defer iteration creation to ``study_add_iteration``.
+
+Each ``questions`` entry becomes a free-text post-sim interview question; for
+richer questionnaire shapes refine via ``study_revise``.
+See ``docs_get("concepts/questionnaire")``.
+
+`workspace_id`: UUID or alias (e.g. ``w-6ec``) of the workspace.
+`name`: human-readable study name.
+`modality`: interactive | text | video | audio | image | document | chat.
+`content_type`: refines media modalities only (e.g. modality="video",
+content_type="ad"); raises a preflight error for interactive / chat.
+`chat_mode`: external_chatbot | participant_pair; required iff modality="chat".
+`assignments`: see above.
+`questions`: free-text interview questions.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="modality" type="&quot;interactive&quot; | &quot;text&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;image&quot; | &quot;document&quot; | &quot;chat&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="content_type" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="chat_mode" type="&quot;external_chatbot&quot; | &quot;participant_pair&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="assignments" type="object | string[]">
+&nbsp;
+</ParamField>
+<ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+
+## `study_delete`
+
+**Tier:** destructive · **Tags:** delete, study
+
+Permanently delete a study and all its iterations + simulations.
+DESTRUCTIVE.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study to delete.
+
+**Returns** ``&#123;"deleted": True, "study_id": &lt;id>}`` on success.
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `study_get`
+
+**Tier:** read-only · **Tags:** read, study
+
+Read studies - **browse** a workspace's studies or **read** one study's
+results. Pass exactly one of ``workspace_id`` (browse/list) / ``study_id``
+(one study) / ``study_ids`` (benchmark cross-read).
+
+Read modes:
+
+- ``workspace_id`` → **browse**: paginated list of every study in that
+  workspace, each row carrying id, alias, name, modality, ``status`` /
+  ``runtime_status``, and participant counts - this is how you discover
+  study IDs and inspect what exists (the browse layer for studies, mirroring
+  ``workspace_get`` for workspaces). ``view`` / ``participant_id`` / ``lean``
+  ignored.
+- ``study_id`` → single-study results, shaped by ``view``:
+  ``summary`` (default; counts + sentiment + per-participant rows),
+  ``full`` (typed ``Study``; iterations + flat participant graph, each
+  participant carries ``iteration_id``), ``per_participant`` (one
+  participant's run; needs ``participant_id``), ``transcripts``
+  (chat-only; all transcripts, or one when ``participant_id`` set),
+  ``insights`` (AI summary + ``KeyInsight`` list from ``study_analyze``
+  runs; ``&#123;latest, history}`` newest-first).
+- ``study_ids`` → benchmark cross-read; list of per-study results in
+  order, each shaped by ``view`` (pass source + ``study_benchmark`` clones).
+
+Slicing (single-study only): ``filters=StudyResultsFilter(...)`` narrows to
+matching interactions; ``group_by`` reprojects into per-group rollups.
+Axes by modality - interactive→``frame``/``step``; video/audio/text/document→
+``segment``; chat→``turn`` (``side`` on participant_pair, ``step`` on graded
+external_chatbot); image→none; ``iteration``/``assignment``/``sentiment``
+apply to all. Off-modality filters warn via ``modality_warnings`` and are
+ignored; off-modality ``group_by`` hard-errors. Filtered responses carry
+``totals_unfiltered`` for coverage checks. See ``docs_get("guides/slicing-results")``.
+
+Text-field provenance: ``summary``'s ``participants[].summary_highlight`` is
+AI-synthesized (not a quote); ``per_participant``'s ``interactions[].comment``
+and ``participant_summary.comment`` are verbatim persona text. Drill into
+``per_participant`` for source quotes.
+
+Navigation / decision trace: ``per_participant``'s ``interactions[]`` IS the
+step-by-step clickstream - ordered by timestamp, each step carries ``url``
+(page URL), ``location`` (page/screen template), ``actions[]`` (taps / typing
+/ scrolls), and ``screenshot_id`` (the frame seen at that step). For
+interactive studies that is the visited-pages / decision-path record; graded
+step outcomes roll up via ``group_by='step'``. Screenshots and transcripts
+are also exposed as ``ish://`` resources, with inline ``screenshots_resource``
+/ ``transcripts_resource`` pointers on the ``summary`` view so clients that
+can't read resources still reach them.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``). Exclusive with the other two.
+`study_ids`: list of UUIDs/aliases for benchmark cross-read. Exclusive.
+`workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive.
+`view`: ``summary`` (default) | ``full`` | ``per_participant`` |
+``transcripts`` | ``insights``. Ignored in list mode.
+`participant_id`: required for ``per_participant``; optional scope for
+``transcripts``; ignored otherwise.
+`lean`: ``view="full"`` only - null iterations AND skip the participants
+fetch for a metadata-only payload (also the fix if ``full`` times out on a
+draft study).
+`filters`: ``StudyResultsFilter`` (see that model). Only with ``study_id`` +
+``view`` in ``&#123;summary, full}``.
+`group_by`: ``iteration`` | ``frame`` | ``segment`` | ``turn`` |
+``assignment`` | ``step``. Reprojects onto the axis; returns a
+``SliceResponse``. Only with ``study_id`` + default ``view="summary"``.
+
+**Returns** ``PaginatedList[Study]`` (list), ``Study`` (``full``),
+``StudyResultsSummary`` (``summary``), ``dict`` (``per_participant``),
+``TranscriptsResponse`` or ``ChatTranscript`` (``transcripts``),
+``SliceResponse`` (``group_by`` set), or a list of these (benchmark). Slice /
+transcripts envelopes expose rows on ``response.rows``.
+
+### Parameters
+<ParamField body="study_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="study_ids" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="workspace_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="view" type="&quot;summary&quot; | &quot;full&quot; | &quot;per_participant&quot; | &quot;transcripts&quot; | &quot;insights&quot;">
+Default: `"summary"`.
+</ParamField>
+<ParamField body="participant_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="lean" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="filters" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="frame" type="string[]">
+Interactive only. Each entry is a Frame UUID, a frame_version_id UUID, an ``f-...`` alias, or a case-insensitive substring of the Frame's name. Ambiguous name matches raise ``[validation_error]`` with the candidate list.
+</ParamField>
+<ParamField body="segment" type="string[]">
+Media-modality only (video/audio/text/document). Each entry is either an integer-as-string (matches ``segment_index``) or a case-insensitive substring of ``segment_label``.
+</ParamField>
+<ParamField body="turn" type="integer[]">
+Chat-modality only. Matches interactions whose ``actions[0].data.turn_index`` equals one of the listed values.
+</ParamField>
+<ParamField body="side" type="&quot;a&quot; | &quot;b&quot;">
+participant_pair chat only. Restricts to interactions whose parent assignment has ``side == 'a'`` or ``side == 'b'``.
+</ParamField>
+<ParamField body="assignment" type="string[]">
+Each entry is an assignment UUID or a case-insensitive substring of the assignment's name.
+</ParamField>
+<ParamField body="step" type="string[]">
+Each entry is a step_id (canonical) or a case-insensitive substring of the step's name. Resolves against ``study.assignments[].steps[]``. Trims ``participant.participant_assignments[].step_results[]`` to matching rows.
+</ParamField>
+<ParamField body="sentiment" type="string[]">
+Case-insensitive sentiment-label filter (e.g. ``Frustrated``, ``Satisfied``). Interactions with ``sentiment is None`` are dropped only when this filter is set.
+</ParamField>
+<ParamField body="actor" type="&quot;ai&quot; | &quot;human&quot; | &quot;user&quot;[]">
+Restrict to interactions whose ``actor`` is in the listed set.
+</ParamField>
+<ParamField body="iteration" type="string[]">
+Restrict to one or more iterations. Each entry is an iteration UUID, an ``i-...`` alias, or a case-insensitive substring of the iteration's ``name`` / ``description``.
+</ParamField>
+<ParamField body="participant" type="string[]">
+Restrict to one or more participants. Each entry is a participant UUID or a ``t-...`` alias.
+</ParamField>
+<ParamField body="include_unmatched" type="boolean">
+Interactive only. By default ``filters.frame`` drops interactions with ``frame_version_id is None`` (degraded captures). Set ``True`` to keep them - they surface under a synthetic ``_unmatched`` bucket in ``group_by='frame'``. Default: `false`.
+</ParamField>
+<ParamField body="include_non_completed" type="boolean">
+When ``filters.sentiment`` is set, participants with ``status != 'completed'`` (errored, running, draft, cancelled) are excluded by default - their sentiment labels reflect infrastructure failures (e.g. ``BrowserComputer not initialized``) rather than real participant reactions, and pollute sentiment-scoped slices. Set ``True`` to keep them - useful when auditing infrastructure failures themselves. No-op when ``filters.sentiment`` is unset. Default: `false`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="group_by" type="&quot;iteration&quot; | &quot;frame&quot; | &quot;segment&quot; | &quot;turn&quot; | &quot;assignment&quot; | &quot;step&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="limit" type="integer">
+Default: `50`.
+</ParamField>
+<ParamField body="offset" type="integer">
+Default: `0`.
+</ParamField>
+
+## `study_revise`
+
+**Tier:** write · **Tags:** study, write
+
+Update study-level metadata (name / description / status / modality /
+assignments / questions). Only fields you pass change; ``None`` leaves a
+field untouched, ``assignments=[]`` / ``questions=[]`` clear the list. Does
+NOT touch iterations - ``study_update_iteration`` edits an existing iteration,
+``study_add_iteration`` appends a new one. Changing ``modality`` invalidates
+prior runs (rare).
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
+`name`, `description`, `status`: study-level fields.
+`modality`: interactive | text | video | audio | image | document | chat.
+`content_type`: media modalities only; omit for interactive / chat.
+`assignments`: as in ``study_create`` (strings, or ``Assignment`` objects
+for ``test_context`` / ``side`` / ``steps``).
+`questions`: free-text interview questions.
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="status" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="modality" type="&quot;interactive&quot; | &quot;text&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;image&quot; | &quot;document&quot; | &quot;chat&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="content_type" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="assignments" type="object | string[]">
+&nbsp;
+</ParamField>
+<ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+
+## `study_run`
+
+**Tier:** long-running · **Tags:** dispatch, study
+
+Run a study: resolve an audience (or reuse an existing panel), create
+participants on an iteration if needed, and dispatch the modality-appropriate
+simulation batch. Verb choice (study vs ask): ``docs_get("concepts/run-verbs")``.
+
+**Credit cost:** each successfully-completed participant debits the
+workspace's plan credit pool - subscription-funded, so no per-dispatch
+approval is needed; pre-flight failures (CSP refusals, NXDOMAIN, chatbot
+smoke-test failures, etc.) cost zero and are retryable. Confirm the pool via
+``workspace_get(...).credits`` (empty → ``[insufficient_credits]``). Model:
+``docs_get("reference/credits")``.
+
+Three modes:
+
+1. Materialize + dispatch (default): ``audience`` + ``dispatch=True``.
+2. Stage only: ``audience`` + ``dispatch=False`` - creates participants but
+   does NOT dispatch (review checkpoint before drawing credits). Run later
+   with ``audience=None``.
+3. Reuse panel: ``audience=None`` - dispatches whatever participants already
+   exist on the iteration.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
+`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest.
+`audience`: ``AudienceFilter`` (``person_ids``, or ``sample=N`` /
+``all_matching=True`` + demographic filters). ``None`` reuses the iteration's
+panel. See ``docs_get("concepts/people")``.
+`config_id`: simulation-config override (alias ``c-...``). Required for media
+and chat studies unless every resolved person has a ``simulation_config_id``.
+For ``participant_pair`` chat, omitting it auto-infers from the first
+``group_a`` person; missing → ``validation_error``. Optional for interactive.
+`dispatch`: see modes above.
+`max_interactions`: per-participant step cap (interactive / media). Defaults
+to 20; caps runaway spend on a stuck participant. Ignored for chat. Must be ≥1.
+`max_turns`: per-participant turn cap (chat / chat_pair). Omitted → backend
+uses request > iteration's stored value > 14. Ignored otherwise. Must be ≥1.
+`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``wait=True`` polls every participant to terminal or ``timeout``; default
+returns the post-dispatch snapshot with a ``next_action`` poll hint.
+**Caveat - client transport ceiling:** many MCP clients cap a single tool
+call at ~30s (e.g. Cursor/Replit), and that ceiling overrides ``timeout``:
+``wait=True, timeout=300`` still aborts at the client's ~30s with no result.
+Interactive/media runs take 1-5 min, so they routinely exceed it. Prefer the
+default ``wait=False`` and poll via the ``next_action`` hint; reserve
+``wait=True`` for fast jobs or clients with no short transport cap.
+
+Locally-served iterations (``platform="code"`` or a localhost URL) need an
+active ``ish connect`` tunnel; absent one, fails fast with
+``error_kind="TunnelInactive"``. A *public* but session-gated URL (an
+app-builder editor preview - Lovable / Replit / Bolt / v0) passes this check
+yet still fails for ish's cloud testers: point the iteration at a published /
+share-preview link, or register a login with ``site_access_set``. See
+``docs_get("concepts/site-access")``.
+``participant_pair`` chat rejects ``audience`` (audiences live in the
+iteration's ``mode_details``).
+
+**Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``. Success →
+``response.dispatch`` (``SimulationDispatchResult``); ``dispatch=False`` leaves
+it ``None`` with ``participant_ids`` populated. Failure → ``error_kind`` +
+``error_message``; a wait that runs out of budget gives
+``error_kind="wait_timeout"`` with ``participant_ids`` set so you can resume
+via ``study_get(view="summary")``.
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="iteration_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="audience" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="person_ids" type="string[]">
+Explicit person IDs (UUIDs or ``tp-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+</ParamField>
+<ParamField body="sample" type="integer">
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching profile.
+</ParamField>
+<ParamField body="all_matching" type="boolean">
+Use every profile that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+</ParamField>
+<ParamField body="search" type="string">
+Case-insensitive substring match on the person's name.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Exact match on one of: ``male``, ``female``, ``non-binary``, ``prefer_not_to_say`` (case-insensitive). Multiple values OR-combine. Any other value matches no one.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes, e.g. ``"US"``, ``"AU"``, ``"GB"`` - NOT country names like ``"United States"`` (the pool stores two-letter codes and matches them exactly). Multiple codes OR-combine.
+</ParamField>
+<ParamField body="occupation" type="string[]">
+Free-text, case-insensitive substring match on the person's occupation; multiple values OR-combine. For reliable role targeting prefer ``role_in`` (the canonical role filter).
+</ParamField>
+<ParamField body="role_in" type="string[]">
+Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that expand to many free-text ``occupation`` substrings under the hood - a best-effort convenience over the backend's free-text occupation field. OR-combines with any explicit ``occupation`` filter (the expanded substrings are merged into the occupation dimension). Pass an unknown key to see the full canonical list in the resulting ``[validation_error]``.
+</ParamField>
+<ParamField body="min_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="max_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="visibility" type="string">
+&nbsp;
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="config_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="dispatch" type="boolean">
+Default: `true`.
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>
+<ParamField body="max_interactions" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="max_turns" type="integer">
+&nbsp;
+</ParamField>
+
+## `study_update_iteration`
+
+**Tier:** write · **Tags:** study, write
+
+Patch an EXISTING iteration's content in place (cheap edits: rename,
+re-description, partial ``details`` patch). For a full re-spec, or to ADD a
+new content version, prefer ``study_add_iteration`` (its typed signature
+guides every modality's fields); for study-level metadata use ``study_revise``.
+
+``details`` is the modality-specific nested payload; the ``type``
+discriminator is **required** on every shape and must match the iteration's
+modality (omitting it → ``[validation_error] Unable to extract tag using
+discriminator 'type'``):
+
+- interactive - ``&#123;type: "interactive", url, platform, screen_format, ...}``
+- media (video/audio/document) - ``&#123;type: "media", content_url, title, ...}``
+- image - ``&#123;type: "image", image_urls, title, ...}``
+- text - ``&#123;type: "text", content_text, content_html, title, ...}``
+- chat - ``&#123;type: "chat", endpoint, chatbot_endpoint_id, max_turns, ...}``
+
+`study_id`: UUID or alias of the parent study (alias hydration only).
+`iteration_id`: UUID or alias (e.g. ``i-d4e``) of the iteration.
+`details`: modality-specific patch (see above).
+`name`, `description`: iteration-level fields.
+
+### Parameters
+<ParamField body="study_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="iteration_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="details" type="object">
+&nbsp;
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>

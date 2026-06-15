@@ -1,0 +1,189 @@
+---
+title: "How ish works"
+description: "The mental model behind ish: from a workspace down to the reactions a simulated person reports back."
+mode: "explanation"
+---
+
+ish is a simulated human experience engine. You hand it the thing you are making (a link, an
+ad, a video, a PDF, a chatbot) and a sense of who it is for. Simulated people experience that
+thing and report back what they noticed, where they got stuck, and what they would do next,
+before it ships. What you get back is a reported journey (sentiment, friction, blockers,
+positive moments, completion) with the reasoning behind every reaction, not a score.
+
+This page is the map. It names the five things ish models and how they nest, so the rest of the
+docs can assume you know what a study is versus an iteration, and where reactions come from.
+
+## The shape of it
+
+Five concepts stack inside each other. Read the diagram top to bottom: each level contains the
+one below it.
+
+```
+workspace            one product or brand. holds everything below.  (alias w-)
+└── study            the recipe: modality + tasks + questions.       (alias s-)
+    └── iteration    one configured batch: the URL, media, or        (alias i-)
+        │            chatbot endpoint people actually experience.
+        └── run      a group of simulated people dispatched at once.
+            └── participant   one person running through it.
+                └── reactions  their reported journey + the reasoning.
+```
+
+A workspace is the top of the tree and a participant's reactions are the leaf. Everything ish
+does is some traversal of this path: set up a study, point an iteration at the artifact, run it
+on a group, read what came back.
+
+<Note>
+  Each entity owns a short alias derived from its UUID (`w-6ec`, `s-b2c`, `i-d4e`). An alias
+  stands in for the full UUID anywhere an ID is expected, on both the CLI and the MCP server. The
+  workspace, study, and iteration prefixes (`w-`, `s-`, `i-`) match across both surfaces; a few
+  nouns carry a different prefix per surface (a participant is `pt-` on the CLI, `t-` on MCP). The
+  [MCP tool conventions](/mcp/tool-conventions) page lists the full prefix table.
+</Note>
+
+## The five concepts
+
+<Steps>
+  <Step title="Workspace">
+    The top-level container, one per product or brand. It holds the studies, the saved people,
+    the sources, and the credit pool everything else draws from. The backend calls this a
+    "product"; the developer surfaces call it a workspace. See [workspace](/concepts/workspace).
+  </Step>
+  <Step title="Study">
+    The persistent research artifact, and the recipe for a piece of research. A study fixes the
+    **modality** (how people experience the thing: interactive, text, video, audio, image,
+    document, or chat), the **tasks** people perform, and the **questions** they answer. A study
+    does not carry the artifact itself. That lives on its iterations. See
+    [study](/concepts/study).
+  </Step>
+  <Step title="Iteration">
+    One configured batch of the study. The iteration is what holds the concrete thing people
+    experience: the URL for an interactive study, the media for a text or video or document
+    study, or the endpoint for a chat study. A study has one or more iterations, so an A/B is
+    two iterations of the same recipe. Tools default to the latest. See
+    [iteration](/concepts/iteration).
+  </Step>
+  <Step title="Run">
+    Dispatching a group of simulated people against an iteration. You pick an audience (an
+    explicit set of people, or a sample drawn by demographics) and ish starts a simulation for
+    each one. Every person becomes a **participant** of that run. See
+    [runs and asks](/concepts/run-vs-ask).
+  </Step>
+  <Step title="Reactions">
+    What each participant reports back. Not a grade. A reported journey: what they noticed, where
+    friction showed up, what blocked them, the positive moments, whether they completed the task,
+    and the reasoning behind each of those. You read the reactions per participant and as a
+    projected aggregate across the group.
+  </Step>
+</Steps>
+
+## Why study and iteration are separate
+
+This is the split that trips people up first, so it is worth the sentence: a study is the
+question you are asking; an iteration is one answer you put in front of people.
+
+Keep the modality, the tasks, and the questions on the study, and the thing being judged on the
+iteration, and an A/B test is natural. Two iterations, same recipe, same audience, one comparison.
+Change the headline, add iteration `B`, run it on the same group, read both. The study stays the
+constant so the comparison is honest.
+
+If you only have one artifact and no A/B in mind, you still get an iteration. It is just labelled
+`A` and created in the same step as the study.
+
+## What a run actually does
+
+A run fans out into one simulation per participant. Each simulation moves through a lifecycle you
+can poll:
+
+```
+draft → pending → running → completed | failed | cancelled
+```
+
+A participant that reaches `completed` produced a real journey: real observations, the reasoning
+behind them, and (for interactive studies) the screenshots of what they saw. A participant that
+`failed` or was `cancelled` did not.
+
+That distinction is also the cost model. Runs draw from the workspace credit pool, and a credit
+debits only when a participant **completes**. A run that never gets off the ground (a page that
+refuses to load, an empty audience, a chatbot that fails its smoke test) costs nothing, so you can
+fix the input and rerun without having burned anything. Read more in
+[credits and limits](/concepts/credits-and-limits).
+
+## Study or ask
+
+Most of this page describes the study path, because it is the durable one. There is a lighter
+sibling, the **ask**, for when you do not need a persistent artifact: you want a group to react
+to a few variants of some creative and tell you which lands. An ask fixes its audience at
+creation and dispatches in **rounds** instead of runs.
+
+The decision rule is short:
+
+<Columns cols={2}>
+  <Card title="Reach for a study" icon="flask">
+    When a person needs to **do** something on a real surface: a URL, an app, a document, a
+    chatbot. The journey is the point.
+  </Card>
+  <Card title="Reach for an ask" icon="scale-balanced">
+    When a person needs to **react** to one or more variants of creative (a tagline, an image)
+    and pick. The comparison is the point.
+  </Card>
+</Columns>
+
+See [runs and asks](/concepts/run-vs-ask) for the side-by-side.
+
+## Two ways to drive it
+
+Everything above is the same model whether you type commands or let an agent call tools. The two
+developer surfaces map onto each other one to one.
+
+<CodeGroup>
+
+```bash CLI
+# workspace → study → iteration → run → reactions
+ish workspace use w-6ec
+ish study create --name "Onboarding UX" --modality interactive \
+  --assignment "Sign up:Complete the signup flow" \
+  --question "How easy was it?"
+ish iteration create --url https://example.com
+ish study run --country SE --sample 5 --wait
+ish study results
+```
+
+```python MCP
+# workspace → study → iteration → run → reactions
+workspace_get(workspace_id="w-6ec")
+study_create(workspace_id="w-6ec", name="Onboarding UX", modality="interactive",
+             assignments=["Sign up:Complete the signup flow"],
+             questions=["How easy was it?"])
+study_add_iteration(study_id="s-b2c", name="A", modality="interactive",
+                    url="https://example.com", platform="browser")
+study_run(study_id="s-b2c", audience={"sample": 5, "country": ["SE"]})
+study_get(study_id="s-b2c", view="summary")
+```
+
+</CodeGroup>
+
+Pick the surface that fits where you already work:
+
+<Columns cols={2}>
+  <Card title="ish CLI" icon="terminal" href="/cli/generated/index">
+    A command for every step above. Scriptable, JSON on every command, aliases everywhere.
+  </Card>
+  <Card title="ish MCP server" icon="plug" href="/mcp/generated/index">
+    The same model as 42 agent-native tools at `mcp.ishlabs.io/mcp`. Let Claude, Cursor, or
+    ChatGPT drive ish.
+  </Card>
+</Columns>
+
+## Where to go next
+
+<Columns cols={3}>
+  <Card title="Quickstart" icon="bolt" href="/start/cli-quickstart">
+    Install, sign in, and read your first reactions in under five minutes.
+  </Card>
+  <Card title="Study" icon="flask" href="/concepts/study">
+    The recipe in full: modalities, tasks, and questions.
+  </Card>
+  <Card title="Runs and asks" icon="play" href="/concepts/run-vs-ask">
+    The two run verbs, audiences, the simulation lifecycle, and when each fits.
+  </Card>
+</Columns>

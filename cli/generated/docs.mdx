@@ -1,0 +1,47 @@
+---
+title: "docs"
+description: "Command reference: ish docs."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ docs (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish docs overview`
+
+Print the agent-facing mental model and traversal hints
+
+Usage: `ish docs overview`
+
+## `ish docs list`
+
+List every doc page with its one-line description
+
+Usage: `ish docs list`
+
+## `ish docs get-page`
+
+Print the full markdown for one page
+
+Usage: `ish docs get-page <slug>`
+
+### Arguments
+<ParamField path="slug">Page slug, e.g. concepts/study (see `ish docs list`) (required)</ParamField>
+
+## `ish docs search`
+
+Keyword search across every doc page
+
+Usage: `ish docs search <query>`
+
+### Arguments
+<ParamField path="query">Search query (case-insensitive substring) (required)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

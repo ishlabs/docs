@@ -1,0 +1,121 @@
+---
+title: "Claude Code"
+description: "Connect Claude Code to the ish MCP server, confirm the tools are live, and read your first reaction."
+mode: "how-to"
+---
+
+Wire Claude Code to the hosted ish MCP server so the agent can call ish tools (`study_run`, `ask_run`, `person_generate`, and the rest) from your terminal. The server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in over OAuth on first connect, so no token is written to your config.
+
+<Info>
+  You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
+  first. The OAuth step signs Claude Code in as you.
+</Info>
+
+## Connect
+
+Pick one path. Both write the same `ish` server block to Claude Code's user-scope config at `~/.claude.json` and leave OAuth to the server.
+
+<Tabs>
+  <Tab title="claude mcp add">
+    Add the server at user scope:
+
+    ```bash
+    claude mcp add --transport http --scope user ish https://mcp.ishlabs.io/mcp
+    ```
+
+    Claude Code discovers ish's OAuth metadata, registers itself, opens your browser to
+    sign in, and stores the resulting token. User scope (`--scope user`) makes ish
+    available in every project on this machine; drop to `--scope project` to write a
+    shared `.mcp.json` in the current repo instead.
+  </Tab>
+  <Tab title="ish mcp add">
+    If you already have the [ish CLI](/start/cli-quickstart), let it write the config block:
+
+    ```bash
+    ish mcp add --client claude-code --yes
+    ```
+
+    Run `ish mcp add` with no flags first for a dry-run plan, then add `--yes` to commit.
+    `ish mcp add --all --yes` wires every detected client (Cursor, VS Code, Claude Code,
+    Claude Desktop, Windsurf) in one pass. The command edits local JSON only and never
+    embeds a token. See the [`ish mcp` reference](/cli/generated/mcp) for every flag.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that some clients will not follow on a POST, leaving the agent with
+  an empty tool list.
+</Warning>
+
+## Verify
+
+Reconnect or restart Claude Code so it runs the OAuth flow, then approve the sign-in in your browser. Confirm the tools are live with a read-only question, which draws no credits:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+Claude Code calls [`workspace_get`](/mcp/generated/tools-workspace) (read-only) and reports your workspaces. A brand-new account returns an empty list, which is still a successful connection. Claude Code reads MCP resources, so it can also surface [`ish://identity/me`](/mcp/generated/resources), the decoded identity for the session.
+
+<Check>
+  Claude Code returns a workspace list (or an explicit empty list) instead of "no ish
+  tools available". The OAuth sign-in landed and the tools are live.
+</Check>
+
+If the agent reports no ish tools, the OAuth step did not complete. Reconnect and approve the sign-in, then ask again.
+
+## Read your first reaction
+
+Run a study that already lives in your [workspace](/concepts/workspace) and read back what a simulated person made of it. Tell Claude Code:
+
+```text
+Find a study in my workspace, run it for a few people, and tell me what they noticed.
+```
+
+The agent works through ish's tools:
+
+<Steps>
+  <Step title="Discover a study">
+    It calls [`study_get`](/mcp/generated/tools-study) with your `workspace_id` to list
+    studies and pick one.
+  </Step>
+  <Step title="Run it">
+    It calls [`study_run`](/mcp/generated/tools-study) with a small audience and
+    `wait=True`, which blocks until every simulated person reaches a terminal state.
+  </Step>
+  <Step title="Read the reactions">
+    It calls `study_get` with `view="summary"` and reports the journey: what people
+    noticed, where they got stuck, and the reasoning behind each reaction.
+  </Step>
+</Steps>
+
+You get a narrative reaction with the reasoning attached, not a single score. That is the loop: simulate a visit, read what landed, decide what to change.
+
+<Note>
+  No study in this workspace yet? Ask Claude Code to create one first ("create a study
+  that points simulated readers at this URL and asks what they noticed"), then run it.
+  [`study_create`](/mcp/generated/tools-study) and `study_run` cover both. For the full
+  walkthrough, see [Quickstart: connect an AI agent](/start/connect-an-agent).
+</Note>
+
+## Point a study at localhost
+
+To simulate a build running on your own machine, open a tunnel with [`ish connect`](/cli/generated/connect), then point the study at the tunnel URL or use `platform="code"`. Before dispatching, Claude Code can call [`connect_status`](/mcp/generated/tools-connect) to confirm the tunnel is registered, so a missing tunnel fails fast instead of stalling inside the cloud browser.
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain, each with its annotation tier.
+  </Card>
+  <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
+    The `ish://` resources for identity, docs, screenshots, and media.
+  </Card>
+  <Card title="Runs and asks" icon="route" href="/concepts/run-vs-ask">
+    When to run a study and when to fire a lightweight ask.
+  </Card>
+  <Card title="Other clients" icon="plug" href="/integrations">
+    Wire Cursor, VS Code, ChatGPT, and the rest to the same server.
+  </Card>
+</Columns>

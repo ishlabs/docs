@@ -1,0 +1,312 @@
+---
+title: "ask"
+description: "Command reference: ish ask."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ ask (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish ask run`
+
+Run an ask - append a round to the active ask, or `--new` to create a fresh ask
+
+Usage: `ish ask run [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID to append to (defaults to active ask; ignored with --new) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--new" type="boolean">Create a new ask instead of appending a round</ParamField>
+<ParamField path="--name <name>" type="string">Ask name (with --new; auto-generated if omitted)</ParamField>
+<ParamField path="--description <description>" type="string">Ask description (with --new only)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID (with --new only)</ParamField>
+<ParamField path="--prompt <prompt>" type="string">Round prompt - what participants respond to Required.</ParamField>
+<ParamField path="--variant <kind:value>" type="string">Variant: text:"...", ./file.png, image:./file.png, ./file.png::label=B (repeatable) Default: [].</ParamField>
+<ParamField path="--variants <file.json>" type="string">JSON manifest of variants (alternative to --variant)</ParamField>
+<ParamField path="--wants-pick" type="boolean">Each participant picks a favourite variant (compatible with --wants-ratings; can be set together).</ParamField>
+<ParamField path="--wants-ratings" type="boolean">Each participant rates every variant 1-5 (compatible with --wants-pick; can be set together). If neither is set, participants leave a free-form comment only.</ParamField>
+<ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;]</ParamField>
+<ParamField path="--language <code>" type="string">2-letter language code (with --new only) Default: "en".</ParamField>
+<ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (max 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (with --new only) (capped at 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
+<ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
+<ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
+<ParamField path="--subset-round <n>" type="string">Drill-in subset (Pattern B) - append-round only. 1-indexed prior round to filter against. Pair with --subset-variant.</ParamField>
+<ParamField path="--subset-variant <variant_id>" type="string">Drill-in subset (Pattern B) - append-round only. Variant id (UUID) on the prior round whose pickers should inherit. Read from `aggregates.pick_buckets` or `variants[*].id` on the prior round's `ask results --json`.</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the round completes (or errors)</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+
+## `ish ask list`
+
+List asks for a workspace
+
+Usage: `ish ask list [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--archived" type="boolean">Include archived asks alongside active ones (default: active only).</ParamField>
+
+## `ish ask create`
+
+Create a new ask with a first round and dispatch to people
+
+Usage: `ish ask create [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--name <name>" type="string">Ask name Required.</ParamField>
+<ParamField path="--description <description>" type="string">Ask description</ParamField>
+<ParamField path="--prompt <prompt>" type="string">Round prompt - what participants respond to Required.</ParamField>
+<ParamField path="--variant <kind:value>" type="string">Variant: text:"...", ./file.png, image:./file.png, ./file.png::label=B (repeatable) Default: [].</ParamField>
+<ParamField path="--variants <file.json>" type="string">JSON manifest of variants (alternative to --variant)</ParamField>
+<ParamField path="--wants-pick" type="boolean">Each participant picks a favourite variant (compatible with --wants-ratings; can be set together).</ParamField>
+<ParamField path="--wants-ratings" type="boolean">Each participant rates every variant 1-5 (compatible with --wants-pick; can be set together). If neither is set, participants leave a free-form comment only.</ParamField>
+<ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;]</ParamField>
+<ParamField path="--language <code>" type="string">2-letter language code Default: "en".</ParamField>
+<ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (max 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (capped at 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
+<ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
+<ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
+<ParamField path="--no-dispatch" type="boolean">Create the ask in DRAFT status without billing or dispatching the round. Hand the draft id back to the user, then start it with `ish ask dispatch &lt;id&gt;`. People flags are still required because the participants are materialized at create time. Mutually exclusive with --wait (nothing to wait for).</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the first round completes (or errors)</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+
+## `ish ask dispatch`
+
+Dispatch a draft ask - draws credits and starts the round
+
+Usage: `ish ask dispatch [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the first round completes (or errors)</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask get`
+
+Get full ask detail (accepts multiple IDs for batched lookup)
+
+Usage: `ish ask get [ids]... [options]`
+
+### Arguments
+<ParamField path="ids">Ask alias(es)/UUID(s); defaults to active ask from `ish ask use` (optional, variadic)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to a single positional argument</ParamField>
+<ParamField path="--round <n>" type="string">Show only round N (1-indexed); single-ask only</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask results`
+
+Show aggregated results (picks, mean ratings, comments, summary)
+
+Usage: `ish ask results [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--round <n>" type="string">Show only round N (1-indexed; default: all rounds)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask wait`
+
+Poll until a round is completed (or errored)
+
+Usage: `ish ask wait [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--round <n>" type="string">Round number to wait for (1-indexed; default: last round)</ParamField>
+<ParamField path="--timeout <s>" type="string">Max seconds to wait (default 300)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask add-round`
+
+Append a new round to an existing ask (max 5 per ask)
+
+Usage: `ish ask add-round [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the ask)</ParamField>
+<ParamField path="--prompt <prompt>" type="string">Round prompt Required.</ParamField>
+<ParamField path="--variant <kind:value>" type="string">Variant flag (repeatable; same syntax as `ask create`) Default: [].</ParamField>
+<ParamField path="--variants <file.json>" type="string">JSON manifest of variants</ParamField>
+<ParamField path="--wants-pick" type="boolean">Each participant picks a favourite variant (compatible with --wants-ratings; can be set together).</ParamField>
+<ParamField path="--wants-ratings" type="boolean">Each participant rates every variant 1-5 (compatible with --wants-pick; can be set together). If neither is set, participants leave a free-form comment only.</ParamField>
+<ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;]</ParamField>
+<ParamField path="--subset-round <n>" type="string">Drill-in subset (Pattern B) - 1-indexed prior round to filter against. Pair with --subset-variant. The new round dispatches only to participants who picked --subset-variant on round N.</ParamField>
+<ParamField path="--subset-variant <variant_id>" type="string">Drill-in subset (Pattern B) - variant id (UUID) on the prior round whose pickers should inherit. Pair with --subset-round. Read from `aggregates.pick_buckets` or `variants[*].id` on the prior round.</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the new round completes</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+
+## `ish ask add-questions`
+
+Append questionnaire questions to a round. Default: additive re-dispatch (prior picks/comments/ratings preserved; only the new questions are answered). Pass --redispatch-all to fully reset and re-run the round from scratch.
+
+Usage: `ish ask add-questions [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--round <n|round-id>" type="string">Round number (1-indexed) or round id/alias Required.</ParamField>
+<ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;] Required.</ParamField>
+<ParamField path="--redispatch-all" type="boolean">Clear prior phase-1 outputs (comment, pick, ratings) and re-run the entire round from scratch (legacy behavior). Default is additive - only the new questions are answered.</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the round completes (or errors)</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask retry`
+
+Re-dispatch only the errored responses on a round (idempotent: zero-errored is a no-op).
+
+Usage: `ish ask retry [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--round <n|round-id>" type="string">Round number (1-indexed) or round id/alias Required.</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the retried round completes (or errors)</ParamField>
+<ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask add-people`
+
+Add people to an existing ask (they become participants when the round runs; optionally backfill prior rounds)
+
+Usage: `ish ask add-people [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the ask)</ParamField>
+<ParamField path="--round <n|round-id>" type="string">Round to add people to (required) Required.</ParamField>
+<ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (max 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Add every simulatable AI person matching the filters not already included (capped at 20 per dispatch - split into multiple slices for larger cohorts)</ParamField>
+<ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
+<ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
+<ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
+<ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
+<ParamField path="--backfill" type="boolean">Backfill prior rounds in order for new people</ParamField>
+
+## `ish ask update`
+
+Update an ask's name or description
+
+Usage: `ish ask update [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--name <name>" type="string">New name</ParamField>
+<ParamField path="--description <description>" type="string">New description</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask archive`
+
+Archive an ask (hides it from default list)
+
+Usage: `ish ask archive [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask unarchive`
+
+Restore an archived ask
+
+Usage: `ish ask unarchive [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask delete`
+
+Delete an ask and all its rounds, responses, and participants
+
+Usage: `ish ask delete [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (defaults to active ask) (optional)</ParamField>
+
+### Options
+<ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish ask use`
+
+Set the active ask (saved to ~/.ish/config.json)
+
+Usage: `ish ask use [id] [options]`
+
+### Arguments
+<ParamField path="id">Ask alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--clear" type="boolean">Remove the active ask from config</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

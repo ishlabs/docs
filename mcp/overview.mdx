@@ -1,0 +1,124 @@
+---
+title: "MCP overview"
+description: "The ish MCP server: endpoint, transport, auth, and the shape of its tool and resource surface."
+mode: "reference"
+---
+
+The ish MCP server exposes the platform as agent-native tools. It forwards the
+authenticated caller's identity to `api.ishlabs.io` and runs each call against
+that user's workspaces. A connected agent can build studies, draw an audience,
+run simulations, and read back what the simulated people noticed.
+
+## Endpoint
+
+<Note>
+  This page is the source of truth for the endpoint string. Other pages link
+  here rather than restate it.
+</Note>
+
+```
+https://mcp.ishlabs.io/mcp
+```
+
+<Warning>
+  No trailing slash. A POST to `https://mcp.ishlabs.io/mcp/` triggers a `307`
+  redirect to the canonical path, and some clients (ChatGPT's `openai-mcp`) do
+  not complete a POST across that redirect, so the model sees an empty tool
+  catalog. Always use the path without a trailing slash.
+</Warning>
+
+| Property | Value |
+| --- | --- |
+| Endpoint | `https://mcp.ishlabs.io/mcp` |
+| Transport | Streamable HTTP |
+| Server name | `ish` |
+| Auth | OAuth on first connect (Supabase, fronted by an OAuth proxy) |
+| Health check | `GET https://mcp.ishlabs.io/health` returns `{"status":"ok","version":"<v>"}` |
+
+## Transport
+
+The server speaks MCP over streamable HTTP, mounted at `/mcp`. There is no SSE
+or stdio endpoint on the hosted server. Local runs use the same transport on a
+loopback port.
+
+## Auth
+
+The hosted server validates inbound identity as Supabase JWTs and advertises
+itself as the authorization server through an OAuth proxy, so a client running
+dynamic client registration with a loopback redirect (VS Code, for example)
+completes the flow on any ephemeral port. On first connect the client runs the
+OAuth handshake; subsequent calls reuse the issued token. The proxy holds one
+fixed upstream redirect and translates the client's per-session redirect to it.
+
+## Surface
+
+The hosted server exposes 42 tools, 10 resources, and no prompts.
+
+<Columns cols={2}>
+  <Card title="Tools" href="/mcp/generated/index">
+    42 tools across 12 domains: workspace, brand, study, ask, person, chatbot,
+    simulation, site_access, connect, upload, me, docs. Each carries a `domain`
+    tag and a `mode` tag (read, write, dispatch, delete) for clients that filter
+    the catalog.
+  </Card>
+  <Card title="Resources" href="/mcp/generated/resources">
+    10 `ish://` resources: the docs index and pages, the authenticated identity,
+    per-modality content types, workspace secrets, and the binary study media
+    (screenshots, transcripts, iteration media) read on demand.
+  </Card>
+</Columns>
+
+<Note>
+  The `connect` tool (manage a localhost tunnel) is local-only and is hidden on
+  the hosted server, because the server's `localhost` is not the user's machine.
+  It appears only when you run the server on your own machine. The
+  `connect_status` read tool stays available on both.
+</Note>
+
+For the full tool and parameter tables, see the [tool index](/mcp/generated/index)
+and the [resource reference](/mcp/generated/resources). Per-domain tool pages are
+linked from the index (for example [study tools](/mcp/generated/tools-study) and
+[ask tools](/mcp/generated/tools-ask)).
+
+## Connecting a client
+
+To wire a specific client (Claude Code, Cursor, VS Code, Windsurf, or ChatGPT)
+to this endpoint, follow [connect an agent](/start/connect-an-agent). The shortest
+path for Claude Code:
+
+```bash
+claude mcp add --transport http --scope user ish https://mcp.ishlabs.io/mcp
+```
+
+The first connect runs the OAuth handshake (see [Auth](#auth)). The
+[connect an agent](/start/connect-an-agent) page carries the per-client steps.
+
+## Concepts
+
+The tools operate on a small set of shared concepts. Read these once, then the
+tool descriptions assume them:
+
+- [Workspace](/concepts/workspace): the top-level container for studies, asks, people, and sources.
+- [Study](/concepts/study): the persistent research artifact (modality, assignments, questions) with its iterations.
+- [People](/concepts/people): the simulated participants who experience your artifact.
+- [Run vs ask](/concepts/run-vs-ask): when to run a study and when to compare variants with an ask.
+- [Reactions and results](/concepts/reactions-and-results): the reported journey a run produces.
+
+## Errors
+
+Every API failure surfaces as a tool error whose message starts with a bracketed
+code. Pattern-match on the prefix to branch:
+
+| Code | Meaning |
+| --- | --- |
+| `[auth_failed]` | The caller's identity could not be validated. Reauthenticate. |
+| `[forbidden]` | Authenticated, but not allowed to touch this resource. |
+| `[not_found]` | The named entity does not exist (or is not visible to this caller). |
+| `[validation_error]` | The arguments failed validation (includes unknown aliases). |
+| `[empty_audience]` | No simulated people matched the audience filter. Broaden it. |
+| `[usage_limit_reached]` | An entity cap was hit. The message names the resource to clean up. |
+| `[insufficient_credits]` | The workspace credit pool has no headroom. |
+| `[rate_limited]` | Too many requests. Retry with backoff. |
+| `[server_error]` | An upstream failure. |
+| `[network_error]` | The server could not reach `api.ishlabs.io`. |
+| `[http_error]` | An unclassified HTTP failure. |

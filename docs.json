@@ -1,72 +1,222 @@
 {
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
-  "name": "Mintlify Starter Kit",
+  "name": "ish",
+  "description": "Documentation for the ish CLI and MCP server. Simulate a visit and read the reactions before you ship.",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#C8623F",
+    "light": "#D87A55",
+    "dark": "#A04B2E"
+  },
+  "appearance": {
+    "default": "system"
+  },
+  "fonts": {
+    "heading": { "family": "Inter" },
+    "body": { "family": "Inter" }
   },
   "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
   "navigation": {
-    "pages": [
+    "tabs": [
       {
-        "group": "Getting Started",
-        "pages": [
-          "index",
-          "quickstart"
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["index", "start/cli-quickstart", "start/connect-an-agent"]
+          },
+          {
+            "group": "Core concepts",
+            "pages": [
+              "concepts/overview",
+              "concepts/workspace",
+              "concepts/study",
+              "concepts/iteration",
+              "concepts/modalities",
+              "concepts/run-vs-ask",
+              "concepts/people",
+              "concepts/source",
+              "concepts/assignment-questionnaire",
+              "concepts/ask-and-round",
+              "concepts/reactions-and-results",
+              "concepts/site-access",
+              "concepts/secrets",
+              "concepts/active-context",
+              "concepts/credits-and-limits",
+              "concepts/sharing",
+              "concepts/benchmarking",
+              "concepts/cli-and-mcp"
+            ]
+          },
+          {
+            "group": "How-to guides",
+            "pages": [
+              "guides/first-study",
+              "guides/slicing-results",
+              "guides/build-a-person",
+              "guides/chat-studies",
+              "guides/chat-pair",
+              "guides/local-vs-connect",
+              "guides/ci-automation"
+            ]
+          },
+          {
+            "group": "Integrations",
+            "pages": [
+              "integrations/index",
+              "integrations/claude-code",
+              "integrations/cursor",
+              "integrations/claude-desktop",
+              "integrations/chatgpt",
+              "integrations/vscode",
+              "integrations/lovable",
+              "integrations/replit"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "cli/overview",
+              "cli/auth",
+              "cli/global-flags",
+              "cli/output-modes",
+              "cli/exit-codes",
+              "cli/env-vars",
+              "cli/aliases",
+              "cli/confirmations"
+            ]
+          },
+          {
+            "group": "Commands",
+            "pages": [
+              "cli/generated/index",
+              "cli/generated/session",
+              "cli/generated/connect",
+              "cli/generated/workspace",
+              "cli/generated/study",
+              "cli/generated/study-create",
+              "cli/generated/study-run",
+              "cli/generated/study-results",
+              "cli/generated/study-extras",
+              "cli/generated/ask",
+              "cli/generated/person",
+              "cli/generated/iteration",
+              "cli/generated/chat",
+              "cli/generated/mcp",
+              "cli/generated/source",
+              "cli/generated/secret",
+              "cli/generated/config",
+              "cli/generated/docs",
+              "cli/generated/check",
+              "cli/generated/upgrade-feedback"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "MCP Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "mcp/overview",
+              "mcp/connecting",
+              "mcp/tool-conventions",
+              "mcp/auth",
+              "mcp/server-instructions",
+              "mcp/errors",
+              "mcp/long-running-jobs"
+            ]
+          },
+          {
+            "group": "Tools",
+            "pages": [
+              "mcp/generated/index",
+              "mcp/generated/tools-study",
+              "mcp/generated/tools-ask",
+              "mcp/generated/tools-person",
+              "mcp/generated/tools-workspace",
+              "mcp/generated/tools-chatbot",
+              "mcp/generated/tools-simulation",
+              "mcp/generated/tools-site-access",
+              "mcp/generated/tools-connect",
+              "mcp/generated/tools-upload",
+              "mcp/generated/tools-brand",
+              "mcp/generated/tools-docs"
+            ]
+          },
+          {
+            "group": "Resources",
+            "pages": ["mcp/generated/resources"]
+          }
+        ]
+      },
+      {
+        "tab": "Help",
+        "groups": [
+          {
+            "group": "Help",
+            "pages": ["help/troubleshooting", "help/errors", "help/glossary"]
+          }
         ]
       }
     ],
     "global": {
       "anchors": [
         {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
+          "anchor": "GitHub",
+          "href": "https://github.com/ishlabs",
+          "icon": "github"
         },
         {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
+          "anchor": "ishlabs.io",
+          "href": "https://ishlabs.io",
+          "icon": "globe"
         }
       ]
     }
   },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
   "navbar": {
     "links": [
       {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
+        "label": "Sign in",
+        "href": "https://app.ishlabs.io"
       }
     ],
     "primary": {
       "type": "button",
-      "label": "Dashboard",
-      "href": "https://app.mintlify.com"
+      "label": "Get ish free",
+      "href": "https://app.ishlabs.io"
     }
   },
+  "redirects": [
+    { "source": "/quickstart", "destination": "/start/cli-quickstart" }
+  ],
   "contextual": {
-    "options": [
-      "copy",
-      "view",
-      "chatgpt",
-      "claude",
-      "perplexity",
-      "mcp",
-      "cursor",
-      "vscode"
-    ]
+    "options": ["copy", "view", "chatgpt", "claude", "mcp", "cursor", "vscode"]
   },
   "footer": {
     "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+      "github": "https://github.com/ishlabs"
+    },
+    "links": [
+      {
+        "header": "Product",
+        "items": [
+          { "label": "ishlabs.io", "href": "https://ishlabs.io" },
+          { "label": "Pricing", "href": "https://ishlabs.io/pricing" },
+          { "label": "Sign in", "href": "https://app.ishlabs.io" }
+        ]
+      }
+    ]
   }
 }

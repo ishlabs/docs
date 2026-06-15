@@ -1,0 +1,40 @@
+---
+title: "docs tools"
+description: "MCP tool reference for the docs domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `docs_get`
+
+**Tier:** read-only · **Tags:** compat, docs, read
+
+Read the Ish docs - index of pages or one page body.
+
+Returns the same content as the ``ish://docs`` and ``ish://docs/&lt;slug>``
+MCP resources. Use this if your harness doesn't surface MCP resources
+(e.g. most spawned-agent contexts in Claude Code as of 2026-05).
+
+With no arg, returns the index of available pages. With ``slug``, returns
+the markdown body of that one page.
+
+`slug`: optional doc slug, forward-slashed (e.g. ``"overview"``,
+    ``"overview-mcp"``, ``"concepts/study"``, ``"reference/aliases"``).
+    Omit to list every slug.
+
+**Returns** when ``slug`` is omitted: ``&#123;"pages": [&#123;"slug", "title",
+"description"}, ...], "by_category": &#123;"overview": [...], "concepts":
+[...], "guides": [...], "reference": [...]}}`` - the flat list plus
+the same entries bucketed by namespace prefix so agents can scan one
+category at a time. When ``slug`` is set: ``&#123;"slug": str, "body":
+str}`` where ``body`` is the page's markdown. Errors:
+[validation_error] for path-traversal-shaped slugs; [not_found] when the
+slug doesn't match any page (the message lists available slugs).
+
+### Parameters
+<ParamField body="slug" type="string">
+&nbsp;
+</ParamField>

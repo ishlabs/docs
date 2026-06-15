@@ -1,0 +1,142 @@
+---
+title: "Runs and asks"
+description: "The two ways ish dispatches simulated people, and when each one fits."
+mode: "explanation"
+---
+
+ish has two run verbs. Both put simulated people in front of something you made and report
+back what they noticed. They differ in what the people *do* and in what comes back.
+
+- A **study run** sends people through a real surface end to end: a link, an app, a video, a
+  PDF, an audio clip, or a chatbot. They experience it, get stuck, push on, and finish (or
+  do not). What comes back is a per-person journey.
+- An **ask** puts one prompt and one or more variants of creative (text, image, video, audio,
+  or a document) in front of a fixed panel and collects their reactions. What comes back is a
+  per-person reaction per round, with an optional pick and ratings rolled up.
+
+Same engine, same kind of [simulated people](/concepts/people). Different question.
+
+## The mental model
+
+A [study](/concepts/study) is a persistent research artifact. It carries a modality, an
+[iteration](/concepts/iteration) (the URL or content people experience), and interview
+questions. Running it is the act of dispatching simulations against the latest iteration.
+People navigate, scroll, click, read, watch, or chat, and the run records the trip: where
+attention went, where friction showed up, what blocked completion, and the answers to your
+questions. Study output is a journey.
+
+An [ask](/concepts/ask-and-round) is lighter. It pairs a fixed panel with one prompt and a set of
+variants, and it asks people to react. Nobody navigates a surface; they look at the creative
+and tell you which one lands and why. An ask can hold several rounds against the same panel,
+so you can probe a winner ("now compare just A and C") without rebuilding the audience. Ask
+output is a comparison: reactions, an optional winner with a confidence label, and ratings.
+
+The honest line: a study is "how do people experience this thing?" and an ask is "which of
+these lands, and why?"
+
+## When each fits
+
+<Columns cols={2}>
+  <Card title="Reach for a study">
+    The person has to **do** something on a real surface. Walk an onboarding flow, read a
+    landing page, watch a 30-second spot, skim a PDF, or talk to a chatbot. You want the
+    journey, the friction, and the completion, not just a verdict.
+  </Card>
+  <Card title="Reach for an ask">
+    The person has to **react** to creative. Compare two headlines, three hero images, or a
+    pair of ad cuts. You want a fast read on which one lands, the reasoning behind it, and
+    (optionally) a pick or ratings.
+  </Card>
+</Columns>
+
+The decision rule, in one sentence: if there is a surface to move through, run a study; if
+there are variants to choose between, run an ask.
+
+## Side by side
+
+|  | study run | ask run |
+| --- | --- | --- |
+| What people do | experience a real surface end to end | react to one or more variants of creative |
+| What it targets | the latest (or a named) iteration of a study | a new ask, or a follow-up round on one |
+| Modalities | interactive, text, video, audio, image, document, chat | text, image, video, audio, document variants |
+| Audience | reuse the iteration's panel, or resolve a fresh one with filters | fixed at creation; later rounds inherit it |
+| Output | per-person interactions plus questionnaire answers | per-person reactions per round, with optional pick and ratings |
+| Repeat work | add an iteration, then run again | append a round to the same ask, same panel |
+
+## How they map to the surfaces
+
+Both verbs exist on the [CLI](/cli/overview) and the [MCP server](/mcp/overview) with the same shape.
+
+<CodeGroup>
+
+```bash CLI
+# study: send people through the latest iteration of a study
+ish study run -y --wait
+
+# ask: create an ask and dispatch round one in a single command
+ish ask run --new --name "tagline AB" \
+  --prompt "Which sounds better?" \
+  --variant text:"A" --variant text:"B" \
+  --sample 30 --wants-pick -y --wait
+```
+
+```python MCP
+# study: dispatch the latest iteration, reusing its panel
+study_run(study_id="s-b2c", wait=False)
+
+# ask: create the ask and dispatch round one in one call
+ask_run(
+    workspace_id="w-6ec",
+    name="tagline AB",
+    prompt="Which sounds better?",
+    variants=[{"type": "text", "value": "A"}, {"type": "text", "value": "B"}],
+    audience={"sample": 30},
+    wants_pick=True,
+)
+```
+
+</CodeGroup>
+
+Full flags and parameters live in the reference: [`study run`](/cli/generated/study-run) and
+[`ask`](/cli/generated/ask) on the CLI, [study tools](/mcp/generated/tools-study) and
+[ask tools](/mcp/generated/tools-ask) on the MCP.
+
+## Two things people mix up
+
+<AccordionGroup>
+  <Accordion title="A study reuses its panel; an ask fixes its panel">
+    A study run with no audience filters reuses whatever participants already exist on the
+    iteration, so re-running the same iteration runs the same people again. Pass `--person`
+    or demographic filters with `--sample` / `--all` (CLI) or an `audience` (MCP) to resolve
+    a fresh group. An ask, by contrast, locks its panel at creation: every later round runs
+    the same people. To compare a different audience, start a new ask.
+  </Accordion>
+
+  <Accordion title="Rounds belong to asks, iterations belong to studies">
+    To put a changed surface in front of people, add an [iteration](/concepts/iteration) to
+    the study and run it. To put another prompt in front of the same panel, append a round to
+    the ask. Iterations carry the thing being experienced; rounds carry the next question for
+    a panel you already have.
+  </Accordion>
+</AccordionGroup>
+
+## Both draw credits
+
+A study run draws credits per participant who completes, scaled by how far they went (the
+draw grows with the interaction or turn count, floored at one). An ask draws one credit per
+participant per round, regardless of how many follow-up questions a round carries. Pre-flight
+failures (an unreachable URL, a refused load, a chatbot smoke-test failure) cost zero and are
+safe to retry; the pool ticks down only for participants that produced a result. Credits are
+funded by the [workspace](/concepts/workspace) plan, so no per-dispatch approval is needed on
+the MCP. The CLI guards the spend differently: in a non-interactive
+context (the default for agents and CI), `study run` and `ask run` refuse without `-y` /
+`--yes` and exit `2`, so spending is never silent. The full model is in
+[credits](/concepts/credits-and-limits).
+
+<Note>
+  Need a checkpoint before drawing credits? On the MCP, stage participants on a study with
+  `study_run(dispatch=False)`, then dispatch them later with `audience=None`. The MCP `ask_run`
+  always dispatches round one, so review the panel first with `person_get` or
+  `person_generate`. On the CLI, `ish ask create --no-dispatch` stages a draft ask that bills
+  nothing; start it later with `ish ask dispatch <id>`.
+</Note>

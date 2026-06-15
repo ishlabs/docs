@@ -1,0 +1,175 @@
+---
+title: "Claude Desktop"
+description: "Connect Claude Desktop to the hosted ish MCP server over OAuth, confirm the tools are live, and read your first reaction."
+mode: "how-to"
+---
+
+Wire Claude Desktop to the hosted ish MCP server so the assistant can call ish tools
+(`study_run`, `ask_run`, `person_generate`, and the rest) from the desktop app. The server
+lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in over OAuth on
+first connect, so no token is written to your config. For the add mechanism and the OAuth
+handshake in full, see [connect an agent](/start/connect-an-agent).
+
+<Info>
+  You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
+  first. The OAuth step signs Claude Desktop in as you.
+</Info>
+
+<Note>
+  Claude Desktop ships for macOS and Windows. There is no Linux release, so `ish mcp add`
+  skips it on Linux. On Linux, drive ish from [Claude Code](/integrations/claude-code) or
+  [Cursor](/integrations/cursor) instead.
+</Note>
+
+## Connect
+
+Pick one path. Both write the same `ish` server block to Claude Desktop's config under the
+`mcpServers` key and leave OAuth to the server.
+
+<Tabs>
+  <Tab title="ish mcp add">
+    If you already have the [ish CLI](/start/cli-quickstart), let it write the config block:
+
+    ```bash
+    ish mcp add --client claude-desktop --yes
+    ```
+
+    Run `ish mcp add` with no flags first for a dry-run plan, then add `--yes` to commit. The
+    command edits local JSON only and never embeds a token. `ish mcp add --all --yes` wires
+    every detected client (Cursor, VS Code, Claude Code, Claude Desktop, Windsurf) in one
+    pass. See the [`ish mcp` reference](/cli/generated/mcp) for every flag.
+  </Tab>
+  <Tab title="By hand">
+    Add the ish server to Claude Desktop's config yourself. Create the file if it does not
+    exist, and keep any servers already under `mcpServers`:
+
+    ```json claude_desktop_config.json
+    {
+      "mcpServers": {
+        "ish": {
+          "type": "http",
+          "url": "https://mcp.ishlabs.io/mcp"
+        }
+      }
+    }
+    ```
+
+    The config file lives at:
+
+    | Platform | Path |
+    | --- | --- |
+    | macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+    | Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+    You can also reach it from the app: open Settings, go to Developer, and edit the config
+    there. Save, then restart Claude Desktop so it loads the new server.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that some clients will not follow on a POST, leaving the assistant
+  with an empty tool list.
+</Warning>
+
+## Sign in and confirm
+
+Restart Claude Desktop so it loads the ish server and runs the OAuth flow. Approve the
+sign-in in your browser, then ask a read-only question, which draws no credits:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+Claude Desktop calls [`workspace_get`](/mcp/generated/tools-workspace) (read-only) and
+reports your workspaces. A brand-new account returns an empty list, which is still a
+successful connection. Claude Desktop reads MCP resources, so it can also surface
+[`ish://identity/me`](/mcp/generated/resources), the decoded identity for the session.
+
+<Check>
+  Claude Desktop returns a workspace list (or an explicit empty list) instead of "no ish
+  tools available". The OAuth sign-in landed and the tools are live.
+</Check>
+
+If the assistant reports no ish tools, the OAuth step did not complete. Restart Claude
+Desktop, approve the sign-in in your browser, then ask again.
+
+## Read your first reaction
+
+Run a study that already lives in your [workspace](/concepts/workspace) and read back what a
+simulated person made of it. Tell Claude Desktop:
+
+```text
+Find a study in my workspace, run it for a few people, and tell me what they noticed.
+```
+
+The assistant works through ish's tools:
+
+<Steps>
+  <Step title="Discover a study">
+    It calls [`study_get`](/mcp/generated/tools-study) with your `workspace_id` to list
+    studies and pick one.
+  </Step>
+  <Step title="Run it">
+    It calls [`study_run`](/mcp/generated/tools-study) with a small audience and
+    `wait=True`, which blocks until every simulated person reaches a terminal state.
+  </Step>
+  <Step title="Read the reactions">
+    It calls `study_get` with `view="summary"` and reports the journey: what people noticed,
+    where they got stuck, and the reasoning behind each reaction.
+  </Step>
+</Steps>
+
+You get a narrative reaction with the reasoning attached, not a single score. That is the
+loop: simulate a visit, read what landed, decide what to change.
+
+<Note>
+  No study in this workspace yet? Ask Claude Desktop to create one first ("create a study
+  that points simulated readers at this URL and asks what they noticed"), then run it.
+  [`study_create`](/mcp/generated/tools-study) and `study_run` cover both. For the full
+  walkthrough, see [Quickstart: connect an AI agent](/start/connect-an-agent).
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The assistant reports no ish tools" icon="plug">
+    The OAuth step did not complete, or the app has not reloaded the config. Restart Claude
+    Desktop, approve the sign-in in your browser, then ask again. Confirm the URL has no
+    trailing slash.
+  </Accordion>
+  <Accordion title="ish mcp add reports Claude Desktop as not detected" icon="magnifying-glass">
+    Detection keys off the config directory's existence. Launch Claude Desktop at least once
+    so it creates the directory, or wire it explicitly with `ish mcp add --client
+    claude-desktop --yes` (the directory is created on write). On Linux there is no Claude
+    Desktop release, so it is always skipped.
+  </Accordion>
+  <Accordion title="ish mcp add refuses to write" icon="file-pen">
+    A drifted ish block is already in the config, or the file is not valid JSON. Inspect it
+    by hand, or re-run with `ish mcp add --client claude-desktop --force --yes` to overwrite
+    the ish block. Unrelated servers are preserved.
+  </Accordion>
+  <Accordion title="A long run never returns" icon="clock">
+    Interactive and media simulations take one to five minutes. If a blocking `study_run`
+    stalls, ask the assistant to dispatch with `wait=false` and poll `study_get` with
+    `view="summary"` instead. Full parameters and the blocking contract live in the
+    [`study_run` reference](/mcp/generated/tools-study).
+  </Accordion>
+</AccordionGroup>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain, each with its annotation tier.
+  </Card>
+  <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
+    The `ish://` resources for identity, docs, screenshots, and media.
+  </Card>
+  <Card title="Runs and asks" icon="route" href="/concepts/run-vs-ask">
+    When to run a study and when to fire a lightweight ask.
+  </Card>
+  <Card title="Other clients" icon="plug" href="/integrations">
+    Wire Claude Code, Cursor, VS Code, and the rest to the same server.
+  </Card>
+</Columns>

@@ -1,0 +1,97 @@
+---
+title: "study"
+description: "Command reference: ish study."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish study list`
+
+List studies for a workspace
+
+Usage: `ish study list [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+
+## `ish study generate`
+
+Generate a study from a problem description using AI
+
+Usage: `ish study generate [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--problem <description>" type="string">Problem description (what you want to understand) Required.</ParamField>
+<ParamField path="--target-url <url>" type="string">URL of the product to test</ParamField>
+
+## `ish study get`
+
+Get the full study payload - iterations (with run details), assignments, interview questions, sentiment + status counts. Accepts multiple IDs for batched lookup. NOTE: this is the full payload, not a roll-up - for a compact cross-study comparison view use `study results &lt;id&gt; --summary`.
+
+Usage: `ish study get <ids>... [options]`
+
+### Arguments
+<ParamField path="ids">Study ID(s) - one or more aliases/UUIDs (space- or comma-separated) (required, variadic)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study update`
+
+Update a study
+
+Usage: `ish study update <id> [options]`
+
+### Arguments
+<ParamField path="id">Study ID (required)</ParamField>
+
+### Options
+<ParamField path="--name <name>" type="string">Study name</ParamField>
+<ParamField path="--description <description>" type="string">Study description</ParamField>
+<ParamField path="--status <status>" type="string">Study status (draft, running, completed)</ParamField>
+<ParamField path="--modality <modality>" type="string">Study modality (interactive, video, audio, text, image, document, chat)</ParamField>
+<ParamField path="--content-type <type>" type="string">Content type</ParamField>
+<ParamField path="--assignment <name:instructions>" type="string">Replace all assignments with these (repeatable) Default: [].</ParamField>
+<ParamField path="--assignments-file <path>" type="string">JSON file with assignments array</ParamField>
+<ParamField path="--assignments <json>" type="string">Inline JSON array of assignments (escape hatch)</ParamField>
+<ParamField path="--question <text>" type="string">Replace the questionnaire with these text questions (repeatable) Default: [].</ParamField>
+<ParamField path="--questionnaire <json|@file|path>" type="string">Replace the questionnaire from inline JSON, @file, or a JSON file path (full InterviewQuestion shape)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study delete`
+
+Delete a study
+
+Usage: `ish study delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Study ID (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+
+## `ish study use`
+
+Set the active study (saved to ~/.ish/config.json)
+
+Usage: `ish study use [id] [options]`
+
+### Arguments
+<ParamField path="id">Study alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--clear" type="boolean">Remove the active study from config</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

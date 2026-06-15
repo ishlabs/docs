@@ -1,0 +1,181 @@
+---
+title: "Connecting"
+description: "Wire the ish MCP server into your AI client and sign in over OAuth on first connect."
+mode: "how-to"
+---
+
+This page is the one place that covers adding the ish MCP server to a client. Other pages
+link here instead of restating it.
+
+The hosted server lives at `https://mcp.ishlabs.io/mcp` and speaks streamable HTTP. There
+are two ways to add it:
+
+- A client's own `mcp add` command (for example `claude mcp add`), pointed at the URL.
+- `ish mcp add` from the [ish CLI](/quickstart), which writes the per-client config block
+  for you (Cursor, VS Code, Claude Code, Claude Desktop, Windsurf).
+
+Either way, you never paste a token into a config file. The server handles sign-in over
+OAuth the first time a client connects.
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect that some clients will not follow on a POST, which leaves the agent with an
+  empty tool list.
+</Warning>
+
+## Before you start
+
+- An ish account. If you do not have one, [get ish free](https://app.ishlabs.io). The
+  OAuth step signs the client in as you.
+- For the CLI path, the ish CLI installed. See the [quickstart](/quickstart) for install
+  commands.
+
+## Add the server
+
+Pick the path that matches your client.
+
+<Tabs>
+  <Tab title="Claude Code">
+    Add the server at user scope:
+
+    ```bash
+    claude mcp add --transport http --scope user ish https://mcp.ishlabs.io/mcp
+    ```
+
+    Claude Code discovers ish's OAuth metadata, registers itself, opens your browser to
+    sign in, and stores the resulting token. Cursor and Claude Desktop connect the same
+    way against the same URL.
+  </Tab>
+  <Tab title="ish CLI (Cursor, VS Code, Windsurf, ...)">
+    Let the CLI write the per-client config block. Run with no flags first for a dry-run
+    plan, then commit:
+
+    ```bash
+    ish mcp add                  # dry-run plan, writes nothing
+    ish mcp add --all --yes      # wire every detected client on this OS
+    ```
+
+    `ish mcp add` knows five clients: Cursor, VS Code, Claude Code, Claude Desktop, and
+    Windsurf. To wire one, pass `--client`:
+
+    ```bash
+    ish mcp add --client cursor --yes
+    ```
+
+    The command writes only the server URL, never a token. Detection is by config-dir
+    existence, so a never-launched client reports as undetected; you can still wire it
+    explicitly with `--client <name>` (the directory is created on write). See the
+    [`ish mcp` reference](/cli/generated/mcp) for every flag.
+  </Tab>
+  <Tab title="ChatGPT and other MCP clients">
+    Add a custom MCP connector pointing at:
+
+    ```
+    https://mcp.ishlabs.io/mcp
+    ```
+
+    Use the URL with no trailing slash. The client signs in over OAuth on first connect.
+  </Tab>
+</Tabs>
+
+<Note>
+  `ish mcp add` writes local JSON only. It makes no API call and embeds no credentials.
+  Writes are atomic (a temp file is renamed into place), idempotent (re-running is a no-op
+  when the ish block already matches), and every unrelated key in the target config
+  (other MCP servers, unrelated settings) is preserved.
+</Note>
+
+## Sign in on first connect
+
+The server advertises its OAuth metadata, so the client runs sign-in interactively. No
+pre-issued token is required.
+
+<Steps>
+  <Step title="Trigger the connection">
+    Reconnect or restart the client so it opens the server for the first time. The client
+    discovers the OAuth flow, registers itself, and opens your browser.
+  </Step>
+  <Step title="Approve in the browser">
+    Sign in as your ish account and approve access. The client stores the token it
+    receives; you do not handle it.
+  </Step>
+  <Step title="Back in the agent">
+    The ish tools are now live for the session.
+  </Step>
+</Steps>
+
+## Confirm the connection
+
+Ask the agent a read-only question. A read confirms the connection without drawing any
+credits.
+
+In the agent, ask:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+The agent calls `workspace_get` (a read-only tool) and reports your
+[workspaces](/concepts/workspace) back. A brand-new account shows an empty list, which is
+still a successful connection. Clients that read MCP resources also surface
+`ish://identity/me`, the decoded identity for the session.
+
+<Check>
+  The agent returns a workspace list (or an explicit empty list) instead of "no ish tools
+  available". That means OAuth landed and the tools are live.
+</Check>
+
+If the agent reports no ish tools, the sign-in did not complete. Reconnect the client and
+approve access in your browser, then ask again.
+
+## Update or remove the server
+
+`ish mcp list` shows which clients are detected and their wiring status (one of
+`present-up-to-date`, `present-drifted`, `absent`, or `no-config-file`). It only reads,
+never writes.
+
+```bash
+ish mcp list
+```
+
+If an existing ish block in a client config differs from the expected shape, `ish mcp add`
+refuses and exits rather than overwriting. Pass `--force` to overwrite it:
+
+```bash
+ish mcp add --client cursor --force --yes
+```
+
+To unwire a client, use `ish mcp remove`. It deletes only the ish block and leaves every
+other key in place:
+
+```bash
+ish mcp remove --client cursor --yes
+ish mcp remove --all --yes
+```
+
+<Tip>
+  Point the CLI at a different endpoint (a local backend or a preview environment) by
+  setting `ISH_MCP_URL` before any `ish mcp` command. `ish mcp list` reads the same
+  variable, so reported status reflects the override.
+
+  ```bash
+  ISH_MCP_URL=http://localhost:8000/mcp ish mcp add --client cursor --yes
+  ```
+</Tip>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain, each with its annotation tier.
+  </Card>
+  <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
+    The `ish://` resources for identity, docs, content types, and secrets.
+  </Card>
+  <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">
+    Create, iterate, run, and read studies across every modality.
+  </Card>
+  <Card title="The ish CLI" icon="terminal" href="/quickstart">
+    Drive the same platform from your terminal and from CI.
+  </Card>
+</Columns>

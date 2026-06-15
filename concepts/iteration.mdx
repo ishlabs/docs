@@ -1,0 +1,206 @@
+---
+title: "Iterations"
+description: "The configured run of a study: the layer that carries the one artifact (a URL, a media file, or a chatbot endpoint) participants actually experience."
+mode: "explanation"
+---
+
+A [study](/concepts/study) holds the question. An iteration holds the thing you
+are asking the question about. The study fixes the modality, the assignments, and
+the interview questions; the iteration attaches one concrete artifact (a URL, a
+media file, or a chatbot endpoint) and is the unit a run executes against.
+
+Think of the study as the recipe and the iteration as one dish made from it. The
+recipe never changes when you swap an ingredient. Keep the same tasks and the
+same questions, point a fresh iteration at the next draft, and run again. That is
+why the volatile part lives here and not on the study.
+
+## Why a separate layer
+
+The point of the split is to A/B a change without rebuilding the experiment. A
+study has one or more iterations, labelled `A`, `B`, `C`, and so on. Two
+iterations on the same study share assignments and questions but carry different
+artifacts, so the only variable between them is the thing under test.
+
+Each iteration also owns its own roster of [participants](/concepts/people), so
+the groups stay comparable. When you read results, the reactions sort by
+iteration, and the difference you see is attributable to the artifact, not to a
+moved task or a reworded question.
+
+An iteration carries an alias prefixed `i-` (for example `i-d4e`), the same
+shorthand the study (`s-`) and workspace (`w-`) aliases use. A study created
+without inline content starts with zero iterations on purpose: there is no
+placeholder draft to dispatch against by accident. The first iteration you add
+becomes `A`, the second `B`, and so on.
+
+## What an iteration carries, by modality
+
+The iteration's content is modality-specific. Supply only the fields the modality
+needs; the rest of the study (modality, assignments, questions) stays put. Each
+modality validates its required fields up front, so a missing `url` or
+`content_url` comes back as an explicit error, not a half-built iteration.
+
+- **interactive**: a `url` plus a `platform` (`browser`, `figma`, `android`,
+  `code`, and `ios` on the CLI) and a `screen_format` (`mobile_portrait` or
+  `desktop`). Figma also needs a `file_key` and a `start_node_id`. Native
+  (`android`, `ios`) iterations name their app target with `--app` instead of a
+  public URL.
+- **video**, **audio**, **document**: a `content_url`, which can be a hosted URL
+  or a local file. Local paths are uploaded and resolved to a hosted URL for you.
+- **text**: inline `content_text` (or `@path` to read it from a file), optionally
+  paired with `content_html` so the artifact renders as a formatted email or
+  article. The plain text is what participants reason over; the HTML is what they
+  see. Email iterations can also carry `sender_name`, `sender_email`, and a
+  `featured_image_url`.
+- **image**: one or more `image_urls` (hosted or local).
+- **chat**: a multi-turn conversation. Chat has two shapes, covered below.
+
+<Note>
+  The artifact has to be reachable without your session. ish's cloud
+  participants open the `url` themselves, so an interactive iteration needs a
+  published or share-preview link, not a login-gated editor preview. A localhost
+  or private-network address needs an active tunnel from
+  [`ish connect`](/cli/generated/connect). Credentialed pages register a login
+  once with `site_access`.
+</Note>
+
+## Segments: reactions per section, not just per asset
+
+For media iterations (`video`, `audio`, `text`, `image`, `document`), reactions
+can be collected per segment instead of over the whole artifact. A segment is a
+contiguous slice of the content: a window of a video, a paragraph range of an
+email, a section of a PDF. Each segment can carry a human-readable label
+("Intro", "Pricing", "Call to action") that surfaces in the participant view and
+in results, so you learn where attention held and where it dropped, not just how
+the whole thing landed.
+
+Segments are semantic sections, not paragraphs. A 16-paragraph article is usually
+three to six coherent sections, not 16. The CLI nudges (without blocking) when
+you emit one section per paragraph, because per-paragraph segmentation produces
+noise rather than signal. Segmentation lives inside the iteration; there is no
+separate segments resource. For text and image iterations created without
+explicit segmentation, the worker synthesises a single whole-content section so a
+minimal iteration runs end to end.
+
+A sibling field, `content_config`, controls how a participant progresses through
+those segments: it can end the session once the selected segments have been seen,
+or restrict the run to a chosen subset of segment indices.
+
+## Chat iterations: two shapes
+
+A chat iteration holds a conversation, and its mode picks one of two shapes. The
+two are mutually exclusive: passing both an endpoint and a pair config is a
+validation error.
+
+<AccordionGroup>
+  <Accordion title="external_chatbot: one participant probes your endpoint" icon="robot">
+    A simulated participant talks to a customer chatbot endpoint. The iteration
+    carries the endpoint config inline, or a reference to a saved chatbot
+    endpoint (the saved reference is lineage; the inline config snapshot is what
+    the worker dispatches against). This is the shape for pressure-testing a
+    support bot or an assistant before it ships.
+  </Accordion>
+  <Accordion title="participant_pair: two simulated people converse" icon="users">
+    Two simulated people talk to each other, asymmetrically. Side A and side B
+    each carry their own scenario, and neither side sees the other's. That
+    asymmetry is what makes a rehearsal of a sales call or a difficult
+    conversation produce signal rather than two halves of the same script. Sides
+    pair 1:1 by index when their counts match; a side of exactly one broadcasts
+    across the other, so one fixed role can be rehearsed against several
+    variations at once. One conversation is recorded per pair, and
+    `initiator_side` picks who speaks first.
+  </Accordion>
+</AccordionGroup>
+
+Each side of a pair is drawn from either an explicit list of people (`group_a` /
+`group_b`) or a role-criteria filter (`role_criteria_a` / `role_criteria_b`) the
+backend resolves into a pool at create time. Demographics belong in the criteria,
+never in the scenario: criteria filter the eligible pool upstream so a
+participant's persona is already plausible for the role by the time the
+conversation starts, while the scenario describes only the role's voice,
+knowledge, and goal. Both shapes accept `max_turns` and `early_termination` to
+bound the conversation length.
+
+## How an iteration relates to a run
+
+An iteration is configured, but it is not yet executed. A run dispatches a panel
+of participants against one iteration and produces the reactions; see
+[runs and asks](/concepts/run-vs-ask) for how a run selects its iteration (it
+defaults to the latest) and [reactions and results](/concepts/reactions-and-results)
+for what comes back. Runs accumulate on the iteration. The iteration, like the
+study above it, stays put.
+
+Because the artifact is pinned to the iteration, the iteration is also the unit
+of comparison. After two runs against two iterations, the iterations sit side by
+side, and the change you made is the one thing that differs between them.
+
+<Note>
+  A workspace tier caps how many iterations a single study can hold. Hitting the
+  cap returns an explicit error at creation rather than silently dropping the
+  request.
+</Note>
+
+## Two ways to drive an iteration
+
+Iterations are first-class on both developer surfaces. Attach the artifact on the
+CLI with `ish iteration create` or through MCP with `study_add_iteration`, and
+the field names line up across the two so switching surfaces costs nothing. The
+example below shows the parity, not a procedure to follow step by step.
+
+<CodeGroup>
+
+```bash CLI
+# Interactive: attach a URL as iteration A
+ish iteration create --study s-b2c --url https://example.com \
+  --platform browser --screen-format desktop
+
+# A second iteration is the B variant: same study, different artifact
+ish iteration create --study s-b2c --url https://example.com/v2 \
+  --platform browser --screen-format desktop
+
+# Inspect what is attached
+ish iteration list --study s-b2c
+ish iteration get i-d4e
+```
+
+```python MCP
+# Interactive: attach a URL as iteration A
+study_add_iteration(
+    study_id="s-b2c",
+    name="A",
+    modality="interactive",
+    url="https://example.com",
+    platform="browser",
+    screen_format="desktop",
+)
+
+# A second iteration is the B variant: same study, different artifact
+study_add_iteration(
+    study_id="s-b2c",
+    name="B",
+    modality="interactive",
+    url="https://example.com/v2",
+    platform="browser",
+    screen_format="desktop",
+)
+```
+
+</CodeGroup>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Studies" icon="folder" href="/concepts/study">
+    The persistent question an iteration sits inside, and how iterations A/B a
+    change.
+  </Card>
+  <Card title="Runs and asks" icon="play" href="/concepts/run-vs-ask">
+    How a run picks an iteration and dispatches a panel against it.
+  </Card>
+  <Card title="iteration commands" icon="terminal" href="/cli/generated/iteration">
+    Every CLI flag for `iteration create`, `list`, `get`, `update`, and `delete`.
+  </Card>
+  <Card title="study tools" icon="plug" href="/mcp/generated/tools-study">
+    `study_add_iteration` and `study_update_iteration` parameters and return
+    shapes.
+  </Card>
+</Columns>

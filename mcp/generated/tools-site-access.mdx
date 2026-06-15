@@ -1,0 +1,124 @@
+---
+title: "site_access tools"
+description: "MCP tool reference for the site_access domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `site_access_clear`
+
+**Tier:** write · **Tags:** site_access, write
+
+Clear configured site-access credentials for a workspace. Deletes the
+matching reserved-key secrets via the batch-delete endpoint (paired keys go
+in one transaction, since the per-item delete rejects partial pair states).
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``).
+`method`: one of ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"all"``.
+    ``"all"`` also clears the public-affirmed flag.
+
+**Returns** ``&#123;"method": &lt;method>, "deleted": &lt;int>}`` (``0`` when nothing
+was configured for that method). On failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;validation_error, auth_failed, forbidden, not_found,
+server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;all&quot;" required>
+&nbsp;
+</ParamField>
+
+## `site_access_get`
+
+**Tier:** read-only · **Tags:** read, site_access
+
+Show which site-access methods are configured on a workspace.
+
+Site-access lets ish's cloud browser reach a login-gated URL (a Vercel /
+Lovable preview, a staging site behind a token) without publishing it.
+Configure it with ``site_access_set``. This read mirrors
+``ish workspace site-access status``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+
+**Returns** ``&#123;"basic_auth": &#123;"configured": bool, "origin": str | None},
+"session_cookie": &#123;"configured": bool, "origin": str | None},
+"login": &#123;"configured": bool}, "public_affirmed": &#123;"affirmed": bool,
+"origin": str | None}}``. ``configured`` is True only when BOTH keys of a
+pair are present. ``origin`` (the bound ``https://host`` for basic-auth /
+cookie / the affirmed-public origin) is revealed best-effort; a transient
+reveal failure surfaces as ``None`` rather than erroring. ``login`` has no
+bound origin. Credential values are never returned. On failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found,
+server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `site_access_set`
+
+**Tier:** write · **Tags:** site_access, write
+
+Attach site-access credentials to a workspace so ish's cloud browser can
+reach a login-gated URL without publishing it. Polymorphic on ``method``.
+
+- ``method="basic_auth"`` - HTTP basic auth. Requires ``username`` +
+  ``password``. Binds to ``origin`` (or the workspace ``base_url``).
+- ``method="cookie"`` - a session cookie for sites that gate on a token
+  (Vercel preview, Lovable, etc.). Requires ``name`` + ``value``. Binds to
+  ``origin`` (or the workspace ``base_url``).
+- ``method="login"`` - login-form credentials a participant types into the
+  site. Requires ``username`` + ``password``. NOT bound to an origin.
+- ``method="public"`` - affirm the site needs no credentials. Binds to
+  ``origin`` (or the workspace ``base_url``); writes no credential.
+
+Paired keys are written atomically via the batch endpoint (the backend
+rejects an unpaired login/basic-auth/cookie write). Saving any credential
+(basic_auth / cookie / login) clears any prior public-affirmed flag.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``).
+`method`: one of ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"public"``.
+`username`: required for ``basic_auth`` and ``login``.
+`password`: required for ``basic_auth`` and ``login``. Never logged/returned.
+`name`: cookie name; required for ``cookie``.
+`value`: cookie value; required for ``cookie``. Never logged/returned.
+`origin`: URL to bind to (e.g. ``https://preview.example.com``). Optional
+    for ``basic_auth`` / ``cookie`` / ``public`` - falls back to the
+    workspace ``base_url``. Ignored for ``login``.
+
+**Returns** ``&#123;"method": &lt;method>, "configured": True, "origin": str | None,
+"cleared_public_affirmation": bool}`` (``origin`` is ``None`` for ``login``;
+``cleared_public_affirmation`` is always ``False`` for ``public``). On
+failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;validation_error,
+auth_failed, forbidden, not_found, server_error, network_error,
+http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;public&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="username" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="password" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="value" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="origin" type="string">
+&nbsp;
+</ParamField>

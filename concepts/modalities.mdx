@@ -1,0 +1,114 @@
+---
+title: Modalities
+description: The seven modalities ish simulates, the content types that tune each one, and how they map to what a study evaluates.
+mode: explanation
+---
+
+A modality is the kind of thing a [study](/concepts/study) puts in front of simulated people. It is the most important choice you make when you create a study, because it decides what the audience actually does: read, watch, listen, look, click through, or talk. ish supports seven.
+
+The modality is fixed when the study is created. It sets the simulation mechanics, the player the audience experiences the content in, and the shape of the [findings](/concepts/reactions-and-results) you get back.
+
+## The seven modalities
+
+<Columns cols={2}>
+  <Card title="interactive" icon="mouse-pointer-click">
+    A live product behind a URL: a website, a web app, a prototype. The audience navigates it, clicks, scrolls, and reports where the flow held up and where it broke.
+  </Card>
+  <Card title="text" icon="type">
+    Written content: an article, a landing page, an email, a blog post, documentation. The audience reads it as prose and reacts as a reader.
+  </Card>
+  <Card title="image" icon="image">
+    A still: a product shot, an ad creative, a screen design, an infographic. The audience looks and reports what they notice first and what reads as intended.
+  </Card>
+  <Card title="video" icon="video">
+    Moving footage with a time axis: a tutorial, an ad, a social clip, a documentary. The audience watches and reacts moment by moment.
+  </Card>
+  <Card title="audio" icon="audio-lines">
+    Sound with a time axis: a track, a podcast, a voiceover, an ad. The audience listens and reacts moment by moment.
+  </Card>
+  <Card title="document" icon="file-stack">
+    A structured file: a deck, a report, a brochure, a guide. The audience moves through it page by page.
+  </Card>
+  <Card title="chat" icon="message-circle">
+    A conversation: a simulated person talks to a chatbot endpoint, or two simulated people talk to each other. The audience converses and reports how the exchange went.
+  </Card>
+</Columns>
+
+<Note>
+  The `interactive` modality is labeled **Product** in the app. They are the same thing: a live URL the audience navigates.
+</Note>
+
+## Content types tune the modality
+
+Five modalities carry a `content_type`: a sub-type that tells the audience what kind of thing they are experiencing before they experience it. A `text` study set to `editorial` is read as an opinion piece; set to `reference`, it is read as documentation looked up rather than read end to end. The modality decides the mechanics; the content type tunes how the audience interprets what they see.
+
+Content types are optional refinements, not separate modalities. The `interactive` and `chat` modalities do not use them.
+
+| Modality | Content types |
+|---|---|
+| `text` | `narrative`, `informational`, `commercial`, `editorial`, `reference`, `email`, `news` |
+| `audio` | `music`, `narration`, `conversation`, `speech`, `soundscape`, `news`, `ad` |
+| `video` | `tutorial`, `documentary`, `entertainment`, `review`, `lifestyle`, `ad`, `news`, `social_post` |
+| `image` | `product`, `photography`, `infographic`, `artwork`, `interface`, `visual_assets`, `ad`, `social_post` |
+| `document` | `deck`, `presentation`, `report`, `brochure`, `guide` |
+| `interactive` | none |
+| `chat` | none |
+
+Three content types are cross-modal, because the same intent shows up in more than one form:
+
+- `news` applies to `text`, `video`, and `audio`.
+- `social_post` applies to `image` and `video`.
+- `ad` applies to `audio`, `video`, and `image`.
+
+<Tip>
+  This table is a summary. The live, authoritative list per modality comes from the backend. From an agent, read the [`ish://reference/content-types/{modality}`](/mcp/generated/resources) resource, which returns the legal `content_type` values for that modality (and an empty list for `interactive` and `chat`). From the CLI, [`ish study create`](/cli/generated/study-create) prints the valid types by modality in its help text.
+</Tip>
+
+## chat works differently
+
+The other six modalities present a fixed artifact and watch the audience react to it. `chat` is a back-and-forth, so instead of a content type it carries a chat mode, chosen when the study is created:
+
+- **`external_chatbot`**: one simulated person probes a chatbot you point ish at (a customer-support bot, an assistant). The audience drives the conversation and reports how it went.
+- **`participant_pair`**: two simulated people talk to each other, each playing an assigned role, so you can watch an exchange play out between two sides of an audience.
+
+A third mode, `live_user` (a live human talking to a simulated person), is reserved and not yet available.
+
+## How content attaches per modality
+
+The modality also decides what you hand ish when you add an [iteration](/concepts/iteration). The shape differs:
+
+| Modality | What you provide |
+|---|---|
+| `interactive` | A URL to the live product. |
+| `text` | The copy, inline (or read from a local file). |
+| `image` | One or more images (hosted URLs or local files). |
+| `video` / `audio` / `document` | A hosted file URL (or a local path that ish uploads first). |
+| `chat` | A chatbot endpoint, or the role setup for a paired conversation. |
+
+For `video`, `audio`, and `image`, you can attach copy alongside the media (a caption or surrounding text), which is how `ad` and `social_post` studies present a creative the way it would actually appear in a feed.
+
+The exact fields, defaults, and validation live in the reference, not here:
+
+<Columns cols={2}>
+  <Card title="study create (CLI)" icon="terminal" href="/cli/generated/study-create">
+    Modality and content-type flags for `ish study create`.
+  </Card>
+  <Card title="study tools (MCP)" icon="plug" href="/mcp/generated/tools-study">
+    `study_create` and `study_add_iteration` parameters per modality.
+  </Card>
+</Columns>
+
+## Why the modality matters
+
+The modality is not a label on the study; it is the simulation. It picks the player the audience experiences the content in, the role they take (reader, viewer, listener, visitor, or one side of a conversation), and what kind of journey ish can report on. A `video` study can report on a reaction at a timestamp; a `document` study reports page by page; an `interactive` study reports where a click flow stalled. Choose the modality that matches the real form the thing will ship in, and the audience reacts to it the way the people you are building for will.
+
+That audience is simulated. Your audience, ish. The journey it reports back, the timestamps, the friction, the moments that landed, are the literal record of the run.
+
+<Columns cols={2}>
+  <Card title="Study" icon="folder" href="/concepts/study">
+    How a study, its iterations, and its modality fit together.
+  </Card>
+  <Card title="People" icon="users" href="/concepts/people">
+    Who the audience is and how ish grounds them.
+  </Card>
+</Columns>

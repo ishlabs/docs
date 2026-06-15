@@ -1,0 +1,128 @@
+---
+title: "Benchmarks and brand workspaces"
+description: "How a brand workspace and study benchmark let you run the same study head-to-head against competitors or alternative versions."
+mode: "explanation"
+---
+
+A benchmark answers a comparative question: not "does my checkout land?" but "does
+my checkout land better than the two competitors I keep losing to?" To answer it
+fairly, every variant has to face the same audience and the same questions. Only
+the thing being experienced should change.
+
+ish models that with two pieces. A **brand workspace** is one comparison target.
+A **benchmark** clones a [study](/concepts/study) across a set of brands so each
+one inherits the same modality, assignments, and interview questions, and differs
+only in the artifact participants actually see. Both live on the MCP server. There
+is no CLI surface for brands or benchmarks.
+
+## A brand is a comparison workspace
+
+A brand is a [workspace](/concepts/workspace#brands-comparison-workspaces) in
+disguise. Underneath it is a workspace with a parent set and a type of
+`competitor`, and it shares the `w-` alias prefix, so any tool that takes a
+workspace ID accepts a brand alias and resolves it. ish surfaces it in its own
+`brand` namespace anyway, because you reason about a brand differently than a
+top-level workspace: it is a thing you compare against, not a place you keep work.
+
+That split is deliberate, and it shows up in what the read tools return.
+`workspace_get` lists only standard workspaces, never brands. `brand_get` lists
+only the brands under one parent. A brand never shows up as a workspace you might
+accidentally start fresh work in, and a workspace never gets pulled into a
+benchmark cohort by mistake.
+
+A brand carries three fields that matter for a benchmark: a `name`, an optional
+`description`, and an optional `base_url`. The `base_url` is the one that does
+work later. When a benchmark clones an interactive study to a brand, that URL
+becomes the suggested URL for the clone's iteration, so the competitor's site is
+already half filled in.
+
+<Note>
+  Brands and the source study must share the same parent workspace. A benchmark
+  compares variants of one body of work; it does not reach across workspaces.
+</Note>
+
+## The benchmark clones, it does not run
+
+`study_benchmark` takes a source study and a list of brand IDs, and clones the
+study into each brand. What carries over is the question, not the answer: the
+name, description, assignments, and interview questions. What does **not** carry
+over is everything that makes a run concrete. Iterations, participants, and frames
+are not copied.
+
+That is the whole idea. The clone inherits a fixed lens, so the same audience
+faces the same prompts against each variant. Then you point each clone at its own
+artifact: your URL on the source, the competitor's URL on its clone, the
+alternative copy on a third. The comparison stays honest because only the
+experienced thing differs.
+
+Two consequences follow from "clone, do not run", and both trip up agents that
+treat a benchmark like a one-shot.
+
+<Steps>
+  <Step title="Clones are drafts">
+    `study_benchmark` does not dispatch any participants. Each clone lands as a
+    draft study with no run behind it. You run each one yourself with `study_run`
+    once its iteration is filled in. Nothing draws [simulation
+    credits](/concepts/workspace#caps-and-credits-are-scoped-here) until you do.
+  </Step>
+  <Step title="Fill the placeholder, do not append">
+    Each clone is born with one empty placeholder [iteration](/concepts/iteration)
+    `A`, returned in `placeholder_iteration_ids` keyed by the clone's alias. Fill
+    it by editing that iteration, not by adding a new one. `study_add_iteration`
+    would append a second iteration `B` and leave the empty `A` in place, so the
+    clone would carry a dead iteration alongside the real one.
+  </Step>
+</Steps>
+
+A benchmark is also idempotent against a brand that already has a clone of this
+study, and it never silently overrides access. Any brand it could not clone to
+comes back in a `skipped` list with a reason: `no_access`, or `already_cloned`
+with a pointer to the existing clone. Read `skipped` before you assume a clean
+cohort, or you will run a comparison that is missing a competitor.
+
+## Reading the cohort head-to-head
+
+Once each clone has run, you read the whole set in one call. `study_get` takes a
+`study_ids` list, and a benchmark cross-read passes the source study plus its
+clones. It returns a list of per-study results in the same order you asked for
+them, each shaped by the same `view`, so the variants line up side by side under
+one lens. The [findings](/concepts/reactions-and-results) read as a comparison,
+not as five unrelated runs you have to reconcile by hand.
+
+## The shape of a benchmark
+
+End to end, a benchmark is a small, ordered set of MCP calls. The mental model is
+worth holding even though the parameters live in the reference.
+
+<Steps>
+  <Step title="Create one brand per comparison target">
+    `brand_create` under the parent workspace, once per competitor or alternative
+    version. Give each a `base_url` so its cloned iteration starts pre-filled.
+  </Step>
+  <Step title="Clone the study across them">
+    `study_benchmark(source_study_id, brand_ids=[...])`. One call fans the study
+    out to every brand. Check `skipped`.
+  </Step>
+  <Step title="Fill each placeholder iteration">
+    `study_update_iteration` on each `placeholder_iteration_ids` entry, pointing
+    the clone at that brand's artifact.
+  </Step>
+  <Step title="Run each clone">
+    `study_run` per clone (and the source). Each draws credits only when it runs.
+  </Step>
+  <Step title="Read them together">
+    `study_get(study_ids=[source, ...clones])` for the head-to-head.
+  </Step>
+</Steps>
+
+Full parameters, return shapes, and error kinds live in the reference:
+[brand tools](/mcp/generated/tools-brand) for `brand_create` / `brand_get` /
+`brand_delete`, and [study tools](/mcp/generated/tools-study) for
+`study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.
+
+<Warning>
+  Deleting a brand cascades to every study and iteration cloned under it, with no
+  soft archive. Confirm before calling `brand_delete`. The widest destructive
+  action, deleting the parent workspace, takes its brands with it. See the
+  [brand tools](/mcp/generated/tools-brand).
+</Warning>

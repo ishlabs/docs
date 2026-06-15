@@ -1,0 +1,206 @@
+---
+title: "chat"
+description: "Command reference: ish chat."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ chat (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish chat endpoint`
+
+Manage saved chatbot endpoints
+
+Usage: `ish chat endpoint`
+
+## `ish chat endpoint list`
+
+List chatbot endpoints in the current workspace
+
+Usage: `ish chat endpoint list [options]`
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+
+## `ish chat endpoint get`
+
+Get a chatbot endpoint by id (or the active endpoint)
+
+Usage: `ish chat endpoint get [id] [options]`
+
+### Arguments
+<ParamField path="id">Endpoint alias or UUID; defaults to the active endpoint (optional)</ParamField>
+
+### Options
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (alternative to positional)</ParamField>
+
+## `ish chat endpoint create`
+
+Create a chatbot endpoint from a hand-written ChatbotEndpointConfig JSON (advanced - use `chat endpoint init` to infer the config from a curl sample, JSON, or template).
+
+Usage: `ish chat endpoint create [options]`
+
+### Options
+<ParamField path="--endpoint-config <file>" type="string">Path to JSON file (or "-" for stdin) Required.</ParamField>
+<ParamField path="--name <name>" type="string">Override the name from the config file</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--tunnel-backed" type="boolean">Mark this endpoint as tunnel-backed (overrides envelope/config)</ParamField>
+<ParamField path="--no-tunnel-backed" type="boolean">Force tunnel-backed off (overrides envelope/config)</ParamField>
+
+## `ish chat endpoint update`
+
+Update a chatbot endpoint (full replace via --endpoint-config, or per-field shorthand)
+
+Usage: `ish chat endpoint update [id] [options]`
+
+### Arguments
+<ParamField path="id">Endpoint alias or UUID; defaults to the active endpoint (optional)</ParamField>
+
+### Options
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (alternative to positional)</ParamField>
+<ParamField path="--endpoint-config <file>" type="string">Replace config from JSON file (or "-" for stdin)</ParamField>
+<ParamField path="--name <name>" type="string">Rename the endpoint</ParamField>
+<ParamField path="--url <url>" type="string">Replace outgoing.url</ParamField>
+<ParamField path="--method <method>" type="string">Replace outgoing.method (POST | PUT)</ParamField>
+<ParamField path="--mode <mode>" type="string">Replace outgoing.mode (stateful | stateless)</ParamField>
+<ParamField path="--tunnel-backed" type="boolean">Set isTunnelBacked=true</ParamField>
+<ParamField path="--no-tunnel-backed" type="boolean">Set isTunnelBacked=false</ParamField>
+
+## `ish chat endpoint delete`
+
+Delete a chatbot endpoint
+
+Usage: `ish chat endpoint delete [id] [options]`
+
+### Arguments
+<ParamField path="id">Endpoint alias or UUID; defaults to the active endpoint (optional)</ParamField>
+
+### Options
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (alternative to positional)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+
+## `ish chat endpoint use`
+
+Set the active chat endpoint (saved to ~/.ish/config.json)
+
+Usage: `ish chat endpoint use [id] [options]`
+
+### Arguments
+<ParamField path="id">Endpoint alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--clear" type="boolean">Remove the active chat endpoint from config</ParamField>
+
+## `ish chat endpoint init`
+
+Author an endpoint from a curl/JSON sample via test-and-map, or from a known-good template (recommended for most users - use `chat endpoint create` only when you already have a hand-written ChatbotEndpointConfig).
+
+Usage: `ish chat endpoint init [options]`
+
+### Options
+<ParamField path="--from-curl <file>" type="string">Path to a curl example file (or "-" for stdin)</ParamField>
+<ParamField path="--from-json <file>" type="string">Path to a JSON request/response sample (or "-" for stdin)</ParamField>
+<ParamField path="--template <name>" type="string">Start from a known-good template (one of: openai, anthropic, voiceflow, dialogflow-cx, botframework)</ParamField>
+<ParamField path="--name <name>" type="string">Save the inferred config under this display name</ParamField>
+<ParamField path="--no-save" type="boolean">Infer the shape without persisting it</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--tunnel-backed" type="boolean">Force isTunnelBacked=true (overrides localhost auto-detect)</ParamField>
+<ParamField path="--no-tunnel-backed" type="boolean">Force isTunnelBacked=false (overrides localhost auto-detect)</ParamField>
+
+## `ish chat endpoint test`
+
+Send one message to a saved endpoint and return the bot's reply
+
+Usage: `ish chat endpoint test [endpoint-id] [options]`
+
+### Arguments
+<ParamField path="endpoint-id">Endpoint alias or UUID; defaults to the active endpoint (optional)</ParamField>
+
+### Options
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (alternative to positional)</ParamField>
+<ParamField path="-m, --message <text>" type="string">Message to send Default: "Hello".</ParamField>
+<ParamField path="--conversation-id <id>" type="string">Thread state across multiple invocations (stateful endpoints)</ParamField>
+<ParamField path="--participant <json>" type="string">Participant persona JSON (&#123;name, locale, ...&#125;) exposed via &#123;&#123;participant.*&#125;&#125;</ParamField>
+<ParamField path="--include-request" type="boolean">Include the dispatched POST body in the output</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+
+## `ish chat endpoint map`
+
+Map a chatbot contract from documentation (and optionally a saved endpoint draft) via /chat/test-and-map
+
+Usage: `ish chat endpoint map [options]`
+
+### Options
+<ParamField path="--docs <file>" type="string">Path to documentation file (curl, JSON, OpenAPI snippet, freeform). Use "-" for stdin</ParamField>
+<ParamField path="--endpoint <id>" type="string">Saved endpoint alias or UUID - its config seeds the draft endpoint. Optional.</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+
+## `ish chat config`
+
+Manage chatbot configurations (agent shape: model, prompt, tools, sub-agents)
+
+Usage: `ish chat config`
+
+## `ish chat config list`
+
+List configurations under a chatbot endpoint
+
+Usage: `ish chat config list [options]`
+
+### Options
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (defaults to active endpoint)</ParamField>
+
+## `ish chat config set`
+
+Create or update a chatbot configuration (composite upsert)
+
+Usage: `ish chat config set [options]`
+
+### Options
+<ParamField path="--name <name>" type="string">Configuration name (unique per endpoint) Required.</ParamField>
+<ParamField path="--endpoint <id>" type="string">Endpoint alias or UUID (defaults to active endpoint; create only)</ParamField>
+<ParamField path="--config <id>" type="string">Configuration alias or UUID - switches to update mode</ParamField>
+<ParamField path="--version-label <label>" type="string">Optional version tag (e.g. v3, 1.2.0, git sha)</ParamField>
+<ParamField path="--description <text>" type="string">Optional description</ParamField>
+<ParamField path="--model <id>" type="string">Primary model identifier (e.g. claude-sonnet-4-6)</ParamField>
+<ParamField path="--system-prompt <text>" type="string">System prompt text</ParamField>
+<ParamField path="--system-prompt-file <file>" type="string">Read system prompt from file (or "-" for stdin)</ParamField>
+<ParamField path="--tools-file <file>" type="string">JSON array of tools (or "-" for stdin)</ParamField>
+<ParamField path="--sub-agents-file <file>" type="string">JSON array of sub-agents (or "-" for stdin)</ParamField>
+<ParamField path="--custom-field <key=value>" type="string">Custom field; repeat. Replaces all custom fields on update.</ParamField>
+<ParamField path="--default" type="boolean">Mark as the endpoint's default configuration</ParamField>
+
+## `ish chat config get`
+
+Get a chatbot configuration (or its referencing iterations)
+
+Usage: `ish chat config get [id] [options]`
+
+### Arguments
+<ParamField path="id">Configuration alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--config <id>" type="string">Configuration alias or UUID (alternative to positional)</ParamField>
+<ParamField path="--view <view>" type="string">default | iterations. `iterations` returns the cross-study aggregation list. Default: "default".</ParamField>
+
+## `ish chat config delete`
+
+Delete a chatbot configuration (rejected when iterations reference it)
+
+Usage: `ish chat config delete [id] [options]`
+
+### Arguments
+<ParamField path="id">Configuration alias or UUID (optional)</ParamField>
+
+### Options
+<ParamField path="--config <id>" type="string">Configuration alias or UUID (alternative to positional)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

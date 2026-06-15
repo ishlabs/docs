@@ -1,0 +1,185 @@
+---
+title: "ChatGPT"
+description: "Add ish to ChatGPT as a connector and work around its resource-blind MCP client."
+mode: "how-to"
+---
+
+Add the hosted ish MCP server to ChatGPT as a connector so it can call ish tools
+(`study_run`, `ask_run`, `person_generate`, and the rest) from a chat. The server lives at
+`https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in over OAuth on first
+connect, so no token lands in any config.
+
+ChatGPT's MCP client (it connects as `openai-mcp`) reads ish's **tools** but not its MCP
+**resources**. That changes two things: how you point it at the URL, and how you read
+findings back. Both are covered below.
+
+<Info>
+  You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
+  first. The OAuth step signs ChatGPT in as you.
+</Info>
+
+## Connect
+
+Add a custom connector in ChatGPT pointed at the ish endpoint.
+
+<Steps>
+  <Step title="Open the connector settings">
+    In ChatGPT, open settings and find connectors. Choose to add a custom MCP connector.
+  </Step>
+  <Step title="Point it at the ish endpoint">
+    Use this URL, with no trailing slash:
+
+    ```
+    https://mcp.ishlabs.io/mcp
+    ```
+  </Step>
+  <Step title="Sign in over OAuth">
+    ChatGPT opens your browser to sign in. Approve access as your ish account. ChatGPT
+    stores the token it receives; you never handle it.
+  </Step>
+</Steps>
+
+The add mechanism and the OAuth handshake are the same for every client. The
+[connecting guide](/mcp/connecting) owns the full version.
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that ChatGPT's client does not follow on a POST, so it never finishes
+  `tools/list` and the model sees an empty tool catalog.
+</Warning>
+
+## Confirm the connection
+
+Ask ChatGPT a read-only question. A read confirms the connection without drawing any
+credits.
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+ChatGPT calls [`workspace_get`](/mcp/generated/tools-workspace) and reports your
+[workspaces](/concepts/workspace) back. A brand-new account shows an empty list, which is
+still a successful connection.
+
+<Check>
+  ChatGPT returns a workspace list (or an explicit empty list) instead of "no ish tools
+  available". OAuth landed and the tools are live.
+</Check>
+
+If ChatGPT reports no ish tools, the sign-in did not complete, or the URL carried a
+trailing slash. Reconnect with the no-slash URL and approve the sign-in, then ask again.
+
+## Read findings through tools, not resources
+
+ish surfaces some data only as [MCP resources](/mcp/generated/resources): screenshots,
+transcripts, media, identity, and `ish://docs`. ChatGPT does not read resources, so those
+`ish://` links never open for it. You do not need them. Everything is reachable through
+tools, which ChatGPT does read.
+
+| You want | On a resource-reading client | On ChatGPT |
+| --- | --- | --- |
+| The findings (what people noticed, friction, blockers, sentiment, completion) | `study_get(view="summary")` (inline either way) | `study_get(view="summary")` |
+| The step-by-step navigation and decision trace | `ish://study/.../screenshots` plus the summary | `study_get(view="per_participant").interactions[]` (read `.url`, `.location`, `.actions`, `.screenshot_id`) |
+| Ask results | `ask_get(view="summary")` (inline either way) | `ask_get(view="summary")` |
+| Reference docs | `ish://docs/<slug>` | [`docs_get(slug)`](/mcp/generated/tools-docs) |
+
+<Note>
+  ish detects ChatGPT from its handshake and folds this same guidance into its tool
+  results, so the model is reminded which call to make. You can still steer it: if it
+  reaches for an `ish://` link, tell it to read `study_get(view="summary")` instead.
+</Note>
+
+## Read your first reaction
+
+Run a study that already lives in your workspace and read back what a simulated person made
+of it. Tell ChatGPT:
+
+```text
+Find a study in my workspace, run it for a few people, and tell me what they noticed.
+```
+
+<Steps>
+  <Step title="Discover a study">
+    ChatGPT calls [`study_get`](/mcp/generated/tools-study) with your `workspace_id` to
+    list studies and pick one.
+  </Step>
+  <Step title="Run it">
+    It calls [`study_run`](/mcp/generated/tools-study) with a small audience. Interactive
+    and media simulations take one to five minutes, so prefer the non-blocking pattern:
+    dispatch with `wait=false`, then poll [`study_get`](/mcp/generated/tools-study) with
+    `view="summary"` until every participant reaches a terminal state.
+  </Step>
+  <Step title="Read the reactions">
+    It calls `study_get` with `view="summary"` and reports the journey: what people
+    noticed, where they got stuck, and the reasoning behind each reaction. You get a
+    narrative, not a single score.
+  </Step>
+</Steps>
+
+For when to run a full study versus fire a quick comparison, see
+[run vs ask](/concepts/run-vs-ask).
+
+## Hand ChatGPT a file
+
+ChatGPT cannot forward a file you uploaded in the chat to a tool call; MCP tool inputs are
+JSON only, with no binary transport. When you reference "the file I just uploaded" but no
+file arrives as an argument, ish uses an out-of-band upload link instead.
+
+<Steps>
+  <Step title="ish mints a link">
+    The agent calls [`upload_create`](/mcp/generated/tools-upload) with a `purpose`
+    (`person_source` to ground a person, `study_media` for study content, or `both`) and
+    relays the returned link to you.
+  </Step>
+  <Step title="You drop the file">
+    Open the link, drop the file, and confirm.
+  </Step>
+  <Step title="ish picks it up">
+    The agent polls [`upload_status`](/mcp/generated/tools-upload) until the file lands,
+    then uses the returned handle in the downstream call (for example
+    [`person_generate`](/mcp/generated/tools-person) or
+    [`study_add_iteration`](/mcp/generated/tools-study)).
+  </Step>
+</Steps>
+
+<Tip>
+  When you already have a public link to the content, skip the upload: hand ChatGPT the
+  `http(s)` URL and it can pass it straight into the source or media argument. ish fetches
+  it server-side.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="ChatGPT sees no ish tools" icon="plug">
+    The tool catalog came back empty, usually from a trailing slash. Reconnect the
+    connector with `https://mcp.ishlabs.io/mcp` (no trailing slash) and approve the OAuth
+    sign-in in your browser, then ask again.
+  </Accordion>
+  <Accordion title="It tries to open an ish:// link and fails" icon="link-slash">
+    ChatGPT does not read MCP resources. Tell it to read the findings through tools
+    instead: `study_get(view="summary")` for a study, `ask_get(view="summary")` for an ask,
+    `docs_get(slug)` for reference docs. See the table above.
+  </Accordion>
+  <Accordion title="A blocking run returns nothing" icon="clock">
+    Long simulations can outrun a hosted client's per-call window. Re-run with `wait=false`
+    and poll `study_get(view="summary")` until every participant reaches a terminal state.
+  </Accordion>
+</AccordionGroup>
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain.
+  </Card>
+  <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
+    The `ish://` resources, and which tool mirrors each for ChatGPT.
+  </Card>
+  <Card title="Connect an agent" icon="link" href="/start/connect-an-agent">
+    The add mechanism and OAuth, in full.
+  </Card>
+  <Card title="Other clients" icon="grid-2" href="/integrations">
+    Wire Claude Code, Cursor, VS Code, and more.
+  </Card>
+</Columns>

@@ -1,0 +1,205 @@
+---
+title: "Slice results"
+description: "Filter and group ish study results by frame, segment, turn, side, assignment, step, sentiment, actor, iteration, or participant."
+mode: "how-to"
+---
+
+A finished run returns a kitchen-sink envelope: every participant, every interaction, every interview answer. To answer a narrower question, slice it. `ish study results` (CLI) and `study_get` (MCP) take **filter** inputs that pick which interactions to keep, and a **group-by** axis that rolls up what survives.
+
+This page assumes you know what a [study](/concepts/study), an [iteration](/concepts/iteration), and a [run's reactions](/concepts/reactions-and-results) are. For the full flag and parameter tables, see the [`ish study results`](/cli/generated/study-results) reference and the [`study_get`](/mcp/generated/tools-study) reference.
+
+<Info>
+Filters compose with **AND across flags** and **OR within `--sentiment`**. So `--frame login --sentiment Frustrated,Confused` keeps interactions on the login frame whose sentiment is Frustrated or Confused. Filtering and grouping happen on the study payload you already fetch, so they cost no extra round trip.
+</Info>
+
+## Pick the right axis for the modality
+
+The slicing vocabulary tracks the modality. Each axis only means something where the modality produces it. Use this to choose a filter or a `--group-by` value:
+
+| Modality | Slice by | Group by |
+| --- | --- | --- |
+| interactive | `--frame`, `--step` | `frame`, `step` |
+| video, audio, text, document | `--segment` | `segment` |
+| chat | `--turn`, `--side` (participant_pair), `--step` (graded external_chatbot) | `turn` |
+| image | none of the above | (none) |
+| any modality | `--assignment`, `--sentiment`, `--actor`, `--iteration`, `--participant` | `iteration`, `assignment` |
+
+Off-modality filters do not error. Pass `--segment 0` on an interactive study and the filter is ignored with a warning (on stderr, and on the `modality_warnings` field of the JSON envelope). The one exception is `--group-by`: an off-modality axis hard-errors at the surface before any work, with a `hint` field naming the axis that does apply (see [Group when the axis is gated](#group-when-the-axis-is-gated)).
+
+## Filter by frame, segment, or turn
+
+Narrow to one place in the journey. The right flag depends on the modality.
+
+<CodeGroup>
+```bash CLI
+# interactive: every interaction on the login screen
+ish study results s-b2c --frame login
+
+# video / audio / text / document: segment 3 (by index) or by label
+ish study results s-b2c --segment 3
+ish study results s-b2c --segment "pricing"
+
+# chat: only turn 4
+ish study results s-b2c --turn 4
+```
+
+```json MCP
+// study_get with a StudyResultsFilter. frame / segment / turn take arrays
+{ "study_id": "s-b2c", "filters": { "frame": ["login"] } }
+{ "study_id": "s-b2c", "filters": { "segment": ["3"] } }
+{ "study_id": "s-b2c", "filters": { "turn": [4] } }
+```
+</CodeGroup>
+
+`--frame <ref>` accepts a case-insensitive substring of the frame name, a full Frame UUID, an `f-…` alias, or a `frame_version_id` UUID. An ambiguous substring (more than one frame) errors with the candidate list, so widen or narrow the substring:
+
+```text
+ish study results s-b2c --frame log
+# Error: --frame "log" is ambiguous. Matched 2 frames: Login, Logout.
+# Use a more specific substring, a full Frame UUID, or an `f-…` alias.
+```
+
+`--segment <ref>` matches an integer against `segment_index`, or a non-integer as a case-insensitive substring of `segment_label`. `--turn <n>` takes a non-negative integer.
+
+<Tip>
+Some interactive captures degrade and arrive with no `frame_version_id`. `--frame` drops those by default. Pass `--include-unmatched` to keep them under a synthetic `_unmatched` bucket instead.
+</Tip>
+
+## Filter by sentiment, assignment, step, or actor
+
+These narrow the surviving set further, and most apply on any modality.
+
+<CodeGroup>
+```bash CLI
+# only frustrated reactions (case-insensitive; repeatable / comma-separated, OR'd)
+ish study results s-b2c --sentiment Frustrated
+ish study results s-b2c --sentiment Frustrated,Confused
+
+# one assignment, by UUID or by name substring
+ish study results s-b2c --assignment "Sign up"
+
+# one step within the assignments, by step-id or name substring
+ish study results s-b2c --step verify-email
+
+# restrict by who acted
+ish study results s-b2c --actor ai
+```
+
+```json MCP
+{ "study_id": "s-b2c", "filters": { "sentiment": ["Frustrated", "Confused"] } }
+{ "study_id": "s-b2c", "filters": { "assignment": ["Sign up"] } }
+{ "study_id": "s-b2c", "filters": { "step": ["verify-email"] } }
+{ "study_id": "s-b2c", "filters": { "actor": ["ai"] } }
+```
+</CodeGroup>
+
+`--sentiment` is the one filter that drops interactions whose `sentiment` is `null` (chat failure stubs, pre-sentiment rows). Every other filter keeps them. `--actor` accepts `ai`, `human`, or `user`. `--step` is only meaningful for interactive and graded external_chatbot chat, where assignment checklists exist (see [assignments and the questionnaire](/concepts/assignment-questionnaire)); pair it with `--include-evidence` to also drop interactions not cited by a surviving step verdict.
+
+## Filter by iteration or participant
+
+Scope the read to one [iteration](/concepts/iteration) or one [participant](/concepts/people) before slicing or grouping further.
+
+<CodeGroup>
+```bash CLI
+# one iteration, by UUID, i-… alias, or label (A, B, … case-insensitive)
+ish study results s-b2c --iteration B
+
+# one participant, by UUID or pt-… alias
+ish study results s-b2c --participant pt-d4e
+```
+
+```json MCP
+// the MCP keys iteration off UUID / i-… alias / a name-or-description
+// substring, not the A/B label, and the participant alias is t-…, not pt-…
+{ "study_id": "s-b2c", "filters": { "iteration": ["i-d4e"] } }
+{ "study_id": "s-b2c", "filters": { "participant": ["t-d4e"] } }
+```
+</CodeGroup>
+
+The two surfaces take different values here. The CLI `--iteration` resolves the A/B `label`, so `--iteration B` works; the MCP `iteration` filter keys off the iteration UUID, an `i-…` alias, or a substring of the iteration name or description, never the label. The participant alias also differs by surface: the CLI accepts `pt-…`, the MCP accepts `t-…`. A value the surface cannot resolve matches nothing rather than erroring, so use the form that surface understands.
+
+## Group into per-axis rollups
+
+`--group-by <axis>` (CLI) or `group_by` (MCP) reprojects the surviving interactions into one row per group. Every axis returns the same outer envelope, so a caller can parse it the same way each time:
+
+```text
+{ axis, rows, totals_unfiltered, modality_warnings, study_id, modality }
+```
+
+`rows` is the axis-specific array. The available axes and their row shapes:
+
+| `--group-by` | One row of `rows[]` | Modality |
+| --- | --- | --- |
+| `iteration` | `iteration_id, iteration_label, participant_count, interaction_count, sentiment, sample_comments, top_actions` | any |
+| `frame` | `frame_id, frame_label, interaction_count, sentiment_histogram, sample_comments, participant_aliases` | interactive |
+| `segment` | `segment_index, segment_label, interaction_count, sentiment_histogram, engagement_histogram, sample_comments` | video, audio, text, document |
+| `turn` | `turn_index, interaction_count, sentiment_histogram, sample_replies, failures` | chat |
+| `assignment` | `assignment_id, assignment_name, interaction_count, sentiment_histogram, step_completion` | any |
+| `step` | `assignment_id, assignment_name, step_id, step_name, total, passed, inconclusive, failed, rate, participant_verdicts` | interactive, graded external_chatbot chat |
+
+Filters and `--group-by` combine. Filter first to pick the interactions, then group the survivors:
+
+<CodeGroup>
+```bash CLI
+# what differed on the login screen across iterations?
+ish study results s-b2c --frame login --group-by iteration
+
+# who failed the verify-email step, and why?
+ish study results s-b2c --assignment "Sign up" --step verify-email --group-by step
+
+# per-turn breakdown of a chat study
+ish study results s-b2c --group-by turn
+```
+
+```json MCP
+{ "study_id": "s-b2c", "filters": { "frame": ["login"] }, "group_by": "iteration" }
+{ "study_id": "s-b2c", "filters": { "assignment": ["Sign up"], "step": ["verify-email"] }, "group_by": "step" }
+{ "study_id": "s-b2c", "group_by": "turn" }
+```
+</CodeGroup>
+
+<Note>
+`--group-by` is mutually exclusive with `--summary` and `--transcript`. `--summary` is orthogonal to filters: `--summary --frame checkout` narrows the lean summary to the checkout slice. `--transcript` is single-participant and errors (exit 2) if any filter or `--group-by` is set.
+</Note>
+
+### Group when the axis is gated
+
+`--group-by frame`, `segment`, and `turn` are gated to their modality. Ask for `frame` on a chat study and the surface errors before any work, and the error names the axis that fits the study:
+
+```text
+ish study results s-b2c --group-by frame
+# Error: --group-by frame requires modality=interactive; this study is "chat".
+# hint: use --group-by turn
+```
+
+The MCP `study_get` raises the same hard error for an off-modality `group_by`. The `iteration` and `assignment` axes apply on every modality, so they never gate.
+
+## Read the coverage and empty-slice contract
+
+Any time a filter is set, the envelope gains `totals_unfiltered` (`{ participant_count, interaction_count }`) so you can check coverage: "matched 12 of 80 participants". On the CLI, `participant_count` is the matched-set total; the unfiltered denominator is `totals_unfiltered.participant_count`.
+
+A filter that matches nothing is not an error. It returns the stable envelope with `participant_count: 0` (or `rows: []` under `--group-by`) and **exit code 0**, never a not-found. So `--get participant_count` is always safe, and `totals_unfiltered` tells you whether the filter was too tight or the run produced no data:
+
+```bash
+ish study results s-b2c --frame checkout --get totals_unfiltered.participant_count
+ish study results s-b2c --group-by segment --get rows.0.sentiment_histogram
+```
+
+The default-plus-filter envelope (no `--group-by`) also carries `modality_warnings`, so an agent piping stderr to `/dev/null` still sees which off-modality flags were dropped.
+
+## Related
+
+<Columns cols={2}>
+<Card title="Reactions and results" href="/concepts/reactions-and-results">
+What a run produces and the journey you are slicing into.
+</Card>
+<Card title="ish study results reference" href="/cli/generated/study-results">
+Every flag, with types and defaults.
+</Card>
+<Card title="study_get reference" href="/mcp/generated/tools-study">
+The MCP read tool: views, filters, and group_by.
+</Card>
+<Card title="Assignments and questionnaire" href="/concepts/assignment-questionnaire">
+Defines the steps that `--step` and `--group-by step` read.
+</Card>
+</Columns>

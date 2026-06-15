@@ -1,0 +1,6 @@
+# Reference pages are produced by generators in ish-cli / ish-mcp.
+# Marked generated so diffs collapse and merges resolve toward regeneration.
+cli/generated/**   linguist-generated=true
+mcp/generated/**   linguist-generated=true
+snippets/global-flags.mdx   linguist-generated=true
+snippets/exit-codes.mdx     linguist-generated=true

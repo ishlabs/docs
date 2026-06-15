@@ -1,0 +1,158 @@
+---
+title: "Cursor"
+description: "Connect Cursor to the hosted ish MCP server and run studies without tripping its tool-call cap."
+mode: "how-to"
+---
+
+Wire Cursor to the hosted ish MCP server so the agent can call ish tools
+(`study_run`, `ask_run`, `person_generate`, and the rest) from inside your editor.
+The server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs
+you in over OAuth on first connect, so no token ever lands in a config file. For the
+full add mechanism and the OAuth handshake, see [connect an agent](/start/connect-an-agent).
+
+## Connect
+
+Pick one path. Both write the same `~/.cursor/mcp.json` server block and end with the
+same OAuth sign-in.
+
+<Tabs>
+  <Tab title="With the ish CLI">
+    Install the CLI and let it write Cursor's config block:
+
+    ```bash
+    npm i -g @ishlabs/cli
+    ish mcp add --client cursor --yes
+    ```
+
+    `ish mcp add` writes only the server URL, never a token. Run it with no flags first
+    for a dry-run plan, then re-run with `--yes` to commit. See the
+    [`ish mcp` reference](/cli/generated/mcp) for every flag.
+  </Tab>
+  <Tab title="By hand">
+    Add the ish server to `~/.cursor/mcp.json` yourself. Create the file if it does not
+    exist, and keep any servers already in `mcpServers`:
+
+    ```json
+    {
+      "mcpServers": {
+        "ish": {
+          "url": "https://mcp.ishlabs.io/mcp"
+        }
+      }
+    }
+    ```
+
+    You can also add the server from Cursor's MCP settings: open Settings, find the MCP
+    section, and add a server with the URL above. Either route writes the same block.
+  </Tab>
+</Tabs>
+
+<Warning>
+  Use `https://mcp.ishlabs.io/mcp` with no trailing slash. The `/mcp/` form triggers a
+  redirect (HTTP 307) that some clients will not follow on a POST, leaving the agent
+  with an empty tool list.
+</Warning>
+
+## Sign in and confirm
+
+Reconnect or restart Cursor so it runs the OAuth flow, approve the sign-in in your
+browser, then ask the agent a read-only question:
+
+```text
+Use the ish tools to confirm who I am and list my workspaces.
+```
+
+The agent calls `workspace_get` and reports your workspaces back. A brand-new account
+shows an empty list, which is still a successful connection.
+
+<Check>
+  The agent returns a workspace list (or an explicit empty list) instead of "no ish
+  tools available". That means the OAuth sign-in landed and the tools are live.
+</Check>
+
+## Run a study without hitting the tool-call cap
+
+Cursor caps a single MCP tool call at roughly 30 seconds. Interactive and media
+simulations take one to five minutes, so a blocking `study_run` will hit that ceiling
+and return nothing. Prefer the non-blocking pattern: dispatch the run, then poll for the
+reactions.
+
+<Steps>
+  <Step title="Dispatch with wait=false">
+    Call `study_run` with `wait=false` (the default). It dispatches the simulation and
+    returns immediately with a `next_action` poll hint, well inside the 30-second
+    window.
+
+    <CodeGroup>
+    ```text Ask Cursor
+    Run study s-b2c for a sample of five people. Do not wait for it to finish; just
+    dispatch it and give me the poll hint.
+    ```
+
+    ```json study_run args
+    {
+      "study_id": "s-b2c",
+      "audience": { "sample": 5 },
+      "wait": false
+    }
+    ```
+    </CodeGroup>
+  </Step>
+  <Step title="Poll for completion">
+    Follow the `next_action` hint: call `study_get` with `view="summary"` every so often
+    until every participant reaches a terminal state. Each poll is a fast read that stays
+    under the cap.
+  </Step>
+  <Step title="Read the reactions">
+    When the run is complete, `study_get` with `view="summary"` returns the journey: what
+    people noticed, where they got stuck, and the reasoning behind each reaction. You get
+    a narrative, not a single score.
+  </Step>
+</Steps>
+
+<Warning>
+  The 30-second cap overrides `timeout`. Setting `wait=true, timeout=300` still aborts at
+  Cursor's ceiling with no result. Reserve `wait=true` for fast jobs or clients with no
+  short transport cap.
+</Warning>
+
+Full parameters and the blocking contract live in the
+[`study_run` reference](/mcp/generated/tools-study). For when to reach for `study_run`
+versus a quick `ask_run`, see [run vs ask](/concepts/run-vs-ask).
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="The agent reports no ish tools" icon="plug">
+    The OAuth step did not complete. Reconnect the server in Cursor, approve the sign-in
+    in your browser, then ask again. Confirm the URL has no trailing slash.
+  </Accordion>
+  <Accordion title="A blocking run returns nothing or times out" icon="clock">
+    You hit the 30-second tool-call cap. Re-run with `wait=false` and poll with
+    `study_get(view="summary")`, as above. A wait that runs out of budget comes back with
+    `error_kind="wait_timeout"` and the `participant_ids` set, so you can resume by
+    polling those participants.
+  </Accordion>
+  <Accordion title="ish mcp add refuses to write" icon="file-pen">
+    A drifted ish block is already in `~/.cursor/mcp.json`, or the file is not valid JSON.
+    Inspect it by hand, or re-run with `ish mcp add --client cursor --force --yes` to
+    overwrite the ish block. Unrelated servers are preserved.
+  </Accordion>
+</AccordionGroup>
+
+## Next steps
+
+<Columns cols={2}>
+  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+    All 42 hosted tools, grouped by domain.
+  </Card>
+  <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">
+    Create, iterate, run, and read studies across every modality.
+  </Card>
+  <Card title="Connect an agent" icon="link" href="/start/connect-an-agent">
+    The add mechanism and OAuth, in full.
+  </Card>
+  <Card title="Other clients" icon="grid-2" href="/integrations">
+    Wire Claude Code, VS Code, ChatGPT, and more.
+  </Card>
+</Columns>

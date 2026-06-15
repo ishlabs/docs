@@ -1,0 +1,60 @@
+---
+title: "mcp, init"
+description: "Command reference: ish mcp, init."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ mcp+init (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish mcp list`
+
+Show detected clients and ish MCP wiring status
+
+Usage: `ish mcp list`
+
+## `ish mcp add`
+
+Wire the ish MCP server into selected client configs
+
+Usage: `ish mcp add [options]`
+
+### Options
+<ParamField path="--client <names>" type="string">Comma-separated and/or repeatable: cursor, vscode, claude-code, claude-desktop, windsurf Default: [].</ParamField>
+<ParamField path="--all" type="boolean">Wire every detected client on this OS</ParamField>
+<ParamField path="--dry-run" type="boolean">Print planned mutations as JSON; write nothing</ParamField>
+<ParamField path="--force" type="boolean">Overwrite an existing ish server block that has drifted</ParamField>
+<ParamField path="-y, --yes" type="boolean">Confirm writes (required when stdout is piped or --json is set)</ParamField>
+
+## `ish mcp remove`
+
+Remove the ish server block from selected client configs
+
+Usage: `ish mcp remove [options]`
+
+### Options
+<ParamField path="--client <names>" type="string">Comma-separated and/or repeatable: cursor, vscode, claude-code, claude-desktop, windsurf Default: [].</ParamField>
+<ParamField path="--all" type="boolean">Remove from every detected client on this OS</ParamField>
+<ParamField path="--dry-run" type="boolean">Print planned mutations as JSON; write nothing</ParamField>
+<ParamField path="-y, --yes" type="boolean">Confirm writes (required when stdout is piped or --json is set)</ParamField>
+
+## `ish init`
+
+Install the ish Agent Skill into a project (Claude Code, Codex, Cursor, Cline, Roo Code)
+
+Usage: `ish init [options]`
+
+### Options
+<ParamField path="--target <which>" type="string">Where to install: claude (.claude/skills/ish), agents (.agents/skills/ish), or both Default: "claude".</ParamField>
+<ParamField path="--dir <path>" type="string">Write to a custom directory instead of a recognised target path</ParamField>
+<ParamField path="--stdout" type="boolean">Print the SKILL.md to stdout instead of writing files (skips references/)</ParamField>
+<ParamField path="--force" type="boolean">Overwrite existing files in the target directory</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

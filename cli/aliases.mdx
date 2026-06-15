@@ -1,0 +1,110 @@
+---
+title: Aliases
+description: Short id aliases the ish CLI mints for every entity, the canonical prefix table, and how they resolve.
+mode: "reference"
+---
+
+The CLI mints a short alias for every entity it prints (`w-6ec`, `s-b2c`, `pt-a3f`).
+An alias is accepted anywhere a full UUID is expected, so you can copy one from any
+command's output and paste it into the next command. Resolution maps the alias back to
+the UUID before the request is sent. See [global flags](/cli/global-flags) for how
+`--workspace` and the other id-bearing flags accept aliases.
+
+## Format
+
+An alias is a type prefix, a hyphen, and the first three hex characters of the entity's
+UUID with dashes removed.
+
+```
+w-6ec      # workspace 6ecf2857-1d7a-4f9c-85da-c2ac6c5c5346
+s-b2c      # study     b2c1f0a9-...
+pt-a3f     # participant a3f...
+```
+
+Aliases are deterministic: the same UUID always produces the same alias, across commands
+and terminals. On a collision (two UUIDs sharing the same three-character prefix) the
+CLI extends the second alias by one hex character at a time until it is unique, so a few
+aliases run longer than three characters.
+
+## Prefix table
+
+| Entity | Prefix | Example | Concept |
+| --- | --- | --- | --- |
+| Workspace | `w-` | `w-6ec` | [workspace](/concepts/workspace) |
+| Study | `s-` | `s-b2c` | [study](/concepts/study) |
+| Iteration | `i-` | `i-d4e` | [study](/concepts/study) |
+| Person | `p-` | `p-795` | [people](/concepts/people) |
+| Person source | `ps-` | `ps-1a2` | [people](/concepts/people) |
+| Participant | `pt-` | `pt-a3f` | [people](/concepts/people) |
+| Simulation config | `c-` | `c-0b4` | |
+| Job | `j-` | `j-c17` | |
+| Ask | `a-` | `a-6ec` | [run vs ask](/concepts/run-vs-ask) |
+| Ask round | `r-` | `r-2bd` | [run vs ask](/concepts/run-vs-ask) |
+| Chat endpoint | `ep-` | `ep-9f0` | |
+| Chat config | `cc-` | `cc-5e1` | |
+| Frame | `f-` | `f-7a8` | [reactions and results](/concepts/reactions-and-results) |
+
+<Note>
+`p-` is the person (the reusable profile). `pt-` is the participant (one instance of a
+person inside an iteration). They are different entities. See
+[people](/concepts/people).
+</Note>
+
+## Resolution order
+
+Every id-bearing argument runs through one resolver. It accepts two shapes:
+
+<Steps>
+  <Step title="Full UUID">
+    A well-formed UUID passes through unchanged.
+  </Step>
+  <Step title="Known alias">
+    An alias is looked up in `aliases.json` and replaced with its UUID.
+  </Step>
+</Steps>
+
+Anything else is a usage error. An alias whose prefix is recognized but whose entry is
+not in the store exits 4 (`not_found`) with the list command that would mint it, for
+example `ish workspace list` for a `w-` alias. A string that is neither a UUID nor a
+known alias shape exits 4 with guidance to run a list command first. See
+[exit codes](/cli/global-flags#exit-codes).
+
+## Where aliases are stored
+
+Aliases persist to `aliases.json` under the config root, so they survive across commands
+and terminal sessions. The root is `~/.ish` by default and is overridable with the
+`ISH_HOME` environment variable. A fresh install, a deleted `aliases.json`, or a new
+`ISH_HOME` starts with an empty store. When that happens, run the entity's list command
+to repopulate it.
+
+```bash
+ish workspace list      # mints w- aliases
+ish study list          # mints s- aliases
+ish iteration list --study s-b2c   # mints i- aliases
+```
+
+## Working with aliases
+
+Read an alias straight out of one command and pass it to the next.
+
+```bash
+ish workspace list                       # prints w- aliases
+ish study list --workspace w-6ec         # use one
+ish study run s-b2c                       # study run takes a positional alias
+ish study results s-b2c --participant pt-a3f
+```
+
+To pull a specific alias out of JSON output, target the field with `--get`.
+
+```bash
+ish study list --workspace w-6ec --get items.0.alias
+```
+
+<Tip>
+Aliases are for convenience at the terminal. In scripts that must survive a wiped
+config or a different `ISH_HOME`, capture the full UUID with `--get id --verbose` and
+pass that instead.
+</Tip>
+
+For the full output contract, including how aliases appear in JSON and table modes, see
+[reactions and results](/concepts/reactions-and-results).

@@ -1,0 +1,100 @@
+---
+title: "Global flags"
+description: "Every flag the ish CLI accepts on any command, with defaults and resolution order."
+mode: "reference"
+---
+
+These flags apply to every `ish` command. Pass them before or after the subcommand;
+Commander merges program-level and subcommand-level options. Per-command flags are
+documented on each [command page](/cli/generated/index).
+
+## Flags
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+<GlobalFlags />
+
+`-h, --help` prints usage for the current command and exits 0. `-V, --version`
+prints the CLI version and exits 0.
+
+## Authentication
+
+`ish` resolves a token from the first source that has one, in this order. The first
+match wins; later sources are not consulted.
+
+<Steps>
+  <Step title="--token <token>">
+    An explicit token passed on the command line.
+  </Step>
+  <Step title="--token-file <path>">
+    Read the token from a file (the file's contents, trimmed). Preferred over `--token`
+    and `ISH_TOKEN` because it keeps the token out of shell history and the process list.
+    An unreadable or empty file is a usage error.
+  </Step>
+  <Step title="ISH_TOKEN env var">
+    The value of `ISH_TOKEN`.
+  </Step>
+  <Step title="Saved OAuth session">
+    The access and refresh tokens written by `ish login` to `~/.ish/config.json`.
+    A near-expiry access token is refreshed automatically; a permanently dead refresh
+    token is cleared so the next `ish login` starts clean.
+  </Step>
+  <Step title="Legacy saved token">
+    A bare token persisted under `token` in the config file (pre-OAuth installs).
+  </Step>
+</Steps>
+
+When no source yields a token, the command exits 3 with a hint to run `ish login`, set
+`ISH_TOKEN`, or pass `--token` / `--token-file`. See [`ish login`](/cli/generated/session)
+for the browser flow.
+
+## Workspace selection
+
+`--workspace <id>` sets the default workspace for the run. It accepts a workspace alias
+(`w-...`) or a UUID. A per-subcommand `--workspace` overrides the program-level one. When
+no flag is given, `ish` resolves the active workspace from `ISH_WORKSPACE`, then from the
+saved active workspace in the config file. See [workspace](/concepts/workspace) for what a
+workspace holds.
+
+## Output
+
+`ish` prints a human-readable table by default and switches to JSON when stdout is not a
+TTY (piped or redirected), so `ish workspace list | jq` works without `--json`.
+
+| Flag | Effect |
+| --- | --- |
+| `--json` | Force JSON output. |
+| `--human` | Force the human renderer even when stdout is piped. Overrides the JSON-when-piped auto-flip. |
+| `--get <field>` | Print only the value at a dotted path (e.g. `--get id`, `--get items.0.alias`). Implies `--json` internally. Suppresses progress on stderr. |
+| `--fields <a,b,c>` | Project JSON output to a comma-separated field set. A name not on the response prints a one-line stderr warning, not a silent drop. |
+| `--verbose` | Include full UUIDs and timestamps that lean JSON otherwise strips. |
+| `--no-color` | Disable ANSI color. Also honored: the `NO_COLOR` env var. Color is always off in JSON mode. |
+| `-q, --quiet` | Suppress progress messages on stderr. Defaults on under `--get` and when JSON was auto-selected by piping. |
+
+JSON output is lean by default: UUID-valued fields, nulls, and timestamps are stripped to
+keep agent context small. `--verbose` returns the full payload; `--fields` and `--get`
+take precedence over the strip, so a field you name explicitly always survives. Bracket
+indexing works in `--get` paths (`items[0].alias`).
+
+<Warning>
+`--get` and `--human` are mutually exclusive. `--get` captures a JSON-derived value and
+`--human` forces the human renderer, so combining them exits 2. A `--get` path that
+resolves to nothing also exits 2.
+</Warning>
+
+For the full output contract, see [JSON mode](/concepts/reactions-and-results).
+
+## Environment variables
+
+| Variable | Effect |
+| --- | --- |
+| `ISH_TOKEN` | Auth token, used when no `--token` / `--token-file` is passed. |
+| `ISH_WORKSPACE` | Default workspace, used when no `--workspace` is passed. |
+| `ISH_HOME` | Override the config root (default `~/.ish`). Holds `config.json`, `aliases.json`, and cached binaries. |
+| `NO_COLOR` | Disable color (also honored: `FORCE_COLOR`). |
+
+## Exit codes
+
+import ExitCodes from "/snippets/exit-codes.mdx";
+
+<ExitCodes />

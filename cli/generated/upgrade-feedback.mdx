@@ -1,0 +1,42 @@
+---
+title: "upgrade, feedback"
+description: "Command reference: ish upgrade, feedback."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ upgrade+feedback (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish upgrade`
+
+Update ish to the latest version
+
+Usage: `ish upgrade [options]`
+
+### Options
+<ParamField path="--release <version>" type="string">Install a specific release (e.g. 0.8.1)</ParamField>
+
+## `ish feedback`
+
+Report a bug or send feedback to the ish team
+
+Usage: `ish feedback [message] [options]`
+
+### Arguments
+<ParamField path="message">Feedback text. Use @path to read from a file, or - to read from stdin. (optional)</ParamField>
+
+### Options
+<ParamField path="--type <type>" type="string">Feedback type: bug | feature | other Default: "bug".</ParamField>
+<ParamField path="--title <title>" type="string">Short title (default: first line of the message)</ParamField>
+<ParamField path="--no-diagnostics" type="boolean">Don't attach environment/account diagnostics to the report</ParamField>
+<ParamField path="--health" type="boolean">Also run setup checks (ish check) and attach recent local-sim logs - useful for simulation/setup bugs</ParamField>
+<ParamField path="--dry-run" type="boolean">Print exactly what would be sent (including diagnostics) without submitting</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

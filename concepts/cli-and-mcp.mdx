@@ -1,0 +1,134 @@
+---
+title: The CLI and the MCP server
+description: One backend, two developer surfaces. How the ish CLI and the ish MCP server map to the same operations, and what each one is for.
+mode: explanation
+---
+
+ish has one backend and two ways to drive it: the **ish CLI** and the **ish MCP server**. Both speak to the same API, the same workspaces, the same studies, the same people. Pick the surface that fits where you already are, not a different product.
+
+- **The CLI** is a binary you run in a shell or a CI job. You type `ish study run`, it prints a result, it exits with a code. Good for scripts, terminals, and humans who live at a prompt.
+- **The MCP server** is the same operations exposed as tools an AI agent calls. Connect Claude Code, Cursor, or any MCP client to `https://mcp.ishlabs.io/mcp` and the agent runs studies for you inside its own loop. Good for "have my coding agent check this before I ship".
+
+Same engine underneath. Simulated people experience the thing you are making and report back what they noticed, where they got stuck, and what they would do next. The surface only changes how you ask.
+
+## The shared model
+
+Both surfaces operate on the same objects. Define each one once and reuse it everywhere:
+
+<Columns cols={2}>
+  <Card title="Workspace" href="/concepts/workspace">
+    Where your studies, people, and credits live.
+  </Card>
+  <Card title="Study" href="/concepts/study">
+    The persistent research artifact, with iterations.
+  </Card>
+  <Card title="People" href="/concepts/people">
+    Reusable simulated personas grounded in who you build for.
+  </Card>
+  <Card title="Run vs ask" href="/concepts/run-vs-ask">
+    A full study run versus a lightweight ask.
+  </Card>
+</Columns>
+
+Nothing here is CLI-only or MCP-only at the concept level. A study you create with the CLI shows up for the agent through the MCP, and the reverse. The aliases (`w-…`, `s-…`, `a-…`, `tp-…`, `i-…`, `t-…`) work on both, anywhere a UUID is expected.
+
+## The verb-to-tool map
+
+The CLI reads as `ish <noun> <verb>`. The MCP exposes the same operations as `<noun>_<verb>` tools. The mapping is close to one-to-one. This table is the orientation, not the reference. For exact flags, parameters, and return shapes, follow the links to the generated reference.
+
+| Operation | CLI | MCP tool |
+|---|---|---|
+| Read current session, user, and workspaces | `ish status` / `ish whoami` | read resource [`ish://identity/me`](/mcp/generated/resources) |
+| List or read workspaces | `ish workspace list` / `ish workspace get` | [`workspace_get`](/mcp/generated/tools-workspace) (no args = list, `workspace_id` = one) |
+| Create, update, delete a workspace | `ish workspace create` / `update` / `delete` | [`workspace_create`](/mcp/generated/tools-workspace) / `workspace_update` / `workspace_delete` |
+| List or generate people | `ish person list` / `ish person generate` | [`person_get`](/mcp/generated/tools-person) / [`person_generate`](/mcp/generated/tools-person) |
+| Upload a source file | `ish source upload` | [`source_upload`](/mcp/generated/tools-person) |
+| List, browse, or read a study | `ish study list` / `ish study get` | [`study_get`](/mcp/generated/tools-study) (`workspace_id` = browse, `study_id` = one) |
+| Create a study | `ish study create` | [`study_create`](/mcp/generated/tools-study) |
+| Add or edit an iteration | `ish iteration create` / `update` | [`study_add_iteration`](/mcp/generated/tools-study) / [`study_update_iteration`](/mcp/generated/tools-study) |
+| Run a study | `ish study run` | [`study_run`](/mcp/generated/tools-study) |
+| Analyze a study | `ish study analyze` | [`study_analyze`](/mcp/generated/tools-study) |
+| Delete a study | `ish study delete` | [`study_delete`](/mcp/generated/tools-study) |
+| Run an ask | `ish ask run` | [`ask_run`](/mcp/generated/tools-ask) |
+| Add a follow-up round | `ish ask add-round` | [`ask_round`](/mcp/generated/tools-ask) |
+| Set up a chatbot endpoint | `ish chat endpoint init` / `ish chat endpoint create` | [`chatbot_setup`](/mcp/generated/tools-chatbot) |
+| Test or read a chatbot endpoint | `ish chat test` / `ish chat endpoint get` | [`chatbot_test`](/mcp/generated/tools-chatbot) / [`chatbot_get`](/mcp/generated/tools-chatbot) |
+| Expose your localhost | `ish connect <port>` | [`connect`](/mcp/generated/tools-connect) (local MCP only) |
+
+<Note>
+The MCP tool to add an iteration is `study_add_iteration`. Older drafts call it `study_iterate`; that name is gone.
+</Note>
+
+For the full CLI command tree, see the [CLI overview](/cli/overview). For every tool, tier, and resource, see the [tool index](/mcp/generated/index) and the [resource reference](/mcp/generated/resources).
+
+## What differs between the surfaces
+
+The operations match. The ergonomics do not. Three differences matter.
+
+### Active context vs explicit ids
+
+The CLI keeps a current context in `~/.ish/config.json`: the workspace, study, and ask you last selected. `ish workspace use w-abc` sets the active workspace so later commands can omit it. `ish status` shows what is active.
+
+The MCP is stateless. Every tool takes the relevant `workspace_id`, `study_id`, or `ask_id` as a parameter, every time. There is no `workspace_use` tool, because there is nothing to remember between calls. The agent passes the id it is working with on each call.
+
+### Commands vs tools and resources
+
+The CLI is all commands. The MCP splits its surface in two:
+
+- **Tools** are actions the agent invokes: `study_run`, `ask_run`, `person_generate`.
+- **Resources** are static reads addressed by a URI: `ish://identity/me`, `ish://docs/<slug>`, `ish://study/<id>/screenshots`. They are what the CLI exposes as read commands like `ish status` and `ish docs get-page`.
+
+The hosted server exposes 42 tools, 10 resources, and no prompts. A resource read on the MCP is the same data a `--json` read returns on the CLI.
+
+### Output for a parser
+
+The CLI prints for a human by default and switches to JSON when piped, or when you pass `--json`. The `--get` flag extracts a single field. See [global flags](/cli/global-flags) for the full output contract.
+
+The MCP always returns structured data to the calling agent. The agent reads it directly; there is no human-formatting step.
+
+## What is MCP-only
+
+A few operations exist only as MCP tools. They have no CLI command today.
+
+<AccordionGroup>
+  <Accordion title="study_revise">
+    Patch a study's top-level metadata: `name`, `description`, `status`, `modality`, `content_type`, `assignments`, and interview `questions`. Only the fields you pass change; the rest stay untouched, and iterations are left alone (edit those with `study_update_iteration` or `study_add_iteration`). The MCP exposes it as a `write`-tier tool; the CLI has no `ish study revise` verb. See [study tools](/mcp/generated/tools-study).
+  </Accordion>
+  <Accordion title="study_benchmark">
+    Clone a study's shape (name, description, assignments, interview questions) into one or more competitor brand workspaces so you can compare the same setup across audiences. It does not copy iterations, participants, or frames, and it does not run anything: each clone is a draft with an empty placeholder iteration you fill in, then `study_run` yourself. The source and the brands must share a parent workspace. A `long-running` tool with no CLI equivalent. See [study tools](/mcp/generated/tools-study).
+  </Accordion>
+</AccordionGroup>
+
+<Info>
+`connect` runs the other way. The `ish connect` CLI command exposes your localhost to ish's remote simulators through a Cloudflare tunnel, and works anywhere. The MCP `connect` tool does the same thing, but only when you run the MCP server on your own machine. The hosted server's `localhost` is the cloud host's loopback, not yours, so it refuses with a validation error. To let simulated people experience a local dev server through an agent, use the `ish connect` CLI on the same machine.
+</Info>
+
+## Which surface to use
+
+<Columns cols={2}>
+  <Card title="Reach for the CLI" icon="terminal">
+    You live in a shell. You want a study in CI. You want JSON to pipe into another tool. You want one command, one result, one exit code.
+  </Card>
+  <Card title="Reach for the MCP" icon="robot">
+    You work through Claude Code, Cursor, or another agent. You want it to run a study inside its own loop and read the result back without leaving the editor.
+  </Card>
+</Columns>
+
+You do not have to choose once. Create a study from the CLI, let your agent run iterations through the MCP, read the results back in either. Same backend, same objects, same findings.
+
+## Next
+
+<Columns cols={2}>
+  <Card title="CLI quickstart" href="/start/cli-quickstart" icon="terminal">
+    Install the CLI and run your first study in under five minutes.
+  </Card>
+  <Card title="Connect an agent" href="/start/connect-an-agent" icon="plug">
+    Point an MCP client at the hosted server.
+  </Card>
+  <Card title="CLI overview" href="/cli/overview" icon="rectangle-terminal">
+    The full command tree and conventions.
+  </Card>
+  <Card title="MCP overview" href="/mcp/overview" icon="server">
+    Tools, resources, and tool conventions.
+  </Card>
+</Columns>

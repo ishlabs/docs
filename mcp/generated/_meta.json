@@ -1,0 +1,36 @@
+{
+  "generator": "generate_docs_mcp.py",
+  "tool_count": 40,
+  "resource_count": 10,
+  "tags": [
+    "ask",
+    "brand",
+    "chatbot",
+    "compat",
+    "connect",
+    "delete",
+    "dispatch",
+    "docs",
+    "person",
+    "read",
+    "simulation",
+    "site_access",
+    "study",
+    "upload",
+    "workspace",
+    "write"
+  ],
+  "pages": [
+    "tools-study",
+    "tools-ask",
+    "tools-person",
+    "tools-workspace",
+    "tools-chatbot",
+    "tools-simulation",
+    "tools-site-access",
+    "tools-connect",
+    "tools-upload",
+    "tools-brand",
+    "tools-docs"
+  ]
+}

@@ -1,0 +1,112 @@
+---
+title: "simulation tools"
+description: "MCP tool reference for the simulation domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `simulation_cancel`
+
+**Tier:** write · **Tags:** simulation, write
+
+Cancel queued or running simulations - the reversible "stop" half of
+the cancel/extend pair; a cancelled run can be resumed from its last
+interaction via ``simulation_extend`` (``docs_get("concepts/extending-a-simulation")``).
+
+Walks each affected participant to ``cancelled``. Persisted artifacts
+(participant rows, interactions, transcripts) survive - a status flip,
+not a data removal, hence ``WRITE`` not ``DESTRUCTIVE``. Participants
+already terminal are skipped without dispatch.
+
+Set exactly one scope of ``participant_id`` / ``study_id`` /
+``iteration_id`` / ``ask_id``:
+
+- ``participant_id``: cancel that single participant's simulation.
+- ``study_id``: cancel every active participant under any iteration of the
+  study.
+- ``iteration_id``: cancel every active participant under one iteration.
+- ``ask_id`` (+ optional ``round``): cancel active participants in that ask,
+  scoped to one round when ``round`` is given (1-indexed) or all rounds
+  otherwise.
+
+`participant_id`: UUID or alias (``t-...``) of one participant.
+`study_id`: UUID or alias (``s-...``) - fans out across all iterations.
+`iteration_id`: UUID or alias (``i-...``) - fans out across one iteration.
+`ask_id`: UUID or alias (``a-...``) - fans out across the ask audience.
+`round`: 1-indexed round filter (only meaningful with ``ask_id``).
+
+**Returns** ``&#123;"cancelled": [&#123;"participant_id", "success", "status"?}, ...],
+"skipped": [&#123;"participant_id", "reason"}, ...], "summary": &#123;"total",
+"cancelled_count", "skipped_count"}}``. ``cancelled[*].success`` is
+``False`` when the per-participant endpoint returned an error envelope; the
+error text lands in ``status``. Skipped reasons cover terminal-state
+participants (``"already_terminal"``).
+
+### Parameters
+<ParamField body="participant_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="study_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="iteration_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="ask_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="round" type="integer">
+&nbsp;
+</ParamField>
+
+## `simulation_extend`
+
+**Tier:** long-running · **Tags:** dispatch, simulation
+
+Resume a terminal participant with ``additional_steps`` more turns - the
+reversible "start" half of the ``simulation_cancel`` + extend pair
+(``docs_get("concepts/extending-a-simulation")``).
+
+The source must be terminal (``completed`` / ``failed`` / ``cancelled``).
+The backend spawns a **new** participant under the same iteration,
+branched from the source's last interaction; the source row is untouched.
+
+`participant_id`: UUID or alias (``t-...``) of the source participant.
+`additional_steps`: more interactions to allow past the original cap.
+Default 10; capped server-side (the failure envelope names the bound).
+`instruction`: optional user message injected as overriding direction for
+the rest of the run (e.g. "Stop browsing - switch to the German picker.").
+`wait`: when True, block until the new participant is terminal. Default
+False - return immediately with the dispatched id.
+`timeout`: seconds to wait when ``wait=True``. Default 600. On elapse a
+``wait_timeout`` envelope returns while the run continues server-side; the
+``next_action`` hint points at the resume poll. See
+``docs_get("reference/long-running-jobs")``.
+
+**Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``.
+On success (``ok=True``) ``dispatch.participant_ids`` carries the **new**
+participant id (one entry); the source participant id is the input. On failure
+(``ok=False``) ``error_kind`` is one of ``validation_error`` (source
+not terminal, bad additional_steps), ``not_found`` (unknown
+participant_id), ``wait_timeout`` (dispatch fine but the wait poll ran
+out), or a backend error code.
+
+### Parameters
+<ParamField body="participant_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="additional_steps" type="integer">
+Default: `10`.
+</ParamField>
+<ParamField body="instruction" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `600.0`.
+</ParamField>

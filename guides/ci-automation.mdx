@@ -1,0 +1,217 @@
+---
+title: Use ish in CI
+description: Authenticate with a token, parse JSON output, branch on exit codes, and recover from a failed run inside a pipeline.
+mode: how-to
+---
+
+Run `ish` in a pipeline the way an unattended agent would: a token in the environment, JSON on stdout, exit codes for control flow, and explicit opt-in before anything draws credits. This page covers the headless setup and how to read a failure when one happens.
+
+It assumes you know what a [study](/concepts/study), an [iteration](/concepts/iteration), and a [run](/concepts/run-vs-ask) are. For the full flag tables, see [global flags](/cli/global-flags) and the [`ish study run`](/cli/generated/study-run) reference. For the MCP equivalent, see [`study_run`](/mcp/generated/tools-study).
+
+## Authenticate with a token
+
+CI has no browser, so skip `ish login`. Mint a token once on a workstation and hand it to the runner. `ish` resolves a token from the first source that has one, in this order:
+
+| # | Source | Use in CI |
+| --- | --- | --- |
+| 1 | `--token <token>` | Avoid. The token lands in the process list and run logs. |
+| 2 | `--token-file <path>` | Best for a file-based secret mount. The file is read and trimmed; empty is an error. |
+| 3 | `ISH_TOKEN` env var | Best for a masked CI secret. |
+| 4 | Saved OAuth session (`~/.ish/config.json`) | Set by `ish login`. Not available headless. |
+| 5 | Legacy saved token | Older setups only. |
+
+Set the secret and let resolution find it. Do not pass `--token` on the command line.
+
+<CodeGroup>
+```bash Env var
+export ISH_TOKEN="$ISH_CI_TOKEN"   # masked CI secret
+ish study run --study s-b2c --sample 5 --json --yes
+```
+
+```bash Token file
+printf '%s' "$ISH_CI_TOKEN" > /tmp/ish-token
+ish --token-file /tmp/ish-token study run --study s-b2c --sample 5 --json --yes
+```
+</CodeGroup>
+
+<Note>
+A no-token or invalid-token failure exits `3` with `error_code: "auth_failed"`. A billing or quota wall arrives as HTTP 403 but exits `1`, not `3`, so a login-retry loop never triggers on a credit cap. See [authentication](/cli/auth) for the full resolution and refresh contract.
+</Note>
+
+## Read JSON, not the human renderer
+
+`ish` prints a human table on a TTY and switches to JSON automatically when stdout is piped, so a pipeline gets JSON without asking. Pass `--json` to make that explicit and stable regardless of the runner's TTY detection.
+
+Pull a single value with `--get <field>`, which prints the bare value with no quotes or envelope. It accepts dotted and bracketed paths and auto-descends into a list `items` wrapper:
+
+```bash
+# the new study's id, nothing else
+study_id=$(ish study create --workspace w-acme --name "Checkout flow" \
+  --modality interactive --url https://example.com/checkout --get id)
+
+# how many participants completed, straight into a variable
+done=$(ish study results "$study_id" --get completed_count)
+```
+
+A `--get` path that resolves to nothing is a usage error (exit `2`), not an empty success, so a typo fails loudly instead of feeding an empty string downstream. `--get` and `--human` are mutually exclusive.
+
+Narrow a full payload with `--fields <a,b,c>`. A name that is not on the response prints a one-line stderr warning rather than dropping silently:
+
+```bash
+ish study list --workspace w-acme --fields alias,name,status --json
+```
+
+JSON output is lean by default: UUID-valued fields, nulls, and timestamps are stripped to keep an agent's context small. Write commands keep their canonical `id` so you can chain follow-up calls. Pass `--verbose` for the full payload; `--fields` and `--get` always survive the strip because naming a field is unambiguous intent.
+
+<Tip>
+Keep stdout clean for parsing. Progress messages go to stderr and auto-suppress under `--get` and when JSON is auto-selected by piping. Add `-q` to silence them anywhere else.
+</Tip>
+
+## Branch on exit codes
+
+Every command exits with a semantic code. Build pipeline control flow on the code, not on string-matching the message.
+
+import ExitCodes from "/snippets/exit-codes.mdx";
+
+<ExitCodes />
+
+A common shape: run, then branch on the code to decide whether to retry, fail the build, or surface a credit wall.
+
+```bash
+set +e
+ish study run --study s-b2c --sample 5 --wait --json --yes > result.json
+code=$?
+set -e
+
+case "$code" in
+  0) echo "run complete" ;;
+  5) echo "transient; retrying once"; ish study run --study s-b2c --wait --json --yes ;;
+  3) echo "auth failed; rotate ISH_TOKEN" >&2; exit 1 ;;
+  *) echo "run failed with exit $code" >&2; cat result.json >&2; exit "$code" ;;
+esac
+```
+
+Exit `1` covers a billing or quota wall (HTTP 403 mapped by `error_code`). Do not treat it as auth. The JSON envelope carries `error_code: "usage_limit_reached"` or `"insufficient_credits"` plus an `upgrade_url` so the build can report exactly why it stopped.
+
+## Confirm credit spend up front
+
+Billable verbs (`study run`, `study analyze`, and the `ask` dispatch verbs) and destructive deletes refuse to proceed in `--json` mode or any non-TTY context unless you opt in. Without confirmation they exit `2` with `error_kind: "ConfirmationRequired"` and a copy-pasteable `example` that appends `--yes`. This is the gate that stops an unattended runner from spending in a loop the author did not intend.
+
+<Warning>
+`ish study extend` has no confirmation gate. It defines no `--yes` flag and dispatches a billable simulation immediately, even in `--json` or a non-TTY context. If a pipeline calls it, guard it some other way, for example behind your own pipeline approval step.
+</Warning>
+
+Two ways to opt in:
+
+- `--yes` (or `-y`) on each billable command.
+- `ISH_ASSUME_YES=1` once, to pre-authorize spending for the whole session. It is session-scoped and never written to config, so it cannot silently pre-authorize a future run.
+
+```bash
+# per-command
+ish study run --study s-b2c --sample 5 --json --yes
+
+# once, for a whole job that issues many billable calls
+export ISH_ASSUME_YES=1
+ish study run --study s-b2c --sample 5 --json
+ish study analyze --study s-b2c --json
+```
+
+`ISH_ASSUME_YES` accepts `1`, `true`, `yes`, or `on`. The one billable path exempt from the gate is `ish ask create --no-dispatch`: a draft spends nothing.
+
+<Info>
+Credits are a usage allowance, not a per-call bill (paid plans refill monthly; the free tier is a one-time grant). The gate exists for review, not frugality. Set `ISH_ASSUME_YES=1` and run the loop.
+</Info>
+
+## Mind the dispatch cap
+
+Each dispatch is capped at 20 simulations. Resolve more than that, with `--all` or `--sample`, and `ish` fails before any round trip with a usage error (exit `2`) telling you to subsample or split:
+
+```text
+Resolved 80 participants (no filter) but the backend caps each dispatch at 20.
+Pass `--sample 20` to randomly subsample the pool, narrow your filters, or run
+the dispatch multiple times against different slices.
+```
+
+For a cohort larger than 20, run the dispatch in slices and let each one add to the same iteration:
+
+```bash
+for country in us gb de; do
+  ish study run --study s-b2c --country "$country" --sample 20 --wait --json --yes
+done
+```
+
+`--sample N` above the cap is caught locally before the people lookup, so a bad value never burns a request.
+
+## When a CI run fails
+
+`--wait` blocks until every simulation reaches a terminal state, then exits `0`. Without it, dispatch returns immediately and you poll with `ish study wait` or `ish study results`. Either way, read the JSON envelope to decide what to do next.
+
+### Read the error envelope
+
+In `--json` mode every failure is a structured object on stderr:
+
+```json
+{
+  "error": "Timed out after 300s waiting for simulations. 3/5 done. ...",
+  "error_code": "wait_timeout",
+  "retryable": true,
+  "progress": { "study_id": "s-b2c", "done": 3, "total": 5, "pending": 2, "rows": [ ... ] }
+}
+```
+
+The fields that drive a retry decision:
+
+| Field | What it tells you |
+| --- | --- |
+| `error_code` | The machine-readable cause. Branch on this, not the prose `error`. |
+| `retryable` | `true` for transient causes (timeout, rate limit, 5xx, DNS). These exit `5`. |
+| `suggestions` | An ordered list of next steps for the failing code. |
+| `example` | A ready-to-run command that fixes the call (e.g. the same invocation plus `--yes`). |
+
+A `--wait` timeout is `error_code: "wait_timeout"`, exit `5`, with `progress` showing how far the run got. If `progress.rows[].age_seconds` shows a participant running over 15 minutes, the worker likely died: the backend marks it failed within about 15 minutes, so stop polling rather than retrying.
+
+### Retry without double-seeding
+
+`study run` does two things: it seeds participants on the iteration, then dispatches their simulations. If the dispatch call fails after seeding (a client-side timeout, say), those participants already exist server-side. Re-running the same command would seed a second batch on top of them.
+
+To avoid that, the error envelope tags the seeded participants so you can resume instead of restart:
+
+```json
+{
+  "error": "POST request timed out after 120s. ...",
+  "error_code": "timeout",
+  "retryable": true,
+  "seeded_but_not_dispatched_ids": ["...", "..."],
+  "seeded_but_not_dispatched_aliases": ["pt-a1b", "pt-c2d"]
+}
+```
+
+Two clean recoveries:
+
+- **Reuse the seeded participants.** Re-run `ish study run --study <id>` with no person-selection flags (`--person`, `--sample`, `--all`, or filters). When the iteration already has participants and you name no new ones, `study run` reuses them rather than seeding again. Bump `--dispatch-timeout <s>` (default 120) if the original timed out client-side.
+- **Clear and restart.** Delete the seeded participants with `ish study participant delete <id>` for each `seeded_but_not_dispatched_id`, then re-run from scratch.
+
+<Warning>
+Do not re-run a billable command blindly on failure. A timeout means the request may have succeeded server-side, so a naive retry can double the work and the spend. Check the seeded ids, or poll the iteration, before retrying.
+</Warning>
+
+### Make a retry idempotent
+
+A `DELETE` that times out may have completed server-side. Re-fetch the resource (for example `ish study get <id>`) before retrying so a redundant delete does not 404 and fail the build. For the same reason, prefer polling (`ish study wait` / `ish study results`) over re-dispatching when a run's terminal state is unknown: reads are free and safe to repeat.
+
+## Related
+
+<Columns cols={2}>
+<Card title="CLI quickstart" href="/start/cli-quickstart">
+The first run, end to end.
+</Card>
+<Card title="Global flags" href="/cli/global-flags">
+Every flag, env var, and exit code in one reference.
+</Card>
+<Card title="ish study run reference" href="/cli/generated/study-run">
+Dispatch flags, --wait, --timeout, and --dispatch-timeout.
+</Card>
+<Card title="Slice results" href="/guides/slicing-results">
+Filter and group what a finished run returns.
+</Card>
+</Columns>

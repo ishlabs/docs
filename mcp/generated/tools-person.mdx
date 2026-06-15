@@ -1,0 +1,400 @@
+---
+title: "person tools"
+description: "MCP tool reference for the person domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `person_attach`
+
+**Tier:** write · **Tags:** person, write
+
+Enrich one existing **private** person with extra grounding -
+**exactly one of ``source`` / ``evidence``.** Use this to add
+hand-tailored material to a single persona after the fact (vs.
+``person_generate``, which mints N personas from a brief / sources). See
+``docs_get("guides/build-specific-person")`` for the evidence loop.
+
+- ``source=SourceAttachInput(path=..., description=...)`` runs the
+  profile-scoped 3-step attachment intake (initiate → signed-URL PUT →
+  confirm) - a file you want this persona to react to.
+- ``evidence=[EvidenceTraceInput(...), ...]`` POSTs scenario answers the
+  persona's simulation-time prompt reads as ``&lt;past_reactions>``.
+
+**Profile must be private** (``visibility="private"``): the backend
+rejects shared/published profiles (moderation gate); the MCP surfaces
+that as ``[validation_error]`` with a "must be private" message.
+
+`person_id`: UUID or short alias (e.g. ``tp-d4e``); must be a
+caller-owned private profile.
+`source`: file payload - exactly one of ``source`` / ``evidence``.
+`evidence`: 1..N ``EvidenceTraceInput`` rows (mutually exclusive with
+``source``). Each carries ``text`` (persona answer), ``source`` enum
+(``situation`` / ``voice`` / ``binary`` / ``micro-story``),
+``scenario_prompt`` (the question), optional ``raw_response``.
+
+**Returns** a ``PersonAttachResponse``. With ``source``, success sets
+``attachment_id``; with ``evidence``, ``evidence_traces`` lists the
+persisted rows. On failure inspect ``error_kind`` ∈ ``&#123;validation_error,
+not_found, forbidden, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="person_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="source" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="path" type="string">
+Where to read the file from - a local path read from the **MCP server's** filesystem (the MCP process must have read access), an ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a ``data:`` URL. Supported MIME types: ``audio/*``, ``image/*``, ``text/*``, ``application/pdf``, ``application/json``, and office-document types. Omit when passing ``inline_base64``.
+</ParamField>
+<ParamField body="description" type="string">
+Optional researcher note attached to the file (max 500 chars). Mirrors the ``reaction`` field on ``source_upload``.
+</ParamField>
+<ParamField body="inline_base64" type="string">
+Raw base64-encoded file bytes (no ``data:`` prefix) - for hosted MCP clients that can pass bytes but not a path. ``file_name`` is REQUIRED with this. Mutually exclusive with a non-data ``path``.
+</ParamField>
+<ParamField body="file_name" type="string">
+Name to record for the upload; required with raw ``inline_base64``, optional otherwise (overrides the path/URL basename).
+</ParamField>
+<ParamField body="content_type" type="string">
+MIME override; inferred from ``file_name`` / the remote ``Content-Type`` when omitted.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="evidence" type="object[]">
+&nbsp;
+</ParamField>
+
+## `person_delete`
+
+**Tier:** destructive · **Tags:** delete, person
+
+Permanently delete a person. **DESTRUCTIVE**.
+
+Public-pool profiles cannot be deleted by individual workspaces; the
+backend rejects those with ``[auth_failed]`` (or ``[not_found]`` if
+the profile does not exist).
+
+`person_id`: UUID or short alias (e.g. ``tp-d4e``) of the person
+to delete.
+
+**Returns** ``&#123;"deleted": True, "person_id": &lt;id>}`` on success; on
+failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="person_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `person_generate`
+
+**Tier:** long-running · **Tags:** dispatch, person
+
+Build a person (or cohort) "ish" from a description and/or real
+research artifacts, via the **agentic** generation pipeline (turns the
+brief plus uploaded evidence - emails, PDFs, text, images, audio - into
+people, optionally with grounded scenarios). See
+``docs_get("concepts/person")`` (generate vs manual) and
+``docs_get("concepts/source")`` (artifacts as generation inputs).
+
+**Blocks by default** (``wait=True``): uploads artifacts, enqueues the
+job, polls to terminal, returns resolved personas + scenarios. Pass
+``wait=False`` for the ``job_id`` immediately, then pick up results via
+``person_get(workspace_id=..., type="ai")`` - see
+``docs_get("reference/long-running-jobs")``. The three inputs
+(description, ``source_paths``, ``source_upload_ids``) freely combine.
+
+Counts toward the plan's custom-person entity cap (independent of the
+per-run credit pool) - see ``docs_get("reference/credits")``; on hit:
+``[usage_limit_reached]``.
+
+**Single-person role-fitting (pair-mode use case).** Pair-mode chat
+rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one persona
+per side: call ``person_generate(count=1, description="...")`` per side;
+the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`description`: free-text audience brief (>=20 chars when supplied).
+`source_paths`: file references - each a local file path read from the
+**MCP server's** filesystem (the MCP process must have read access), an
+``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a
+``data:`` URL. Supported MIME: ``audio/*``, ``image/*``, ``text/*``,
+``application/pdf``, ``application/json``, office-document types.
+`source_upload_ids`: reuse sources already uploaded via
+``source_upload`` (or a prior partial build) without re-uploading.
+`reaction_notes`: one researcher note per ``source_paths`` entry (same
+order, same length) describing how the real person reacted to THAT
+artifact; ``""`` skips a note for that file.
+`count`: pin audience size to [1, 10]; omit to let the agent propose.
+`age_range`: ``(min, max)`` inclusive. `country`: ISO-3166-alpha-2
+codes. `gender`: list of gender labels.
+`generate_evidence`: also produce grounded ``EvidenceTrace`` rows.
+``None`` (default) = auto (scenarios only when sources attached);
+``True`` / ``False`` override.
+`wait`: block until terminal (default True; runs take ~30-60s).
+`timeout`: seconds to wait when ``wait=True`` (default 180s).
+
+**Returns** a ``PersonGenerateResponse`` discriminated by ``ok``. With
+``wait=True``, success populates ``people`` + ``person_ids``; with
+``wait=False``, ``job_id`` + ``status="queued"`` only. On failure inspect
+``error_kind`` ∈ ``&#123;validation_error, not_found, usage_limit_reached,
+generation_failed, timeout, rate_limited, server_error, network_error,
+http_error}``. **Partial-failure contract:** when upload(s) succeeded but
+enqueue failed, ``source_ids`` is still populated so agents can retry
+against existing sources without re-uploading.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="source_paths" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="source_upload_ids" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="reaction_notes" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="count" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="age_range" type="object[]">
+&nbsp;
+</ParamField>
+<ParamField body="country" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="gender" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="generate_evidence" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `true`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `180.0`.
+</ParamField>
+
+## `person_get`
+
+**Tier:** read-only · **Tags:** person, read
+
+Read people. Polymorphic on ``person_id``: omit to list, pass it to
+fetch one profile. See ``docs_get("concepts/people")`` for
+people-selection semantics.
+
+**List mode** (no ``person_id``): profiles in the workspace plus the
+public pool. Within a dimension (``country`` / ``gender`` /
+``occupation`` / each ``*_in`` enum) values OR; across dimensions they
+AND. Defaults to ``type="ai"`` (simulatable); ``"human"`` or ``"all"``
+widen it. Pagination via ``limit`` (max 200) + ``offset``. Returns a
+``PaginatedList[Person]`` (``&#123;items, total, returned, limit, offset,
+has_more}``); ``total`` is the match count, handy for pre-flighting a
+pair-mode side's pool (the ``*_in`` enums + a11y booleans share their
+vocabulary with ``RoleCriteria``). If nothing matches, fall through to
+``person_generate`` to mint matching personas. Public-pool rows surface
+but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
+
+**Single mode** (with ``person_id``): that profile with workspace-scoped
+custom fields + usage stats. ``include_evidence=True`` attaches persisted
+``EvidenceTrace`` rows (newest-first) under ``profile.evidence``;
+rejected in list mode (per-row evidence blows the token budget).
+
+Three text-search dimensions (each case-insensitive substring, AND'd):
+``search`` → name; ``bio`` → narrative bio; ``occupation=[...]`` →
+occupation (OR'd within the dimension).
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`person_id`: UUID or short alias (e.g. ``tp-d4e``); omit to list.
+`country`: ISO-3166-alpha-2 codes. `gender`: gender labels.
+`occupation`: free-text occupation substrings (OR'd).
+`role_in`: canonical role keys (``founder``, ``product_leader``,
+``engineer``, ...) that OR-expand into many ``occupation`` substrings -
+a best-effort convenience over free-text occupation; merged with any
+explicit ``occupation``. Pass an unknown key to see the full list in the
+``[validation_error]``.
+`age_min` / `age_max`: inclusive age bounds. `search`: name substring.
+`bio`: bio substring. `type`: ``ai`` (default) / ``human`` / ``all``.
+`limit` / `offset`: pagination. `include_bio`,
+`include_accessibility_profile`: default ``False`` (each is large per
+row; fetch a single profile for the full payload). `include_evidence`:
+single mode only.
+`visibility`: narrows the list; default unions every scope, ordered
+workspace → platform → shared. Canonical values ``"workspace"`` (caller's
+own; required ahead of ``person_evidence_add``), ``"shared"``
+(community-published), ``"platform"`` (admin-curated). Pre-rollout
+``"private"`` / ``"public"`` are accepted as deprecation aliases for
+``"workspace"`` / ``"platform"``.
+
+**Extended demographic enums** (snake_case, must match
+``spec/profile-enums.v1.json``):
+
+- ``education_level_in``: ``less_than_secondary``, ``secondary``,
+  ``some_post_secondary``, ``vocational_or_associate``, ``bachelor``,
+  ``graduate``.
+- ``household_in``: ``single``, ``couple_no_kids``, ``couple_with_kids``,
+  ``single_parent``, ``shared_housing``, ``adult_with_parents``,
+  ``multi_generational``.
+- ``locale_type_in``: ``urban``, ``suburban``, ``small_town``, ``rural``.
+- ``income_level_in``: ``lower``, ``lower_middle``, ``middle``,
+  ``upper_middle``, ``upper``, ``prefer_not_to_say``.
+- ``employment_status_in``: ``employed_full_time``, ``employed_part_time``,
+  ``self_employed``, ``unemployed_seeking``, ``student``, ``homemaker``,
+  ``retired``, ``unable_to_work``, ``other``.
+
+**Accessibility booleans** (filter over the ``accessibility_profile``
+JSONB): ``requires_captions``, ``uses_screen_reader``,
+``prefers_reduced_motion``, ``prefers_high_contrast``,
+``has_any_accessibility_need``.
+
+**Returns** ``PaginatedList[Person]`` (no id) or ``Person`` (with id);
+on failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="person_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="country" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="gender" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="occupation" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="role_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="age_min" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="age_max" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="search" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="bio" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="type" type="&quot;ai&quot; | &quot;human&quot; | &quot;all&quot;">
+Default: `"ai"`.
+</ParamField>
+<ParamField body="limit" type="integer">
+Default: `50`.
+</ParamField>
+<ParamField body="offset" type="integer">
+Default: `0`.
+</ParamField>
+<ParamField body="include_bio" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="include_accessibility_profile" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="include_evidence" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="education_level_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="household_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="locale_type_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="income_level_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="employment_status_in" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="requires_captions" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="uses_screen_reader" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="prefers_reduced_motion" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="prefers_high_contrast" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="has_any_accessibility_need" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="visibility" type="&quot;workspace&quot; | &quot;shared&quot; | &quot;platform&quot; | &quot;private&quot; | &quot;public&quot;">
+&nbsp;
+</ParamField>
+
+## `source_upload`
+
+**Tier:** write · **Tags:** person, write
+
+Upload one piece of real evidence (email, PDF, text/doc, image, audio)
+so a later ``person_generate`` can ground a participant "ish" in how a
+real person reacted. Returns a ``source_upload_id`` to hand to
+``person_generate(source_upload_ids=[...])``. See
+``docs_get("concepts/source")``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`source_path`: where to read the evidence from - a local file path read
+from the **MCP server's** filesystem (the MCP process must have read
+access), an ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB
+cap), or a ``data:`` URL. Supported MIME: ``audio/*``, ``image/*``,
+``text/*``, ``application/pdf``, ``application/json``, office-document
+types. Omit when passing ``inline_base64``.
+`reaction`: researcher note on how the real person reacted to THIS
+artifact (e.g. "called this proposal lazy and low-effort"); rides along
+to the agent. Backend caps it at 500 chars.
+`inline_base64`: raw base64-encoded file bytes (no ``data:`` prefix) - for
+hosted MCP clients that can pass the bytes but not a path. ``file_name`` is
+REQUIRED with this (it carries no name or MIME). Mutually exclusive with a
+non-data ``source_path``.
+`file_name`: name to record for the upload; required with raw
+``inline_base64``, optional otherwise (overrides the path/URL basename).
+`content_type`: MIME override; inferred from ``file_name`` / the remote
+``Content-Type`` when omitted.
+
+**Returns** a ``SourceUploadResponse`` discriminated by ``ok``. On
+success ``source_upload_id`` is the new source's ID. On failure inspect
+``error_kind`` ∈ ``&#123;validation_error, not_found, server_error,
+network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="source_path" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="reaction" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="inline_base64" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="file_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_type" type="string">
+&nbsp;
+</ParamField>

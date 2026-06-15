@@ -1,0 +1,304 @@
+---
+title: Rehearse a conversation
+description: Stand up a participant-pair study where two simulated people converse so you can pressure-test a pitch, sales call, or one-on-one before it happens.
+mode: how-to
+---
+
+Run two simulated people against each other in a chat study: side A versus side B, each with their own scenario and goal. Use it to rehearse a conversation that has not happened yet, a sales rep working a skeptical CTO, a founder facing an investor archetype, a manager preparing a hard one-on-one. The output is a set of transcripts you can read and reason over, not a population finding.
+
+This is the `participant_pair` chat sub-mode: simulated person versus simulated person, with no chatbot endpoint in the loop. To rehearse against a bot you point at, see [`guides/chat-studies`](/guides/chat-studies) (the `external_chatbot` sub-mode). For how chat fits the modality registry, see [`concepts/study`](/concepts/study).
+
+<Info>
+Cardinality is always two. No three-or-more party group chats, and no marking one side as the live human (live human-versus-AI rehearsal lives in `me.ishlabs.io` and is not on the MCP or CLI surface yet).
+</Info>
+
+## The asymmetry contract
+
+Each side carries its own `scenario` with its own goal embedded in it, and the partner never sees the other side's scenario. That asymmetry is the design intent. Without it the two simulated people collude toward whichever objective is more legible and the rehearsal collapses. Write each scenario as if briefing one person who has not spoken to the other.
+
+<Warning>
+Do not restate side B's goal inside side A's scenario, or vice versa. Cross-leaking the briefs defeats the whole exercise.
+</Warning>
+
+## How sides pair up
+
+`group_a` and `group_b` pair 1:1 by index. Side A's first person talks to side B's first person, the second to the second, and so on.
+
+```
+group_a = [tp-aaa, tp-bbb]
+group_b = [tp-ccc, tp-ddd]
+              |        |
+      conversation 0  conversation 1
+      (tp-aaa <-> tp-ccc)  (tp-bbb <-> tp-ddd)
+```
+
+Equal counts zip 1:1. One side of exactly one **broadcasts** to the other: `[tp-aaa]` against `[tp-ccc, tp-ddd]` makes two conversations that share `tp-aaa`. That is the 1xN rehearsal, fix one side and vary the other. Any other mismatch is rejected.
+
+You rarely list person IDs by hand. The recommended path is criteria-driven: hand each side a `RoleCriteria` filter and the backend resolves the pool when the iteration is created. Reach for explicit `group_a` / `group_b` only when you already have a hand-curated panel from [`concepts/people`](/concepts/people).
+
+## Steps
+
+<Steps>
+<Step title="Create the study with side-tagged assignments">
+
+A pair study persists two `Assignment` rows, one per role. Each carries the role label (`name`), the scenario (`instructions`), an optional goal (`test_context`), and the `side` discriminator (`a` or `b`). This is the same shape the product writes, so a study created here opens correctly in the launcher.
+
+`chat_mode` is required when `modality` is `chat`. Set it to `participant_pair`.
+
+<CodeGroup>
+
+```python MCP
+study_create(
+    workspace_id="w-6ec",
+    name="Sales rep vs skeptical CTO",
+    modality="chat",
+    chat_mode="participant_pair",
+    assignments=[
+        Assignment(
+            side="a",
+            name="Sales rep",
+            instructions="You're a sales rep pitching an analytics SaaS to a CTO.",
+            test_context="Secure a 30-day pilot.",
+        ),
+        Assignment(
+            side="b",
+            name="CTO",
+            instructions="You're a CTO evaluating new analytics tools.",
+            test_context="Stay within budget; avoid lock-in.",
+        ),
+    ],
+)
+```
+
+```bash CLI
+ish study create \
+  --name "Sales rep vs skeptical CTO" \
+  --modality chat \
+  --chat-mode participant_pair \
+  --assignment "Sales rep:You're a sales rep pitching an analytics SaaS to a CTO." \
+  --assignment "CTO:You're a CTO evaluating new analytics tools."
+```
+
+</CodeGroup>
+
+<Note>
+On the MCP path, do not pass iteration content to `study_create`. Pair iterations are deferred to `study_add_iteration` so you can pick the audience selection first. The CLI can build iteration A inline when you pass the pair flags to `ish study create` (shown below), or you can keep the two steps separate with `ish iteration create`.
+</Note>
+
+</Step>
+
+<Step title="Scout pool sizes before committing (recommended)">
+
+`person_get` speaks the same demographic vocabulary as `RoleCriteria`, so the cheapest pre-flight is a list call with `limit=10`. The envelope carries `total` (the full match count) plus a small sample to eyeball. If either side returns `total: 0`, mint the missing pool with `person_generate` before you create the iteration.
+
+<CodeGroup>
+
+```python MCP
+person_get(
+    workspace_id="w-6ec",
+    occupation=["cto", "engineering manager"],
+    country=["US"],
+    education_level_in=["bachelor", "graduate"],
+    limit=10,
+)
+# -> PaginatedList(total=23, items=[Person, ...], ...)
+```
+
+```bash CLI
+ish person list \
+  --workspace w-6ec \
+  --occupation "cto,engineering manager" \
+  --country US \
+  --limit 10 \
+  --json
+```
+
+</CodeGroup>
+
+`RoleCriteria` accepts occupation, age band, gender, country, five enum filters (`education_level_in`, `household_in`, `locale_type_in`, `income_level_in`, `employment_status_in`), and five coarse accessibility booleans (`requires_captions`, `uses_screen_reader`, `prefers_reduced_motion`, `prefers_high_contrast`, `has_any_accessibility_need`). The full enum values are in the [`tools-study`](/mcp/generated/tools-study) reference.
+
+</Step>
+
+<Step title="Create the pair iteration, criteria-driven">
+
+Hand each side a `RoleCriteria` filter and let the backend resolve the pool at create time. You never need to know which person IDs exist. Echo the scenarios here so the run-time path has them; the goal stays on the `Assignment.test_context` you set in step 1. `initiator_side` decides who speaks turn 0 (default `a`).
+
+<CodeGroup>
+
+```python MCP
+study_add_iteration(
+    study_id="s-b2c",
+    name="Iteration 1",
+    modality="chat",
+    chat_pair=ChatPairConfig(
+        role_criteria_a=RoleCriteria(
+            occupation=["sales rep", "account executive"],
+            country=["US"],
+        ),
+        role_criteria_b=RoleCriteria(
+            occupation=["cto", "engineering manager"],
+            country=["US"],
+            education_level_in=["bachelor", "graduate"],
+        ),
+        scenario_a="You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot.",
+        scenario_b="You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in.",
+        initiator_side="a",
+    ),
+    max_turns=14,
+)
+```
+
+```bash CLI
+ish iteration create \
+  --study s-b2c \
+  --name "Iteration 1" \
+  --chat-mode participant_pair \
+  --role-criteria-a '{"occupation":["sales rep","account executive"],"country":["US"]}' \
+  --role-criteria-b '{"occupation":["cto","engineering manager"],"country":["US"],"education_level_in":["bachelor","graduate"]}' \
+  --scenario-a "You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot." \
+  --scenario-b "You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in." \
+  --initiator-side a \
+  --max-turns 14
+```
+
+</CodeGroup>
+
+Each side requires either a non-empty `RoleCriteria` or an explicit audience. An empty filter on one side is rejected up front rather than accepted and failed at run time. Scenarios must be non-empty on both sides.
+
+</Step>
+
+<Step title="Or pin an explicit panel">
+
+Use explicit audiences when you already have specific participants in mind, for example a hand-curated panel from `person_get`. Pass person IDs or `tp-` aliases for each side.
+
+<CodeGroup>
+
+```python MCP
+study_add_iteration(
+    study_id="s-b2c",
+    name="Iteration 1",
+    modality="chat",
+    chat_pair=ChatPairConfig(
+        group_a=["tp-aaa"],
+        group_b=["tp-ccc", "tp-ddd"],
+        scenario_a="You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot.",
+        scenario_b="You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in.",
+    ),
+    max_turns=14,
+)
+```
+
+```bash CLI
+ish iteration create \
+  --study s-b2c \
+  --name "Iteration 1" \
+  --chat-mode participant_pair \
+  --group-a tp-aaa \
+  --group-b tp-ccc,tp-ddd \
+  --scenario-a "You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot." \
+  --scenario-b "You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in."
+```
+
+</CodeGroup>
+
+Side A here is one person broadcast against two on side B: two conversations that share the sales rep, varying the CTO. Passing both criteria and an explicit audience is allowed; the backend then validates the explicit list against the criteria. Once the iteration exists the resolved audiences are baked in. You do not pass them again at run time.
+
+</Step>
+
+<Step title="Dispatch the run">
+
+Pair iterations carry both rosters, so `study_run` needs only the study and iteration. The `audience` argument is rejected here (the audience lives in the iteration). `config_id` is optional: omit it and `study_run` auto-infers from the first `group_a` person's `simulation_config_id`. If that person has no config assigned, the dispatch returns a `validation_error` naming the missing field rather than silently picking one; pass `config_id` explicitly or assign a config to the source person.
+
+<CodeGroup>
+
+```python MCP
+study_run(study_id="s-b2c", iteration_id="i-d4e", wait=False)
+```
+
+```bash CLI
+ish study run --study s-b2c --iteration i-d4e
+```
+
+</CodeGroup>
+
+Both sides consume one model call per turn, so the cost is roughly the per-turn chat cost times two per pair. See [`concepts/credits-and-limits`](/concepts/credits-and-limits) for the model. Prefer the default non-blocking dispatch and poll the returned hint; the [`study_run`](/mcp/generated/tools-study) reference covers `wait`, `timeout`, and the client transport ceiling. For the run-versus-ask choice, see [`concepts/run-vs-ask`](/concepts/run-vs-ask).
+
+</Step>
+
+<Step title="Read the transcripts">
+
+Pair runs return one transcript per **conversation**, not per participant. Each transcript interleaves both sides' turns by timestamp and carries a `conversation_summary` with `who_steered`, `dominant_dynamic`, `momentum_shifts`, and a `summary` prose field. The `end_reason` is stamped on the conversation itself and surfaced alongside the summary, not inside the summary blob.
+
+<CodeGroup>
+
+```python MCP
+study_get(study_id="s-b2c", view="transcripts")
+```
+
+```bash CLI
+ish study results s-b2c --transcript pt-d4e --json
+```
+
+</CodeGroup>
+
+The MCP `view="transcripts"` returns every conversation in one call. The CLI `--transcript` projection takes one participant; to slice the aggregate by role, filter with `--side a` or `--side b`. For how reactions and signals are structured, see [`concepts/reactions-and-results`](/concepts/reactions-and-results).
+
+</Step>
+</Steps>
+
+## End reasons
+
+Each conversation ends for one of these reasons, surfaced on `end_reason`:
+
+| Value | Meaning |
+|---|---|
+| `MAX_TURNS` | Hit the per-iteration turn cap. |
+| `MUTUAL_DISENGAGE` | Both sides' last turn reported they did not want to continue. |
+| `MUTUAL_GOAL` | Both sides' last turn reported their goal was achieved. |
+| `MIXED_END` | One side achieved its goal; the other disengaged. |
+| `NO_PROGRESS` | An action cycle was detected; the conversation looped. |
+| `ERROR` | A model or worker failure. |
+
+## The two chat modes side by side
+
+|  | `external_chatbot` | `participant_pair` |
+|---|---|---|
+| Who talks to whom | simulated person versus your chatbot endpoint | simulated person (side A) versus simulated person (side B) |
+| Iteration input | `endpoint` or `chatbot_endpoint_id` | `chat_pair=ChatPairConfig(...)` |
+| Cost per turn | one model call | two model calls |
+| Transcript granularity | one per participant | one per conversation (both sides) |
+| Audience selection | `study_run(audience=...)` | baked into the iteration; `audience` rejected at run time |
+
+## Reference
+
+<Columns cols={2}>
+<Card title="study tools" href="/mcp/generated/tools-study">
+`study_create`, `study_add_iteration`, `study_run`, `study_get`, and the `ChatPairConfig` / `RoleCriteria` / `Assignment` shapes.
+</Card>
+<Card title="ish study create" href="/cli/generated/study-create">
+Every flag for the CLI study create, including the pair-mode and inline-iteration shortcuts.
+</Card>
+<Card title="ish study run" href="/cli/generated/study-run">
+Dispatch flags, config override, and pair-mode behavior.
+</Card>
+<Card title="ish study results" href="/cli/generated/study-results">
+Transcript projection and the `--side` / `--turn` slice flags.
+</Card>
+</Columns>
+
+## Related
+
+<Columns cols={2}>
+<Card title="Probe a chatbot" href="/guides/chat-studies" icon="robot">
+The `external_chatbot` mode: endpoint setup, smoke tests, slot bindings.
+</Card>
+<Card title="People" href="/concepts/people" icon="users">
+How audiences and criteria resolve to the simulated people who play each side.
+</Card>
+<Card title="Iteration" href="/concepts/iteration" icon="layer-group">
+The iteration shape and where `mode_details` lives.
+</Card>
+<Card title="Reactions and results" href="/concepts/reactions-and-results" icon="comments">
+How transcripts, summaries, and signals are structured.
+</Card>
+</Columns>

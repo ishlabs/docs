@@ -1,0 +1,118 @@
+---
+title: "iteration"
+description: "Command reference: ish iteration."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ iteration (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish iteration list`
+
+List iterations for a study
+
+Usage: `ish iteration list [options]`
+
+### Options
+<ParamField path="--study <id>" type="string">Study ID</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+
+## `ish iteration create`
+
+Create a new iteration with run-time content/URL
+
+Usage: `ish iteration create [options]`
+
+### Options
+<ParamField path="--study <id>" type="string">Study ID (or set via `ish study use`)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--name <name>" type="string">Iteration name (defaults to the next position letter A/B/C… if omitted)</ParamField>
+<ParamField path="--description <description>" type="string">Iteration description</ParamField>
+<ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code) - interactive only</ParamField>
+<ParamField path="--url <url>" type="string">URL to test - interactive only (optional for ios/android native apps)</ParamField>
+<ParamField path="--app <id>" type="string">Native app bundle id (or .app/.apk path) - ios/android; supplies the iteration target so --url isn't required</ParamField>
+<ParamField path="--screen-format <format>" type="string">Screen format (mobile_portrait, desktop) - interactive only; hyphen/underscore variants accepted. Default: desktop, or mobile_portrait for native ios/android</ParamField>
+<ParamField path="--locale <locale>" type="string">Locale code (e.g. en-US) - interactive only</ParamField>
+<ParamField path="--file-key <key>" type="string">Figma file key - required when --platform=figma</ParamField>
+<ParamField path="--start-node-id <id>" type="string">Figma start node id - required when --platform=figma</ParamField>
+<ParamField path="--flow-name <name>" type="string">Figma flow name - interactive only</ParamField>
+<ParamField path="--content-text <text>" type="string">Text content to evaluate, or @filepath to read from file - text modality</ParamField>
+<ParamField path="--content-html <html>" type="string">HTML version of the text, or @filepath to read from file - text modality</ParamField>
+<ParamField path="--sender-name <name>" type="string">Email 'From' display name - text modality (email rendering)</ParamField>
+<ParamField path="--sender-email <email>" type="string">Email sender address - text modality (email rendering)</ParamField>
+<ParamField path="--featured-image-url <url>" type="string">Hero image URL - text modality (email rendering)</ParamField>
+<ParamField path="--content-url <url>" type="string">URL or local file path to media file - video, audio, document modalities</ParamField>
+<ParamField path="--image-urls <urls>" type="string">Comma-separated image URLs or local file paths - image modality</ParamField>
+<ParamField path="--title <title>" type="string">Content title shown to participants (the leading headline they read) - media modalities</ParamField>
+<ParamField path="--mime-type <type>" type="string">MIME type (e.g. video/mp4) - media modalities</ParamField>
+<ParamField path="--copy-text <text>" type="string">Ad copy or social post caption (or @filepath) - ads &amp; social posts</ParamField>
+<ParamField path="--copy-html <html>" type="string">HTML version of copy text (or @filepath)</ParamField>
+<ParamField path="--social-platform <platform>" type="string">Social platform (instagram, tiktok, facebook, linkedin, x)</ParamField>
+<ParamField path="--copy-position <pos>" type="string">Copy position relative to media (before, after) Default: "after".</ParamField>
+<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON - time_based &#123;intervals_seconds, labels?&#125;, section_based &#123;sections[&#123;name,label,...&#125;]&#125;, or page_based &#123;&#125; - media modalities. section_based sections are SEMANTIC: group related paragraphs into a few coherent sections (a long article is usually 3-6 sections, not one per paragraph; paragraph_start/end just mark where each section begins and ends).</ParamField>
+<ParamField path="--content-config-json <json>" type="string">Content config JSON - &#123;early_termination, selected_segment_indices?&#125; - media modalities</ParamField>
+<ParamField path="--chat-mode <mode>" type="string">Chat mode: external_chatbot (default; probe a customer chatbot) or participant_pair (two AI people talk to each other)</ParamField>
+<ParamField path="--chat-endpoint-id <id>" type="string">Saved chatbot endpoint id - chat modality, external_chatbot mode (legacy; prefer --endpoint)</ParamField>
+<ParamField path="--chat-endpoint-json <json>" type="string">Inline chatbot endpoint config JSON - chat modality, external_chatbot mode (legacy; prefer --endpoint-config)</ParamField>
+<ParamField path="--max-turns <n>" type="string">Max participant turns (1-50) - chat modality (default 12)</ParamField>
+<ParamField path="--early-termination" type="boolean">End the chat session early when the participant signals stop - chat modality</ParamField>
+<ParamField path="--endpoint <id>" type="string">Saved chatbot endpoint id (alias or UUID) - chat modality, external_chatbot mode</ParamField>
+<ParamField path="--endpoint-config <file>" type="string">Raw ChatbotEndpointConfig JSON file or `-` for stdin - chat modality, external_chatbot mode</ParamField>
+<ParamField path="--group-a <ids>" type="string">Person IDs/aliases for side A (comma-separated or repeatable). Pass a single person and N on --group-b to broadcast (1×N rehearsal: fix side A, vary side B) - chat participant_pair mode Default: [].</ParamField>
+<ParamField path="--group-b <ids>" type="string">Person IDs/aliases for side B (comma-separated or repeatable). When both sides are explicit they must be equal length, BUT if either side is a singleton it's auto-broadcast to match the other (1×N rehearsal) - chat participant_pair mode Default: [].</ParamField>
+<ParamField path="--scenario-a <text-or-@file>" type="string">Side-A scenario + goal text, or @filepath - chat participant_pair mode</ParamField>
+<ParamField path="--scenario-b <text-or-@file>" type="string">Side-B scenario + goal text, or @filepath - chat participant_pair mode</ParamField>
+<ParamField path="--initiator-side <a|b>" type="string">Which side speaks first (default: a) - chat participant_pair mode</ParamField>
+<ParamField path="--role-criteria-a <json-or-@file>" type="string">RoleCriteria filter for side A (inline JSON or @filepath). Keys: occupation[], min_age, max_age, gender[], country[], education_level_in[], household_in[], locale_type_in[], income_level_in[], employment_status_in[], requires_captions, uses_screen_reader, prefers_reduced_motion, prefers_high_contrast, has_any_accessibility_need. The five *_in arrays accept snake_case spec values; the five accessibility filters are booleans. Persona-first: filters the eligible profile pool without altering personas. Use INSTEAD of --group-a or alongside it (criteria then validates the explicit list). chat participant_pair mode.</ParamField>
+<ParamField path="--role-criteria-b <json-or-@file>" type="string">RoleCriteria filter for side B - same shape as --role-criteria-a. chat participant_pair mode.</ParamField>
+<ParamField path="--details-json <json>" type="string">Raw iteration details JSON (overrides individual flags)</ParamField>
+
+## `ish iteration get`
+
+Get iteration details (accepts multiple IDs for batched lookup)
+
+Usage: `ish iteration get <ids>... [options]`
+
+### Arguments
+<ParamField path="ids">Iteration ID(s) - one or more aliases/UUIDs (space- or comma-separated) (required, variadic)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish iteration update`
+
+Update an iteration
+
+Usage: `ish iteration update <id> [options]`
+
+### Arguments
+<ParamField path="id">Iteration ID (required)</ParamField>
+
+### Options
+<ParamField path="--name <name>" type="string">Iteration name</ParamField>
+<ParamField path="--description <description>" type="string">Iteration description</ParamField>
+<ParamField path="--details-json <json>" type="string">Iteration details as JSON string</ParamField>
+<ParamField path="--label <label>" type="string">Iteration label (uppercase letters)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish iteration delete`
+
+Delete an iteration
+
+Usage: `ish iteration delete <id> [options]`
+
+### Arguments
+<ParamField path="id">Iteration ID (required)</ParamField>
+
+### Options
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json / non-TTY)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

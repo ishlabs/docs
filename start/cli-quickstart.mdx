@@ -1,0 +1,149 @@
+---
+title: "Quickstart: the CLI"
+description: "Install the ish CLI, sign in, simulate one visit, and read one reaction in under five minutes."
+mode: "tutorial"
+---
+
+Install the ish CLI, sign in, and simulate a visit to a real URL. By the end you will have read what one simulated person noticed, where they got stuck, and what they would do next. This takes under five minutes.
+
+You need a terminal, an ish account, and a public URL to point at (a landing page, a doc, anything live on the web).
+
+<Steps>
+
+<Step title="Install the CLI">
+
+Pick one. The install script and Homebrew give you a single binary that self-updates with `ish upgrade`; npm gives you the same CLI as a global package.
+
+<CodeGroup>
+
+```bash macOS / Linux
+curl -fsSL https://ishlabs.io/install.sh | sh
+```
+
+```powershell Windows
+irm https://ishlabs.io/install.ps1 | iex
+```
+
+```bash Homebrew
+brew install ishlabs/tap/ish
+```
+
+```bash npm
+npm install -g @ishlabs/cli
+```
+
+</CodeGroup>
+
+Confirm the CLI is on your PATH:
+
+```bash
+ish --version
+```
+
+<Note>
+  The install script appends a PATH line to your shell profile. If `ish` is not found, open a new terminal or run `source ~/.zshrc` (or your shell's profile), then try again.
+</Note>
+
+</Step>
+
+<Step title="Sign in">
+
+```bash
+ish login
+```
+
+This opens your browser to authenticate, then saves your session to `~/.ish/config.json`. Confirm it worked:
+
+```bash
+ish status
+```
+
+`ish status` (alias `ish whoami`) prints your signed-in email and the active workspace.
+
+</Step>
+
+<Step title="Create a study and point it at a URL">
+
+A study is the persistent shape of what you want to learn: the modality, the tasks the simulated person does, and the questions they answer. Passing `--url` here also creates the first iteration inline, so you go from nothing to runnable in one command.
+
+```bash
+ish study create \
+  --name "Landing page first look" \
+  --modality interactive \
+  --url https://example.com \
+  --assignment "First look:Land on the page and decide if you would keep reading" \
+  --question "What stood out, and what was confusing?"
+```
+
+What each flag does:
+
+- `--modality interactive` runs a browser session against a live URL.
+- `--url` is the page the simulated person visits. It creates iteration A inline, so you do not need a separate `ish iteration create`.
+- `--assignment "Name:Instructions"` is the task. Format is `Name:Instructions`.
+- `--question` is one thing you want them to answer afterward.
+
+The command prints the new study id and an alias like `s-b2c`. The CLI remembers it as your active study, so the next commands need no id.
+
+</Step>
+
+<Step title="Simulate a visit">
+
+Sample one person from your workspace and dispatch the simulation. `--wait` blocks until it finishes; `-y` confirms the run (it draws credits).
+
+```bash
+ish study run --sample 1 -y --wait
+```
+
+You will see progress on stderr as the simulated person works through the page, then the run reaches a terminal state.
+
+<Tip>
+  Want more than one reaction at once? Raise the sample: `ish study run --sample 5 -y --wait`. A single dispatch samples up to 20 people.
+</Tip>
+
+</Step>
+
+<Step title="Read the reaction">
+
+```bash
+ish study results
+```
+
+This returns the reported journey: per-participant sentiment, the interview answers, and the interactions that led there. Read what the simulated person noticed, where they hesitated, and what they would do next. You see the reasoning, not just a number.
+
+For a leaner view, add `--summary`:
+
+```bash
+ish study results --summary
+```
+
+</Step>
+
+</Steps>
+
+## What you just did
+
+You installed the CLI, signed in, defined a study, and simulated one visit to a live page. The result is a real record of what one simulated person experienced, before you put the page in front of anyone.
+
+Your audience, ish.
+
+## Next steps
+
+<Columns cols={2}>
+
+<Card title="Run more visits" href="/cli/generated/study-run">
+  Sample by country, age, or gender, reuse a study's people, or block on results. Every flag for `ish study run`.
+</Card>
+
+<Card title="Read deeper" href="/cli/generated/study-results">
+  Slice results by assignment, sentiment, or participant, and group by iteration or frame.
+</Card>
+
+<Card title="Shape the study" href="/cli/generated/study-create">
+  Add more assignments, richer questionnaires, and other modalities (text, video, audio, image, document, chat).
+</Card>
+
+<Card title="Simulate a localhost build" href="/cli/generated/connect">
+  Expose a service on your machine with `ish connect` so a simulated person can reach `localhost`.
+</Card>
+
+</Columns>

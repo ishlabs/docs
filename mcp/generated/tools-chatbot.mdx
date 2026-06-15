@@ -1,0 +1,271 @@
+---
+title: "chatbot tools"
+description: "MCP tool reference for the chatbot domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `chatbot_delete`
+
+**Tier:** destructive · **Tags:** chatbot, delete
+
+Permanently delete a saved chatbot endpoint. **DESTRUCTIVE**.
+
+Iterations that referenced this endpoint via ``chatbot_endpoint_id``
+keep working - the full config is embedded inline at iteration
+creation time, so the saved row is just lineage. Still, prefer
+keeping endpoints around rather than deleting them mid-study.
+
+**When to use:** typically only when the user explicitly asks to
+remove an endpoint, or after retiring a bot integration. Confirm with
+the user before calling.
+
+`endpoint_id`: UUID or short alias (e.g. ``ep-abc``) of the endpoint
+to delete.
+
+**Returns** ``&#123;"deleted": True, "endpoint_id": &lt;id>}`` on success; on
+failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="endpoint_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `chatbot_delete_configuration`
+
+**Tier:** destructive · **Tags:** chatbot, delete
+
+Permanently delete a chatbot configuration. **DESTRUCTIVE**.
+
+Backend rejects with HTTP 409 (``configuration_in_use``) when iterations
+reference this configuration. Iteration snapshots survive; only the live
+cross-study aggregation link breaks. Check ``usage_count`` via
+``chatbot_get(view="configurations", endpoint_id=...)`` first.
+
+`configuration_id`: UUID or short alias (e.g. ``cc-...``) to delete.
+
+### Parameters
+<ParamField body="configuration_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+
+## `chatbot_get`
+
+**Tier:** read-only · **Tags:** chatbot, read
+
+Read chatbot endpoints AND configurations, polymorphic on ``view`` and
+the optional id parameters. **READ_ONLY**.
+
+- **``view="default"``** - endpoints. No ``endpoint_id`` → list all in
+  the workspace; ``endpoint_id`` set → that endpoint with its full
+  ``config`` blob (for inspect-edit-resave).
+- **``view="configurations"``** - configs under an endpoint.
+  ``endpoint_id`` lists all (each with ``usage_count``);
+  ``configuration_id`` returns one config's full agent shape.
+- **``view="iterations"``** - cross-study aggregation: every iteration
+  referencing a configuration, joined to its study. ``configuration_id``
+  required; pair with ``study_get(view="full")`` per row to drill in.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`endpoint_id`: UUID or short alias (e.g. ``ep-abc``). Optional -
+    omit to list endpoints with ``view="default"``.
+`configuration_id`: UUID or short alias (e.g. ``cc-...``). Required
+    for ``view="iterations"``; optional under ``view="configurations"``
+    (single vs list discriminator).
+`view`: ``"default"`` (endpoints), ``"configurations"`` (configs
+    under one endpoint), or ``"iterations"`` (cross-study aggregation
+    for a single configuration).
+
+**Returns** the appropriate envelope per view; on failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
+not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="endpoint_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="configuration_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="view" type="&quot;default&quot; | &quot;configurations&quot; | &quot;iterations&quot;">
+Default: `"default"`.
+</ParamField>
+
+## `chatbot_setup`
+
+**Tier:** long-running · **Tags:** chatbot, dispatch
+
+Create a saved chatbot endpoint end-to-end (auto-detect → smoke-test →
+persist), optionally with a configuration under it. **LONG_RUNNING**.
+
+Pass exactly one of ``paste`` (LLM auto-infers the config) or ``config``
+(pre-built). With ``smoke_test=True`` (default) one synthetic turn runs
+against the bot before persisting; on failure the endpoint is NOT
+persisted and the response carries ``error_kind`` + ``raw_excerpt`` to
+adjust and retry. Use ``chatbot_test`` instead to probe without saving.
+See ``docs_get("guides/chat")``.
+
+The smoke test draws no simulation credits; see
+``docs_get("reference/credits")``.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`paste`: Raw curl command, JSON sample, or freeform docs (mutex with
+    ``config``). Response reports ``confidence`` and ``missing_signals``.
+`config`: Pre-built ``ChatbotEndpointConfig`` dict (mutex with
+    ``paste``).
+`is_tunnel_backed`: True when the URL is reached via a local CLI
+    tunnel (``ish connect``). For a localhost ``paste`` URL the response
+    carries ``tunnel_backed_detected=True`` as a hint, but the endpoint
+    is NOT created tunnel-backed unless you set this. Defaults to
+    ``False`` (or whatever ``config`` carries on the ``config`` path).
+`name`: Human-readable endpoint name. Defaults to the inferred host
+    (``paste`` path) or ``"chatbot"`` (``config`` path) when omitted.
+`smoke_test`: Run one synthetic turn against the bot before
+    persisting. Default ``True``. Set ``False`` to skip when already
+    validated via ``chatbot_test``.
+`configuration`: Optional ``ChatbotConfigurationInput`` (agent shape:
+    model, system prompt, tools, sub-agents, custom fields). When set,
+    the configuration is created under the new endpoint in the same
+    call. Editing is not exposed - create a new one with a fresh
+    ``version_label``.
+`is_configuration_default`: When ``configuration`` is set, mark it as
+    the endpoint default (used by ``study_add_iteration(modality="chat")``
+    when no explicit ``chatbot_configuration_id`` is given). Default
+    ``True``.
+
+**Returns** ``ChatbotSetupResponse`` discriminated by ``ok``. On failure
+inspect ``error_kind`` ∈ the shared vocabulary (``validation_error`` /
+``not_found`` / ``usage_limit_reached`` / ``rate_limited`` /
+``server_error`` / ``network_error`` / ``http_error``) PLUS the
+chat-specific kinds from the smoke probe (``TunnelInactive`` /
+``BotUnreachable`` / ``BotResponseError`` / ``BotEnvelopeError`` /
+``BotInvalidResponseError`` / ``BotAuthError`` / ``BotTimeoutError`` /
+``BotRetryExhaustedError`` / ``ChatReactionInvalid``) and auto-detect
+kinds (``LLMError`` / ``UnreachableUrl`` / ``UnknownError``). The
+endpoint is never persisted when ``smoke_test=True`` and the test fails.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="paste" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="config" type="object">
+&nbsp;
+</ParamField>
+<ParamField body="is_tunnel_backed" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="smoke_test" type="boolean">
+Default: `true`.
+</ParamField>
+<ParamField body="configuration" type="object">
+&nbsp;
+<Expandable title="properties">
+<ParamField body="name" type="string" required>
+Configuration name; required, unique per endpoint.
+</ParamField>
+<ParamField body="version_label" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="model" type="string">
+Model identifier (e.g. 'gpt-4o', 'claude-sonnet-4-6').
+</ParamField>
+<ParamField body="system_prompt" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="tools" type="object[]">
+Tool specs as plain dicts; the backend validates the shape (see ish-backend/app/api/chatbot_configurations/models.py).
+</ParamField>
+<ParamField body="sub_agents" type="object[]">
+&nbsp;
+</ParamField>
+<ParamField body="custom_fields" type="object[]">
+``[&#123;key, value}, ...]``; keys unique, values capped at 4096 chars.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="is_configuration_default" type="boolean">
+Default: `true`.
+</ParamField>
+
+## `chatbot_test`
+
+**Tier:** write · **Tags:** chatbot, write
+
+Probe a chatbot endpoint with one synthetic turn - "is this connection
+clean before I run a study?". **WRITE** (network call to the bot).
+
+Pass exactly one of ``endpoint_id`` (probe a saved endpoint by its config)
+or ``config`` (probe an inline draft). Never persists - use
+``chatbot_setup`` to create an endpoint. See ``docs_get("guides/chat")``.
+
+Branch on ``error_kind`` (backend-classified), not the message:
+
+- ``TunnelInactive``: tunnel-backed endpoint with no active ``ish
+  connect`` session - start one and retry; not a bot bug.
+- ``BotUnreachable``: DNS / connection refused - wrong URL or bot down.
+- ``BotTimeoutError``: connected but no reply within the timeout.
+- ``BotAuthError``: 401/403 - check ``outgoing.headers`` and secrets.
+- ``BotResponseError``: HTTP non-2xx - inspect ``raw_excerpt``.
+- ``BotEnvelopeError``: 200 OK but the bot's ``response_error_path``
+  matched - the bot reported its own error.
+- ``BotInvalidResponseError``: response missed the configured
+  ``incoming.*`` paths (config drift) - re-run ``chatbot_setup(paste=...)``.
+- ``BotRetryExhaustedError``: retry loop exhausted, no specific kind.
+- ``ChatReactionInvalid``: bot reply violated the participant's expected
+  reaction shape (rare on the smoke probe).
+
+For stateful bots, thread ``conversation_id`` across invocations to
+maintain a session.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`endpoint_id`: UUID or short alias (e.g. ``ep-abc``) of a saved
+    endpoint (mutex with `config`).
+`config`: Inline ``ChatbotEndpointConfig`` to probe without saving
+    (mutex with `endpoint_id`).
+`message`: Message the simulated participant sends. Default ``"Hello"``.
+`conversation_id`: Bot-supplied session id from a prior turn
+    (stateful bots only).
+`participant`: Optional persona block (e.g.
+    ``&#123;"name": "Ada", "locale": "en"}``) exposed via ``&#123;&#123;participant.*}}``
+    placeholders in the request template.
+
+**Returns** ``TestEndpointResult``; on success ``ok=True`` plus
+``bot_reply`` (slots-only - ``slots[]`` for interactive containers,
+``references[]`` for passive ones); on failure ``ok=False`` plus
+``error_kind`` from the chat-specific vocabulary above.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+</ParamField>
+<ParamField body="endpoint_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="config" type="object">
+&nbsp;
+</ParamField>
+<ParamField body="message" type="string">
+Default: `"Hello"`.
+</ParamField>
+<ParamField body="conversation_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="participant" type="object">
+&nbsp;
+</ParamField>

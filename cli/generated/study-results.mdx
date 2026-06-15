@@ -1,0 +1,44 @@
+---
+title: "study results"
+description: "Command reference: ish study results."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
+
+import GlobalFlags from "/snippets/global-flags.mdx";
+
+## `ish study results`
+
+View aggregated results: participant counts, sentiment, interview answers. Returns a stable envelope with empty fields when no runs have completed. Slice with filter flags (--frame [interactive], --segment [video/audio/text/document], --turn [chat], --side [chat participant_pair], --assignment, --step, --sentiment, --actor, --iteration, --participant) or project with --group-by &lt;axis&gt; (iteration | frame [interactive] | segment [media] | turn [chat] | assignment | step).
+
+Usage: `ish study results <id> [options]`
+
+### Arguments
+<ParamField path="id">Study ID (required)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="--summary" type="boolean">Lean summary projection: counts + sentiment + per-participant &#123;alias, status, sentiment, comment&#125;. Drops interview_answers + per-interaction breakdowns. Composes with filters: `--summary --frame login` narrows the summary to the login-screen interactions.</ParamField>
+<ParamField path="--transcript <participant_id>" type="string">Chat transcript projection for one participant: flat role/text/turn-index array (chat-modality only). Mirrors the MCP `get_chat_transcript` shape. Cannot combine with filters or --group-by (transcript is a single-participant projection).</ParamField>
+<ParamField path="--frame <ref>" type="string">Filter to interactions whose Frame name contains &lt;ref&gt; (case-insensitive), or whose Frame UUID / `f-…` alias / frame_version_id matches. Interactive only - warned and ignored on other modalities.</ParamField>
+<ParamField path="--segment <ref>" type="string">Filter media studies (video/audio/text/document) by segment index (integer) or segment label (substring). Image and other modalities: warned and ignored.</ParamField>
+<ParamField path="--turn <n>" type="string">Filter chat interactions to a single `actions[0].data.turn_index`. Non-chat modalities: warned and ignored.</ParamField>
+<ParamField path="--side <a|b>" type="string">Filter participant_pair chat interactions by assignment side. Other modalities: warned and ignored.</ParamField>
+<ParamField path="--assignment <ref>" type="string">Filter to a single assignment by UUID or name (substring, case-insensitive).</ParamField>
+<ParamField path="--step <ref>" type="string">Filter `participant_assignments[].step_results[]` to a single step by step-id or name (substring). Pair with --include-evidence to also drop non-evidence interactions.</ParamField>
+<ParamField path="--sentiment <labels>" type="string">Filter to interactions whose sentiment.label is in the comma-separated list (case-insensitive; repeatable). Drops interactions whose sentiment is null. A participant is kept when at least one of their interactions matches, even if their aggregate session sentiment is null (e.g. failed runs with a pre-error matching interaction). Default: [].</ParamField>
+<ParamField path="--actor <actor>" type="string">Filter to interactions whose actor is `ai`, `human`, or `user` (case-insensitive).</ParamField>
+<ParamField path="--iteration <ref>" type="string">Restrict to a single iteration by UUID or label.</ParamField>
+<ParamField path="--participant <ref>" type="string">Restrict to a single participant by UUID or `pt-…` alias.</ParamField>
+<ParamField path="--include-unmatched" type="boolean">When --frame is set, keep interactions with null frame_version_id under a synthetic `_unmatched` bucket instead of dropping them.</ParamField>
+<ParamField path="--include-evidence" type="boolean">When --step is set, also drop interactions not listed in any surviving step_results[].evidence_interaction_ids[].</ParamField>
+<ParamField path="--group-by <axis>" type="string">Project results into per-axis slices: iteration | frame | segment | turn | assignment | step. Mutually exclusive with --summary and --transcript.</ParamField>
+
+## Global flags
+
+Every command accepts the global flags.
+
+<GlobalFlags />

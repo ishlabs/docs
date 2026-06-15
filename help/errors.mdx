@@ -1,0 +1,173 @@
+---
+title: "Error reference"
+description: "Every error_code the ish CLI and MCP surface, what each means, and whether to retry."
+mode: "reference"
+---
+
+Both developer surfaces return a stable, machine-readable `error_code` so an agent can branch
+on the failure instead of parsing prose. The CLI puts it in the `--json` error envelope; the MCP
+prefixes the tool-failure message with `[error_code]`. The same vocabulary backs both, mapped from
+the backend's HTTP status (or from a structured body the backend sends).
+
+This page is the index of those codes. For how the CLI emits the envelope and exit codes, see
+[global flags](/cli/global-flags). For how the MCP renders failures, see
+[tool conventions](/mcp/tool-conventions).
+
+## CLI error envelope
+
+In `--json` mode every failure prints a JSON object to stderr and the process exits non-zero.
+
+```json
+{
+  "error": "Workspace not found",
+  "error_code": "not_found",
+  "retryable": false,
+  "suggestions": ["Run a list command to see available resources"]
+}
+```
+
+<ResponseField name="error" type="string">
+  The human-readable message. Server-side entity names are remapped to CLI vocabulary
+  (`Product` becomes `Workspace`, `Profile` becomes `Person`).
+</ResponseField>
+
+<ResponseField name="error_code" type="string">
+  The stable code from the table below. Branch on this, not on the message text.
+</ResponseField>
+
+<ResponseField name="retryable" type="boolean">
+  `true` only for transient failures (timeout, rate limit, 5xx, network). A retryable code is
+  safe to retry after a short wait; a non-retryable one needs a fix first.
+</ResponseField>
+
+<ResponseField name="suggestions" type="string[]">
+  Zero or more actionable next steps. Present on most codes.
+</ResponseField>
+
+<ResponseField name="error_kind" type="string">
+  Optional. A finer sub-type on some client-thrown failures (see [error_kind](#error-kind-sub-types)).
+</ResponseField>
+
+<ResponseField name="example" type="string">
+  Optional. A copy-pasteable invocation that fixes the call (for example, the same command with `--yes`).
+</ResponseField>
+
+The exit code is derived from the same failure. See the [exit-code table](/cli/global-flags#exit-codes):
+`0` success, `1` general (including billing walls), `2` usage or validation, `3` auth, `4` not found,
+`5` transient.
+
+## MCP error format
+
+A failing MCP tool raises a tool error whose message is prefixed with the bracketed code, so the
+calling model can read both at once:
+
+```text
+[not_found] Study not found
+```
+
+When the backend sends a structured envelope (media pre-flight, rehost), the message also carries
+a `Suggestions: ...` line and an ` [envelope] {json}` suffix the agent can parse for the modality-specific
+`error_kind`, `suggestions`, and any extra fields. See [tool conventions](/mcp/tool-conventions) for the
+shared id and validation rules that raise `[validation_error]` before any backend call.
+
+## Error codes
+
+The core vocabulary, mapped from the backend HTTP status. The CLI and MCP map identically except
+for HTTP 403, noted below.
+
+| `error_code` | HTTP | Retryable | Meaning |
+| --- | --- | --- | --- |
+| `auth_failed` | 401, 403 | no | Token missing, invalid, or expired. Re-authenticate. On the CLI a bare 403 maps to `forbidden`; see below. |
+| `forbidden` | 403 | no | CLI only. The account lacks access to the resource. (The MCP maps 403 to `auth_failed`.) |
+| `insufficient_credits` | 402 | no | The simulation credit pool is empty. Not a bug and not an auth failure. |
+| `not_found` | 404 | no | The workspace, study, ask, person, or other entity does not exist. |
+| `timeout` | 408 | yes | The request did not complete in time. The write may still have landed (see below). |
+| `validation_error` | 422 | no | The request body or arguments failed validation. The envelope lists the offending fields. |
+| `rate_limited` | 429 | yes | Too many requests. Wait, then retry. |
+| `server_error` | 5xx | yes | A backend fault. Safe to retry; worth reporting if it persists. |
+| `client_error` | other 4xx | no | MCP only. An unmapped 4xx response. |
+| `request_failed` | other | no | CLI fallback for an unmapped status. |
+| `network_error` | none | yes | The API host could not be reached (DNS, connection refused, reset). |
+
+<Note>
+  The CLI and MCP map HTTP 403 differently. The CLI distinguishes a true permission failure
+  (`forbidden`) from a token problem (`auth_failed` is 401 only); the MCP folds both into
+  `auth_failed`. Branch on the code your surface returns, not on the status.
+</Note>
+
+### Body-supplied codes
+
+These codes are not in the status map. The backend sends them in the response body and both
+surfaces prefer them over the status-derived code.
+
+| `error_code` | HTTP | Retryable | Meaning |
+| --- | --- | --- | --- |
+| `usage_limit_reached` | 403 | no | A plan entity cap was hit (for example, the free tier's one-workspace limit). Arrives as 403 but is a billing wall, not an auth failure, so it exits `1`, not `3`. Free a slot or upgrade. |
+| `unknown_error` | none | no | CLI fallback for a thrown value that is not an `Error`. Rare. |
+
+`usage_limit_reached` and `insufficient_credits` are distinct: the first means too many stored
+studies, people, or workspaces; the second means the per-run credit pool ran out.
+
+<Warning>
+  Do not treat a billing wall as an auth failure. `usage_limit_reached` and `insufficient_credits`
+  both arrive on a 403 or 402 but exit `1` on the CLI. Re-authenticating loops forever. Free a slot,
+  buy credits, or upgrade instead.
+</Warning>
+
+### Structured (modality) error kinds
+
+Media pre-flight and rehost failures replace the generic code with a specific `error_kind` so the
+agent sees the cause directly. Examples returned today:
+
+| `error_kind` | Meaning |
+| --- | --- |
+| `no_audio_track` | A video study got a silent clip. Use a video with an audio track, or switch the study to the image modality if the source is really a still. |
+| `media_download_failed` | The source URL could not be fetched or rehosted. |
+
+The full envelope (`error_kind`, `error_message`, `suggestions`, and modality-specific fields such as
+`source_url`) is preserved verbatim so the agent can branch programmatically.
+
+### error_kind sub-types
+
+Some client-side failures carry an `error_kind` that refines a generic code. These come from the
+CLI and MCP themselves, not the backend.
+
+| `error_kind` | Where | Meaning |
+| --- | --- | --- |
+| `ConfirmationRequired` | CLI | A billable or destructive command refused in non-interactive context. Pass `--yes` (or set `ISH_ASSUME_YES=1`). Exits `2`. The `example` field shows the fixed command. |
+| `TunnelInactive` | CLI | A chat endpoint test ran with no live tunnel. Transient; exits `5`. |
+| `BotAuthError` | CLI | The chatbot rejected the configured credentials. Transient; exits `5`. |
+| `BotShapeError` | CLI | The chatbot response did not match the expected shape. Exits `2`. |
+| `stale_worker` | both | A simulation worker died; the backend reaper flips the run to `failed` after about 15 min. Stop polling. |
+| `participant_subset_invalid` | both | An ask or run targeted a participant subset that does not apply. |
+
+### Timeout and wait codes
+
+| `error_code` | Retryable | Meaning |
+| --- | --- | --- |
+| `timeout` | yes | A transport timeout (default 15 s; deletes 60 s). The response never arrived, but the write often landed server-side. |
+| `wait_timeout` | yes | A `--wait` timer expired while a job was still running. The job keeps going; re-poll the same id, do not re-enqueue. |
+
+<Warning>
+  On a `[timeout]` for a write (create, iterate, run, delete), the backend write may have
+  succeeded even though the response never reached the client. A naive retry creates duplicate
+  studies, iterations, or dispatches. Verify first. The MCP timeout message names the exact
+  verify call to run (for example, `study_get(study_id=..., lean=True)`), and the CLI delete
+  timeout points you at the matching `get` before retrying.
+</Warning>
+
+## Recovering by code
+
+| Code | What to do |
+| --- | --- |
+| `auth_failed`, `forbidden` | Run [`ish login`](/cli/generated/session), or reconnect the MCP. Confirm the account has access. |
+| `not_found` | Run a list command. A stale active workspace or study saved in config can 404; run `ish status`, then `ish workspace use --clear`. |
+| `insufficient_credits` | Buy credits or wait for the monthly refresh on a paid plan. See [run vs ask](/concepts/run-vs-ask) for what draws credits. |
+| `usage_limit_reached` | Delete an unused study, person, or workspace, or upgrade the plan. |
+| `validation_error` | Read the listed fields. Add `--help` to the command, or check the [tool reference](/mcp/generated/index). |
+| `rate_limited`, `server_error`, `timeout`, `network_error` | Wait briefly and retry. For a write timeout, verify the write landed first. |
+| `wait_timeout` | Re-poll the same job id. Do not re-run. |
+
+When a failure looks like a genuine bug (an unexpected 5xx, a fault you cannot act on), report it
+with [`ish feedback`](/cli/generated/upgrade-feedback) and add `--health` for setup or simulation
+issues. User-actionable failures (auth, not found, validation, billing) are never flagged as bugs.

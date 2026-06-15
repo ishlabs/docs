@@ -1,0 +1,212 @@
+---
+title: Active context
+description: How the ish CLI remembers your workspace, study, and ask so you don't repeat IDs, and why the MCP server works differently.
+mode: explanation
+---
+
+Most ish commands operate inside a [workspace](/concepts/workspace), against a
+[study](/concepts/study) or an [ask](/concepts/run-vs-ask). Passing those IDs on
+every call gets tedious. The ish CLI solves this by remembering a small amount of
+session state, the **active context**, and falling back to it whenever you omit
+the matching flag.
+
+The MCP server does not keep this state. The two surfaces reach the same place by
+different routes, and the difference matters once you script either one.
+
+## What the CLI remembers
+
+The CLI saves the active context to `~/.ish/config.json` (or wherever `ISH_HOME`
+points). Four handles live there:
+
+| Field | Set by | Falls back for |
+|---|---|---|
+| `workspace` | `ish workspace use <id>` | `--workspace` |
+| `study` | `ish study use <id>` | `--study` |
+| `ask` | `ish ask use <id>` | the ask positional argument |
+| `chat_endpoint` | `ish chat endpoint use <id>` | the endpoint argument / `--endpoint` |
+
+The same file holds your OAuth tokens. See [auth](/cli/auth) for how those are
+resolved.
+
+The workspace is the parent. `study`, `ask`, and `chat_endpoint` are all scoped
+to one workspace, so switching workspaces clears the other three (more on that
+below).
+
+## How a flag resolves
+
+When a command needs a workspace, study, or ask and you didn't pass it, the CLI
+resolves it in a fixed order. The first source that has a value wins:
+
+<Steps>
+  <Step title="Explicit flag">
+    `--workspace <id>`, `--study <id>`, or `--ask <id>` on the command. An
+    explicitly empty value (`--study ""`) is a usage error, not a fall-through,
+    so a typo never silently attaches work to the active study.
+  </Step>
+  <Step title="Environment variable">
+    `ISH_WORKSPACE`, `ISH_STUDY`, or `ISH_ASK`. Set one for the length of a shell
+    session or a CI job without touching the saved config.
+  </Step>
+  <Step title="Saved active context">
+    The value in `~/.ish/config.json`, set by `<entity> use`.
+  </Step>
+</Steps>
+
+If none of the three is present, the command fails with a structured error
+(`no_active_workspace`, `no_active_study`, or `no_active_ask`) at exit code 1
+(general error), and the message names the exact command to fix it. The error
+carries `suggestions` so an agent can branch on the code instead of scraping prose.
+An explicitly empty flag (`--study ""`) is different: it's a usage error at exit
+code 2. See [JSON mode and exit codes](/cli/global-flags) for the envelope shape.
+
+<Note>
+  An explicit flag or env var overrides the saved value for that one invocation
+  without changing the config. Use `--workspace <id>` to poke at another workspace
+  and leave your active selection intact.
+</Note>
+
+## Inspecting it
+
+`ish status` (alias `ish whoami`) is the canonical way to see the active context.
+Run it first on a cold start: it confirms you're signed in and prints the active
+workspace, study, ask, and chat endpoint.
+
+```bash
+ish status
+# User:       you@example.com  (signed in)
+# Workspace:  Onboarding revamp (w-6ec)
+# Study:      (none)
+# Ask:        tagline AB (a-6ec)
+# Chat ep:    (none)
+# Skill:      not installed (run `ish init` to install the agent skill)
+# Home:       /home/you/.ish
+# API:        https://api.ishlabs.io
+```
+
+`status` is safe to run unconditionally. When you're logged out it does not error;
+it returns `user: null` with a `hint` field telling you to run `ish login`. The
+full command, including the JSON shape, is on the
+[session reference page](/cli/generated/session).
+
+### Orphan and stale refs
+
+An active handle can outlive the thing it points at: the study gets deleted, moves
+workspace, or belongs to an account you've since logged out of. Rather than
+silently drop the name, `status` attaches a `warning` and a `hint` to that ref
+telling you to switch or clear it.
+
+```json
+{
+  "study": {
+    "id": "...",
+    "alias": "s-74d",
+    "warning": "orphan: entity no longer exists in this workspace",
+    "hint": "Active study is no longer accessible (deleted, moved workspace, or auth issue). Use `ish study use <id>` to switch, or `ish study use --clear` to drop."
+  }
+}
+```
+
+In human output the warning prints as a `⚠` line under the row.
+
+## Setting and clearing it
+
+```bash
+ish workspace use w-6ec        # set active workspace
+ish workspace use --clear      # drop it (and the workspace-scoped children)
+
+ish study use s-b2c
+ish study use --clear
+
+ish ask use a-6ec
+ish ask use --clear
+
+ish chat endpoint use ep-abc
+ish chat endpoint use --clear
+```
+
+`<entity> use` accepts a UUID or an [alias](/cli/global-flags). Under `--json` it
+prints `{ id, alias, name, active }` to stdout, so you can capture the active
+selection in one step:
+
+```bash
+ID=$(ish study use s-b2c --json --get id)
+```
+
+Several commands move the active context as a side effect. The CLI surfaces most
+of these on stderr so the change isn't a surprise:
+
+- **Switching workspace** (`ish workspace use <other>`) clears the active study,
+  ask, and chat endpoint. They belonged to the previous workspace, and keeping
+  them would point later commands at the wrong place. The CLI prints a notice.
+- **Creating** auto-activates the new entity, so the natural next command just
+  works. `ish study create` prints a notice (`Active study set to ...`), but only
+  in human output, not under `--json`. `ish ask create` and `ish ask run --new`
+  auto-activate the new ask without a dedicated active-context notice, so check
+  `ish status` if you need to confirm what's active after creating an ask.
+- **Deleting** (`ish workspace delete`, `ish study delete`, `ish ask delete`,
+  `ish chat endpoint delete`) clears any matching active ref so later commands
+  don't render an orphan, and prints a notice. Deleting a workspace clears all its
+  children.
+- **`ish logout`** clears the whole active context alongside the tokens. A
+  selection made as one account is meaningless for the next one that logs in.
+
+<Tip>
+  Sessions don't expire on a clock. `status` reports a boolean `authenticated`,
+  not a countdown: the CLI refreshes your access token before each command, so a
+  session you keep using stays signed in. You only return to `ish login` if a
+  refresh genuinely fails.
+</Tip>
+
+## The MCP server has no active context
+
+The [MCP server](/mcp/overview) is stateless. There is no saved workspace. The
+agent carries each handle the previous call returned. Discovery and creation tools
+(`workspace_get`, `study_get`, `study_create`) take an explicit `workspace_id`;
+once a call hands back a `study_id`, downstream tools (`study_add_iteration`,
+`study_run`) key off that id instead.
+
+```python
+# Discover, then carry the handle the previous call returned.
+workspace_get()                      # returns workspaces, each with an alias
+study_get(workspace_id="w-6ec")      # pass it back in
+study_create(workspace_id="w-6ec", name="Onboarding", modality="interactive")
+```
+
+[Aliases](/mcp/tool-conventions) do the ergonomic work the CLI's active context
+does. Every tool result carries a short handle (`w-6ec`, `s-b2c`, `i-d4e`), and
+any parameter that takes a UUID accepts the alias in its place, so an agent reuses
+what the last call handed back rather than threading a 36-character UUID. The
+alias cache is in-memory and resets on server restart, so re-list before reusing a
+handle from an earlier session.
+
+<CodeGroup>
+
+```bash CLI
+# Active context: set once, omit thereafter.
+ish workspace use w-6ec
+ish study create --name "Onboarding" --modality interactive --url https://app.example.com
+ish study run --sample 5 --yes      # uses the active study
+```
+
+```python MCP
+# No active context: carry the handle each call returns.
+# workspace_id keys creation; the URL attaches to the iteration, not the study;
+# study_id keys the run.
+study_create(workspace_id="w-6ec", name="Onboarding", modality="interactive")
+study_add_iteration(study_id="s-b2c", name="A", modality="interactive", url="https://app.example.com")
+study_run(study_id="s-b2c", audience={"sample": 5})
+```
+
+</CodeGroup>
+
+## Related
+
+- [Workspace](/concepts/workspace), [study](/concepts/study), and the
+  [run vs ask](/concepts/run-vs-ask) distinction, the three things active context
+  tracks.
+- [Session reference](/cli/generated/session) for the full `status` / `whoami`
+  output and JSON shape.
+- [Global flags](/cli/global-flags) for `--workspace` / `--study` / `--ask`,
+  aliases, capture mode, and exit codes.
+- [Tool conventions](/mcp/tool-conventions) for how aliases carry identity across
+  MCP calls.

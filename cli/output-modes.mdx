@@ -1,0 +1,221 @@
+---
+title: "Output and scripting"
+description: "Parse ish CLI output in scripts and CI: lean JSON on a pipe, --get, --fields, --human, and stream separation."
+mode: "reference"
+---
+
+Every `ish` command prints a human table on a TTY and switches to JSON when stdout
+is piped or redirected. This page is the contract for scripting and CI: how the
+JSON is shaped, how to extract one value, how to project fields, and how stdout,
+stderr, and exit codes split. For the flag table and the token resolution order,
+see [global flags](/cli/global-flags). For what a run's payload means, see
+[reactions and results](/concepts/reactions-and-results).
+
+## Mode selection
+
+`ish` picks an output mode from the flags and the terminal:
+
+| Condition | Mode |
+| --- | --- |
+| stdout is a TTY, no flag | Human table |
+| stdout is piped or redirected | JSON |
+| `--json` | JSON (forced) |
+| `--human` | Human (forced, even when piped) |
+| `--get <field>` | JSON internally, then a bare value (implies `--json`) |
+
+The auto-flip means `ish workspace list | jq` and `ish study results --get sentiment`
+work without passing `--json`. Color is always off in JSON mode and off when stdout
+is not a TTY.
+
+<Note>
+`--get` and `--human` are mutually exclusive: `--get` captures a JSON-derived value
+and `--human` forces the table. Passing both exits 2.
+</Note>
+
+## JSON is lean by default
+
+In JSON mode `ish` strips noise so an agent's context stays small. From every
+response it removes:
+
+- UUID-valued fields (a value matching the UUID shape).
+- `null` and `undefined` values.
+- The `created_at` and `updated_at` timestamps.
+- Empty arrays on read paths.
+
+What survives the strip: `alias` (always), `name`, `label`, `status`, and other
+meaningful fields. Each listed entity also carries a stable `alias` you can pass
+back to any command in place of its UUID, so chaining never needs `--verbose`.
+
+To get the full untouched payload, pass `--verbose`:
+
+```bash
+ish study get s-3f2a --verbose
+```
+
+`--fields` and `--get` take precedence over the lean strip: a field you name
+explicitly always survives, including a UUID-valued one.
+
+<Note>
+Write-path responses (`create`, `update`) keep their canonical `id` and `*_id`
+fields without `--verbose`, so the handle you need for the next call is always
+present.
+</Note>
+
+## List envelope
+
+List commands wrap their items in a fixed envelope. The keys are always present,
+even for an empty list, so a parser never has to branch on whether results exist.
+
+```json
+{
+  "items": [],
+  "total": 0,
+  "returned": 0,
+  "limit": 0,
+  "offset": 0,
+  "has_more": false
+}
+```
+
+<ResponseField name="items" type="array">
+  The rows. Each row is lean-stripped unless `--verbose`, `--fields`, or `--get` is set.
+</ResponseField>
+
+<ResponseField name="total" type="number">
+  Total matching rows. Equals `returned` when the backend returns a flat array.
+</ResponseField>
+
+<ResponseField name="returned" type="number">
+  Rows in this response. CLI-computed.
+</ResponseField>
+
+<ResponseField name="limit" type="number">
+  Page size.
+</ResponseField>
+
+<ResponseField name="offset" type="number">
+  Rows skipped before this page.
+</ResponseField>
+
+<ResponseField name="has_more" type="boolean">
+  `true` when `total` exceeds `offset + returned`. CLI-computed, so you can detect
+  truncation without counting items yourself.
+</ResponseField>
+
+## Extract one value with `--get`
+
+`--get <field>` prints only the value at a dotted path, as a bare string with no
+JSON quotes. It implies `--json`, suppresses progress on stderr, and is built for
+command substitution.
+
+```bash
+WS=$(ish workspace list --get items.0.alias)
+ish study create --workspace "$WS" --name "Checkout" --modality interactive --url https://example.com
+```
+
+Path rules:
+
+- Numeric segments index into arrays (`items.0.alias`).
+- Bracket indexing also works (`items[0].alias`), the form most reach for first.
+- A non-numeric segment against an array maps over it, one value per line:
+  `--get items.alias` prints every row's alias.
+- On a list response, a path that does not start with `items` auto-descends through
+  the envelope, so `--get alias` behaves like `--get items.alias`.
+
+Rendering: strings, numbers, and booleans print as-is; `null` prints an empty
+string; an object prints as compact JSON on one line; an array prints one element
+per line.
+
+<Warning>
+A `--get` path that resolves to nothing is a usage error: `ish` exits 2 with a
+`validation_error` envelope. Check the exit code, do not assume an empty string
+means "field absent".
+</Warning>
+
+## Project fields with `--fields`
+
+`--fields <a,b,c>` narrows JSON output to a comma-separated set. On a list response
+it projects each item and leaves the envelope keys intact, so pagination metadata
+survives.
+
+```bash
+ish person list --fields alias,name,occupation
+```
+
+A name not on the response is not dropped silently: `ish` prints a one-line stderr
+warning naming the missing fields and a sample of the keys that are available, and
+suggests the backend key when the surface name differs (for example
+`workspace_id` maps to `product_id`). The stdout JSON stays clean, so a downstream
+parser is unaffected.
+
+## Force a mode with `--human`
+
+`--human` forces the table renderer even when stdout is piped, for reading output
+through a pager or capturing a table into a file.
+
+```bash
+ish study results s-3f2a --human | less
+```
+
+Use `--json` for the opposite when you want JSON on a TTY (for example to pipe into
+`jq` while watching the terminal).
+
+## Streams: stdout, stderr, exit code
+
+`ish` keeps the three channels separate so a script can trust each one:
+
+| Channel | Carries |
+| --- | --- |
+| stdout | Result data only (the table or the JSON / bare value). |
+| stderr | Progress lines, the `--fields` warning, status notes, and the error envelope on failure. |
+| Exit code | The outcome class. |
+
+Because progress and warnings go to stderr, `ish ... > out.json` captures only
+clean data. `--quiet` (`-q`) suppresses the progress lines; it defaults on under
+`--get` and when JSON was auto-selected by piping. Errors and the `--fields`
+warning still print to stderr under `--quiet`.
+
+On failure in JSON mode, the error is a structured envelope on stderr:
+
+```json
+{
+  "error": "Study not found",
+  "error_code": "not_found",
+  "retryable": false,
+  "suggestions": ["Run a list command to see available resources"]
+}
+```
+
+Branch on `error_code` and the exit code, not the prose. Some errors also carry
+`error_kind`, an `example` invocation that fixes the call, `valid_options`, or
+`hint`. For the code-to-meaning table, see [global flags](/cli/global-flags#exit-codes).
+
+## Patterns
+
+<CodeGroup>
+
+```bash Capture an id, chain the next call
+STUDY=$(ish study create --name "Checkout" --modality interactive --url https://example.com --get id)
+ish study run --study "$STUDY" --all --wait
+```
+
+```bash Loop over aliases
+for a in $(ish study list --get items.alias); do
+  ish study get "$a" --get status
+done
+```
+
+```bash jq on the envelope
+ish person list --json | jq '.items[] | {alias, name}'
+```
+
+```bash Fail-fast in CI
+set -euo pipefail
+ish study run --study s-3f2a --all --wait
+```
+
+</CodeGroup>
+
+For per-command flags and arguments, see the [command index](/cli/generated/index).
+For the auth, workspace, output, and exit-code reference, see
+[global flags](/cli/global-flags).

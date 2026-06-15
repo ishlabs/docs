@@ -1,0 +1,133 @@
+---
+title: "People and audiences"
+description: "What a simulated person is, how the audience for a run gets selected, and where profiles live."
+mode: "explanation"
+---
+
+ish runs a thing you are making (a link, an ad, a video, a PDF, a chatbot) past simulated people and reports back what each one noticed, where they got stuck, and what they would do next. This page is about the people themselves: who they are, how the audience for a run is chosen, and where a profile is visible. It is the mental model, not a command list. For exact flags and parameters, follow the links to the [CLI](/cli/generated/person) and [MCP](/mcp/generated/tools-person) reference.
+
+## A person is a reusable persona
+
+A **person** is a saved persona: a name, demographics, a trait-forward bio, and any workspace-specific custom fields. It is the description of *who* experiences your artifact, and it is reusable. One person can take part in many studies and asks.
+
+A person is not the same thing as a participant. The persona is the durable definition; a **participant** is one instance of that persona inside a single run. Run the same person across two studies and you get two participants, both reading from the same profile. The persona is the template; the participant is the cast member in one show.
+
+Each profile carries structured fields that shape how it reacts. Demographics (age, gender, country, occupation) sit alongside five universal enums: education level, household, locale type, income level, and employment status. There is also a versioned accessibility profile that records how the person actually experiences content (screen reader use, caption needs, reduced motion, high contrast). These are not decoration. Education level drives comprehension, vocabulary, and reading depth across every modality; the accessibility profile changes how a simulated person moves through your artifact. The full enum vocabularies live in the [person reference](/cli/generated/person).
+
+<Note>
+A person is a simulated persona, not a real human. ish leans into the approximation: an "ish" of someone is close enough to make a better decision before you ship, not a precise prediction. Frame the findings the same way.
+</Note>
+
+## Two ways to get the people you need
+
+You rarely start a run by hand-building a profile. You either pull from a pool that already exists or generate new people to fit a brief.
+
+<Columns cols={2}>
+  <Card title="Sample from the pool" icon="users">
+    Filter the people available to your workspace by demographic and pick a sample. Good when the pool already covers who you are building for.
+  </Card>
+  <Card title="Generate to fit a brief" icon="sparkles">
+    Describe the audience (and optionally ground it in real evidence) and ish builds matching personas. Good when the pool is thin for your archetype.
+  </Card>
+</Columns>
+
+### Generating people
+
+Generation turns a written brief, real research artifacts, or both into matching personas. Hand it a description of who you are building for, point it at any [sources](/concepts/source) (transcripts, emails, PDFs, images, audio) that capture how real people reacted, and it builds people grounded in that evidence. When sources are attached it can also produce grounded scenarios: recorded reactions the persona carries into a simulation as past context.
+
+Generation runs as an async job and blocks by default while it works (typically 30 to 60 seconds), then returns the resulting profiles. You can opt out of waiting and pick the results up later. Audience size is capped at 10 per generation; omit it to let ish propose a count. Generated people count toward your plan's custom-person cap, which is separate from the per-run credit pool.
+
+When the pool has nothing that matches your filters, generating people that fit the brief is the right next move, regardless of what the pool happens to contain.
+
+### Sampling from the pool
+
+When you select people for a run, two modes are available and they are mutually exclusive:
+
+- **Explicit profiles.** Name the people directly by id.
+- **A demographic-filtered sample.** Combine filters (country, gender, age range, occupation, name or bio substring, the extended enums, accessibility needs) and take a sample.
+
+Within one dimension the filter values OR together: `country = SE, NO` matches either. Across dimensions they AND: adding an age range narrows the country match further. Occupation is a loose, case-insensitive substring match, so `manager` also catches hotel and retail managers; enumerate the whole-token variants you mean, or pair occupation with other filters, to recover the specificity you want.
+
+<Warning>
+Each run is capped at 20 participants by the backend. A filter that matches more than that, or an unbounded "all" against a large pool, needs a sample size or narrower filters. For a bigger panel, dispatch several runs against different slices (one country, then the next).
+</Warning>
+
+## Where a person lives: visibility
+
+Every profile has a **visibility** scope that decides who can see and use it. There are three, and a default list walks them in priority order: your own workspace first, then the platform pool, then community-shared.
+
+<AccordionGroup>
+  <Accordion title="workspace" icon="lock">
+    The profile is private to its owning workspace. Only that workspace sees it. People you create or generate land here. A profile must be in your workspace before you can enrich it with new files or evidence.
+  </Accordion>
+  <Accordion title="shared" icon="share-nodes">
+    Community-published, visible across every workspace's audience list, with attribution to whoever published it.
+  </Accordion>
+  <Accordion title="platform" icon="globe">
+    The admin-curated pool that every workspace can sample from. It is large (tens of thousands of profiles) and broad: it skews away from tech and Western defaults, so a narrow archetype may resolve to only a handful of matches. Sample from it freely, but you cannot delete a profile that lives here.
+  </Accordion>
+</AccordionGroup>
+
+The list filter and the underlying profile record use slightly different words for the same idea. The agent-facing surface is `workspace`, `shared`, and `platform`; the stored profile row records these as `private`, `published`, and `platform`. The older `private` and `public` filter values are still accepted as aliases for `workspace` and `platform`. When you read a profile, the visibility field reports the row value (`private`, `published`, `platform`).
+
+<Info>
+Because the platform pool is so much larger than a typical workspace, an unscoped list can bury your own handful of people. Both surfaces default a no-filter list to your own workspace people and tell you how to widen it. Reach for the platform scope deliberately.
+</Info>
+
+## How people fit a run
+
+Whichever way you build them, people feed a [study](/concepts/study) run or an ask the same way: select the audience, dispatch, read the reactions. A run without people flags reuses the participants already on that iteration, which is what you want when you are re-running the same audience against a changed artifact. The selection vocabulary (the filters, the enums, the accessibility booleans) is shared across the run and ask surfaces, so what you learn here transfers.
+
+## Same model, both surfaces
+
+The CLI and the MCP server expose the same person model: read, generate, enrich, delete. The verbs line up.
+
+<CodeGroup>
+```bash CLI
+# Sample three Swedish profiles aged 35 to 50 for a run
+ish study run --country SE --min-age 35 --max-age 50 --sample 3
+
+# Generate five people from a brief
+ish person generate \
+  --description "Tech-savvy millennials in the US who use mobile banking" \
+  --count 5
+
+# List your workspace people, then the platform pool
+ish person list
+ish person list --visibility platform --country US
+```
+
+```text MCP
+# Generate people from a brief (blocks until done by default)
+person_generate(
+  workspace_id="w-6ec",
+  description="Tech-savvy millennials in the US who use mobile banking",
+  count=5,
+)
+
+# List the workspace pool filtered by demographic
+person_get(workspace_id="w-6ec", country=["SE"], age_min=35, age_max=50)
+
+# Read one profile
+person_get(workspace_id="w-6ec", person_id="tp-d4e")
+```
+</CodeGroup>
+
+Both surfaces mint a short alias for each person, but the prefix differs: the CLI uses `p-` (for example `p-d4e`, as in `--person p-795,p-af2`), the MCP server uses `tp-` (for example `tp-d4e`). Either is accepted anywhere its own surface expects an id, alongside the full UUID. For full flags, parameters, and return shapes, see the [CLI person reference](/cli/generated/person) and the [MCP person tools](/mcp/generated/tools-person).
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Sources" href="/concepts/source" icon="file-lines">
+    The real evidence that grounds generated people.
+  </Card>
+  <Card title="Workspace" href="/concepts/workspace" icon="folder">
+    The container that owns your people, studies, and sources.
+  </Card>
+  <Card title="Study" href="/concepts/study" icon="flask">
+    Where a selected audience experiences your artifact.
+  </Card>
+  <Card title="Person reference" href="/cli/generated/person" icon="terminal">
+    Every flag, enum, and field on the person commands.
+  </Card>
+</Columns>

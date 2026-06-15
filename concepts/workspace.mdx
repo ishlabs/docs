@@ -1,0 +1,156 @@
+---
+title: "Workspaces"
+description: "A workspace is the top-level container that holds your studies, asks, people, and sources, and the unit ish bills and caps against."
+mode: "explanation"
+---
+
+A workspace is the top-level container in ish. Everything you create lives inside
+exactly one workspace: [studies](/concepts/study), asks, the people you generate,
+the sources you upload, secrets, and the brands you compare against. Pick a
+workspace first, then operate within it. Most flows start there.
+
+The backend calls a workspace a "product". The CLI and MCP server surface the
+agent-friendly name everywhere, so you never see "product" in a tool signature or
+a flag. Treat the two as the same thing if you read the underlying API.
+
+## What a workspace holds
+
+One workspace is the scope for a body of related work, usually one product, site,
+or campaign. Inside it:
+
+- **Studies and asks.** A [study](/concepts/study) is a persistent research
+  artifact (a modality plus interview questions); an ask is a quick one-off
+  question to a set of people. Both belong to one workspace.
+- **People and sources.** The people you generate and the sources you upload are
+  visible to every study and ask in the same workspace, and only there.
+- **A default base URL.** `base_url` is the origin studies in the workspace target
+  by default, and the origin site-access credentials bind to.
+- **Site-access credentials.** Login details, session cookies, or basic-auth pairs
+  for a gated site, stored encrypted and scoped to this workspace.
+
+A workspace carries an alias with the `w-` prefix (for example `w-6ec`) derived
+from its UUID. The alias is accepted anywhere a workspace ID is, so you rarely
+type a full UUID.
+
+## How you select one
+
+ish resolves which workspace a command or tool acts on in a fixed order. The first
+source that is set wins.
+
+<Steps>
+  <Step title="An explicit flag or parameter">
+    The CLI `--workspace <id>` flag, passed on the subcommand itself, or the
+    `workspace_id` parameter on an MCP tool. A subcommand-level `--workspace`
+    overrides one passed at the program root, so
+    `ish --workspace w-a study list --workspace w-b` acts on `w-b`.
+  </Step>
+  <Step title="The program-root flag">
+    `ish --workspace <id> <command>`, when the subcommand has no `--workspace` of
+    its own.
+  </Step>
+  <Step title="The ISH_WORKSPACE environment variable">
+    A workspace ID in `ISH_WORKSPACE`, for scripting without a flag on every call.
+  </Step>
+  <Step title="The saved active workspace">
+    The workspace set with `ish workspace use <id>`, persisted in
+    `~/.ish/config.json` (override the config directory with `ISH_HOME`).
+  </Step>
+</Steps>
+
+With none of these set, a workspace-scoped CLI command stops and tells you to run
+`ish workspace use <id>` or pass `--workspace`. It does not guess.
+
+On the MCP side there is no saved active workspace, so the agent passes
+`workspace_id` explicitly. Discover one by calling `workspace_get` with no id: it
+lists every accessible workspace, default first, then most recently active. See
+[the workspace tools](/mcp/generated/tools-workspace).
+
+## Caps and credits are scoped here
+
+A workspace surfaces two independent quotas. They are easy to confuse, so keep them
+apart.
+
+<Columns cols={2}>
+  <Card title="Entity caps" icon="folder-open">
+    How many studies and how many custom people the plan lets you keep stored in
+    each workspace. A create or generate call that would exceed the cap fails up
+    front with a usage-limit error, before any simulation runs. A `null` cap means
+    unlimited (paid tiers).
+  </Card>
+  <Card title="Simulation credits" icon="coins">
+    The allowance each participant run draws from. Credits come with the
+    subscription and are not charged per call, so once the pool has headroom you
+    can run freely. Paid tiers refresh the pool monthly; the free tier gets a
+    one-time signup grant; purchased credits never expire.
+  </Card>
+</Columns>
+
+The entity caps are per-workspace: each workspace can hold up to the tier's limit
+of studies and custom people independently, so a second workspace gets its own
+allotment. The cap value comes from the account's plan, but it applies to each
+workspace on its own. Simulation credits are different: the pool is account-wide
+and shared across every workspace. Read both through a workspace with
+`ish workspace info` (CLI) or `workspace_get` with a `workspace_id` (MCP). Each
+returns the studies and people used against their caps plus the credit pool.
+Reading this before a create or a run lets an agent branch instead of firing a
+call it knows will be rejected.
+
+<Tip>
+  In list mode, `workspace_get` tags each workspace with `has_headroom`, a cheap
+  hint for whether it can still take a new study under the plan cap. Use it to pick
+  a workspace to reuse without a second round-trip.
+</Tip>
+
+## Creating and reusing
+
+Create a workspace by name. On the CLI a base URL is optional at create time; on
+the MCP server `workspace_create` takes the same name, description, and base URL.
+
+<CodeGroup>
+
+```bash CLI
+ish workspace create --name "Acme marketing site" --base-url https://acme.example
+```
+
+```text MCP
+workspace_create(name="Acme marketing site", base_url="https://acme.example")
+```
+
+</CodeGroup>
+
+Creating blind is not safe on a full account. When the account is at its workspace
+cap, `workspace_create` returns a usage-limit error on the first call, which trips
+up a cold-start agent told to "make a fresh workspace, then run a study". Inspect
+existing workspaces first and reuse one, or on the CLI use the idempotent
+`ish workspace create --name <name> --ensure`, which returns the existing
+workspace of that name instead of failing. The full saturated-account walkthrough
+is its own guide.
+
+## Brands: comparison workspaces
+
+A brand is a workspace in disguise. When you want to benchmark your study against a
+competitor or an alternative version on the same audience, you create a brand under
+a parent workspace. At the data layer a brand is a workspace with a parent set and a
+type of `competitor`; ish gives it its own `brand` namespace so you reason about it
+as a comparison target, not a top-level container.
+
+Because a brand is a workspace underneath, it shares the `w-` alias prefix. Any tool
+that takes a workspace ID accepts a brand alias and resolves it. The reverse is not
+true the other way you might expect: `workspace_get` lists only standard
+workspaces, never brands, and `brand_get` lists only the brands under a given
+parent.
+
+The benchmark flow is two steps. Create one brand per comparison target, then run a
+single benchmark that clones the study to every brand. Each clone gets its own
+[iteration](/concepts/iteration) to fill in with that brand's URL or media, so the
+same questions and audience run against each variant.
+
+<Note>
+  Deleting a workspace is the widest destructive action in ish. It cascades to
+  every study, ask, person, source, secret, and brand inside it, and there is no
+  soft archive. Deleting a brand cascades to its cloned studies and iterations.
+  Both are irreversible. The CLI requires `-y` / `--yes` to delete in a
+  non-interactive context. Full flags are in the
+  [`workspace` CLI reference](/cli/generated/workspace) and the
+  [brand tools](/mcp/generated/tools-brand).
+</Note>

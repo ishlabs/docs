@@ -1,0 +1,80 @@
+---
+title: Glossary
+description: One-line definitions of every ish term, each linking to the concept page that explains it in full.
+mode: reference
+---
+
+Every term used across the ish CLI and MCP docs, defined once. Each entry links
+to the concept page that carries the full mental model. For exact flags,
+parameters, and return shapes, follow the links into the [CLI](/cli/overview)
+and [MCP](/mcp/overview) reference.
+
+## Core objects
+
+| Term | Definition |
+| --- | --- |
+| [Workspace](/concepts/workspace) | The top-level container that holds your studies, asks, people, sources, and secrets, and the unit ish bills and caps against. Alias prefix `w-`. |
+| [Study](/concepts/study) | The persistent unit of research: show simulated people something, read their reactions, change it, and run again. Alias prefix `s-`. |
+| [Iteration](/concepts/iteration) | One configured version of a study that attaches the single artifact (a URL, a media file, or a chatbot endpoint) participants experience. Labelled `A`, `B`, `C`, with alias prefix `i-`. |
+| [Ask](/concepts/ask-and-round) | A lighter comparison: one prompt and one or more variants of creative put in front of a fixed panel. Alias prefix `a-`. |
+| [Round](/concepts/ask-and-round) | One pass of an ask's panel over a prompt and its variants. The first round is created with the ask; later rounds reuse the same people. An ask holds up to five. |
+| [Variant](/concepts/ask-and-round#variants-the-things-being-compared) | One candidate inside an ask round: a headline, a hero image, an ad cut. Each has a kind and a value. |
+| [Brand](/concepts/benchmarking) | A workspace flagged as a comparison target (type `competitor`). Shares the `w-` alias prefix; surfaced in its own `brand` namespace. MCP only. |
+| [Benchmark](/concepts/benchmarking) | A clone of a study across a set of brands so each brand runs the same study head to head. MCP only. |
+
+## People
+
+| Term | Definition |
+| --- | --- |
+| [Person](/concepts/people) | A durable persona definition: structured demographics, universal enums, and a versioned accessibility profile. Alias prefix `p-` on the CLI, `tp-` on the MCP server. |
+| [Participant](/concepts/people#a-person-is-a-reusable-persona) | One instance of a person inside a single run. The same person across two runs produces two participants reading from the same profile. |
+| [Audience](/concepts/people#how-people-fit-a-run) | The set of people a run dispatches: sampled from the pool, named explicitly, or generated to fit a brief. |
+| [Panel](/concepts/ask-and-round) | The audience of an ask, fixed at creation so every round runs the same people. |
+| [Pool](/concepts/people#two-ways-to-get-the-people-you-need) | The people available to a workspace, filtered by demographic to assemble an audience. |
+| [Visibility](/concepts/people#where-a-person-lives-visibility) | The scope that decides who can see and use a profile: workspace, platform, or community-shared. |
+| [Source](/concepts/source) | Real evidence (a transcript, recording, screenshot, support email, PDF) handed to person generation to ground a persona in how someone actually reacted. |
+
+## Study definition
+
+| Term | Definition |
+| --- | --- |
+| [Modality](/concepts/modalities) | The kind of thing a study puts in front of people. ish supports seven: `interactive`, `text`, `image`, `video`, `audio`, `document`, `chat`. |
+| [Content type](/concepts/modalities#content-types-tune-the-modality) | An optional sub-type that tunes a modality (for example `editorial` or `reference` for `text`). Five modalities carry one; `interactive` and `chat` do not. |
+| [Assignment](/concepts/assignment-questionnaire#assignments-what-people-do) | A single task a simulated person attempts during a run. A study carries one or more, run in order. |
+| [Step](/concepts/assignment-questionnaire#steps-a-checklist-inside-an-assignment) | An ordered atomic action inside an assignment, each a name of 1 to 80 characters. |
+| [Questionnaire](/concepts/assignment-questionnaire) | The set of questions each simulated person answers. Lives on the study, alongside assignments. |
+| [Site access](/concepts/site-access) | How ish reaches a gated URL: public, HTTP basic auth, a session cookie, or a login form. Configured per workspace. |
+| [Secret](/concepts/secrets) | A per-workspace named value that backs a `{{secret:KEY}}` placeholder in chatbot endpoint config, resolved on the wire at dispatch. |
+
+## Running and reading
+
+| Term | Definition |
+| --- | --- |
+| [Run](/concepts/run-vs-ask) | Sending simulated people through a real surface end to end (a link, an app, a video) against the latest or a named iteration. |
+| [Dispatch](/concepts/credits-and-limits#the-20-participant-dispatch-cap) | One request that sends a group of simulated people at once. Capped at 20 participants, independent of tier. |
+| [Reactions](/concepts/reactions-and-results) | What each simulated person reports back: what they noticed, where they got stuck, and what they would do next. |
+| [Reported journey](/concepts/reactions-and-results#the-layers-of-a-reported-journey) | The full record a run returns per participant: transcript, signals, and the reasoning behind them, plus screenshots for interactive runs. Not a score. |
+| [Signals](/concepts/reactions-and-results) | The measured layers of a reported journey: sentiment, friction, blockers, completion. Each carries the reasoning behind it. |
+| [Sentiment](/concepts/reactions-and-results) | A per-participant label and valence, rolled up as a histogram across the panel from completed participants only. |
+| [Share link](/concepts/sharing) | A public, no-login URL to one study's results, hosted on the web app, that anyone opens in a browser to read the run as a stakeholder would. |
+
+## Credits and limits
+
+| Term | Definition |
+| --- | --- |
+| [Credits](/concepts/credits-and-limits#credits-are-a-usage-allowance-not-money) | A usage allowance every run draws down. Paid plans refill monthly; the free tier gets a one-time grant of 200 at signup. Not money. |
+| [Limits](/concepts/credits-and-limits#limits-cap-how-much-you-can-have) | Per-tier caps on how many entities (workspaces, studies, people) an account can hold. Enforced at create time, distinct from credits. |
+| [Dispatch cap](/concepts/credits-and-limits#the-20-participant-dispatch-cap) | The structural limit of 20 participants on every single dispatch, independent of tier and credits. Larger panels split into multiple runs. |
+
+## Surfaces and tooling
+
+| Term | Definition |
+| --- | --- |
+| [CLI](/cli/overview) | The `ish` command line, reading as `ish <noun> <verb>`. One developer surface onto the backend. |
+| [MCP server](/mcp/overview) | The same operations exposed as tools an AI agent calls, hosted at `https://mcp.ishlabs.io/mcp`. The other developer surface. |
+| [Active context](/concepts/active-context) | The CLI's saved workspace, study, and ask, kept in `~/.ish/config.json` (or `ISH_HOME`), so you do not repeat IDs. The MCP server is stateless. |
+| [Alias](/concepts/workspace#how-you-select-one) | A short, prefixed id every object carries (`w-`, `s-`, `i-`, `a-`, `p-` for a person, `ps-` for a source) that any tool taking that object's id accepts. |
+
+<Tip>
+  New to ish? Start with [how ish works](/concepts/overview) for the mental model, then the [CLI quickstart](/start/cli-quickstart) or [connect an agent](/start/connect-an-agent).
+</Tip>

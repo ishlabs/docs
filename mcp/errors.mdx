@@ -1,0 +1,185 @@
+---
+title: "Errors"
+description: "The bracketed error-code vocabulary every ish MCP tool failure starts with, and how to branch on it."
+mode: "reference"
+---
+
+Every ish MCP tool failure surfaces as a `ToolError` whose message starts with a bracketed code,
+for example `[auth_failed] Invalid or expired token`. Pattern-match on the prefix to branch
+without parsing prose. The code is stable; the trailing message is human-readable and may change.
+
+The backend maps an HTTP status to a code, but a backend-supplied `error_code` in the response
+body wins over the status default. Pre-flight tool errors (a bad parameter, an unknown alias, a
+mutually-exclusive flag combination) raise `[validation_error]` from the MCP layer before any
+backend call.
+
+## Code vocabulary
+
+<ParamField path="[auth_failed]" type="not retryable">
+  The token is missing, invalid, or expired (HTTP 401, and most 403). Re-authenticate, then
+  retry. A signing-key mismatch appends a diagnostic that names the environment fix.
+</ParamField>
+
+<ParamField path="[forbidden]" type="not retryable">
+  Authenticated, but not allowed to touch this resource (HTTP 403 with a backend `forbidden`
+  code). The acting identity does not own or have access to the entity. Do not retry as-is.
+</ParamField>
+
+<ParamField path="[not_found]" type="not retryable">
+  The entity does not exist or is not visible to the caller (HTTP 404). Re-list with the matching
+  `_get` to confirm the id, then retry. Also raised at the MCP layer when a participant has no
+  responses or is not attached to the targeted iteration.
+</ParamField>
+
+<ParamField path="[validation_error]" type="not retryable">
+  The request shape is wrong (HTTP 422), or a pre-flight check failed at the MCP layer: a missing
+  or out-of-range parameter, a wrong-prefix or unknown [alias](/mcp/tool-conventions#ids%3A-alias-or-uuid),
+  or a mutually-exclusive flag combination. The message names the field. Fix the input and retry.
+</ParamField>
+
+<ParamField path="[empty_audience]" type="not retryable">
+  The audience filter matched nobody, so there is no panel to dispatch. Broaden the filters,
+  sample a different country, or pass explicit `person_ids`. See
+  [run vs ask](/concepts/run-vs-ask) for audience selection.
+</ParamField>
+
+<ParamField path="[usage_limit_reached]" type="not retryable">
+  A free-plan entity cap is full (too many studies, people, or workspaces). The message names the
+  over-cap resource and the delete tool that frees a slot: `study_delete`, `person_delete`, or
+  `workspace_delete`. Delete an unused row, or upgrade the plan. Distinct from
+  `[insufficient_credits]`. See [credits and limits](/concepts/credits-and-limits).
+</ParamField>
+
+<ParamField path="[insufficient_credits]" type="not retryable">
+  The simulation credit pool ran out (HTTP 402). The message points at
+  `workspace_get(workspace_id=...).credits` so you can read the period balance, refresh date,
+  purchased balance, and total available. Wait for the monthly refresh on paid tiers, purchase
+  credits, or upgrade. Credits debit only on successful participant completion, so a failed run
+  costs nothing. See [credits and limits](/concepts/credits-and-limits).
+</ParamField>
+
+<ParamField path="[rate_limited]" type="retryable">
+  Too many requests in a window (HTTP 429). Back off and retry.
+</ParamField>
+
+<ParamField path="[timeout]" type="retryable">
+  The backend took too long (HTTP 408), or the request never completed at the transport layer.
+  See [transport timeouts](#transport-timeouts) before retrying a write.
+</ParamField>
+
+<ParamField path="[server_error]" type="retryable">
+  The backend returned a 5xx. Transient by default. Back off and retry.
+</ParamField>
+
+<ParamField path="[network_error]" type="retryable">
+  The MCP server could not reach the backend (no HTTP response). Retry.
+</ParamField>
+
+<ParamField path="[http_error]" type="varies">
+  A backend HTTP failure that carried its own `error_code` not covered above. Read the message;
+  retryability follows the underlying status.
+</ParamField>
+
+<ParamField path="[analysis_failed]" type="not retryable">
+  A study analysis run reached a terminal failed state. The message carries the backend's reason.
+  Raised by the analyze flow, not by a transport error.
+</ParamField>
+
+<Note>
+  An HTTP status with no backend `error_code` maps to a default: 401/403 to `[auth_failed]`, 402
+  to `[insufficient_credits]`, 404 to `[not_found]`, 408 to `[timeout]`, 422 to
+  `[validation_error]`, 429 to `[rate_limited]`, and 5xx to `[server_error]`. Other 4xx fall back
+  to `[client_error]`. Branch on the named code, not on the status.
+</Note>
+
+## Retryability
+
+Branch retries on the code, not on the message. The retryable codes are transient and resolve on
+their own; the rest need an input or state fix first.
+
+| Retryable | Not retryable |
+| --- | --- |
+| `[rate_limited]`, `[timeout]`, `[server_error]`, `[network_error]` | `[auth_failed]`, `[forbidden]`, `[not_found]`, `[validation_error]`, `[empty_audience]`, `[usage_limit_reached]`, `[insufficient_credits]`, `[analysis_failed]` |
+
+When a tool polls a long job, a transient per-poll failure (a single read timeout, a transport
+flake, a 5xx) is swallowed and the poll keeps going until the outer `timeout` budget elapses.
+Only a non-retryable code interrupts the wait. See
+[long-running calls](/mcp/long-running-jobs).
+
+## Transport timeouts
+
+A `[timeout]` or `[network_error]` on a write means the response never reached the client, but the
+backend write often did land. A blind retry creates a duplicate study, iteration, or dispatch.
+The error message names the exact verify call to run first:
+
+| Wrote | Verify before retrying |
+| --- | --- |
+| Study create | `study_get(workspace_id=...)` and check the study list |
+| Iteration | `study_get(study_id=..., view="full")` and check the iterations list |
+| Run dispatch | `study_get(study_id=..., lean=True)` and check `participant_count` / `runtime_status` |
+| Analyze | `study_get(study_id=..., view="insights")` |
+| Person, workspace, ask | the matching `_get` |
+
+Read-path timeouts carry no recovery hint; just retry.
+
+## Structured envelopes
+
+Some 4xx failures carry a structured envelope so you can branch programmatically instead of
+parsing prose. Media pre-flight and rehost failures (a video with no audio track, a download that
+failed) are the common case. The bracketed prefix becomes the envelope's `error_kind`
+(`[no_audio_track]`, `[media_download_failed]`, and so on), human-readable suggestions append as
+`Suggestions: ...`, and the full envelope appends as a `[envelope] {json}` suffix:
+
+```text
+[no_audio_track] The video has no audio track. Suggestions: Re-upload with audio; pick a different clip. [envelope] {"error_kind":"no_audio_track","error_message":"...","suggestions":["..."]}
+```
+
+Parse the trailing `[envelope]` JSON for `error_kind`, `suggestions`, and any modality-specific
+fields (`source_url`, and others). The human prefix is what the model reads first; the envelope is
+for code.
+
+## chatbot_setup returns failure, it does not raise
+
+[`chatbot_setup`](/mcp/generated/tools-chatbot) is the exception to the raise-on-failure rule. A
+failed config detection or smoke test returns a `ChatbotSetupResponse` with `ok=false` rather
+than raising a `ToolError`, so a doomed setup does not abort an agent loop. Branch on `ok`, then
+read `error_kind`:
+
+```text
+result = chatbot_setup(workspace_id=..., paste="<curl>")
+if not result.ok:
+    # error_kind ∈ the shared codes (validation_error / not_found /
+    # usage_limit_reached / rate_limited / server_error / network_error / http_error)
+    # plus smoke-probe kinds: TunnelInactive, BotUnreachable, BotResponseError,
+    # BotEnvelopeError, BotInvalidResponseError, BotAuthError, BotTimeoutError,
+    # BotRetryExhaustedError, ChatReactionInvalid
+    # plus auto-detect kinds: LLMError, UnreachableUrl, UnknownError
+```
+
+The endpoint is never persisted when the smoke test fails, and the smoke test draws no credits.
+
+## connect errors
+
+The local-only tunnel verbs ([`connect_start`](/mcp/generated/tools-connect) and friends) add
+their own codes: `[cloudflared_missing]` (the binary is not on `PATH`),
+`[tunnel_startup_failed]`, `[registration_failed]`, and `[port_conflict]` (a tunnel is already up
+on a different port). Calling a tunnel verb against a hosted MCP raises `[validation_error]`,
+because the hosted server's `localhost` is not the user's machine. See
+[site access](/concepts/site-access) and the [connecting](/mcp/connecting) guide.
+
+## See also
+
+<Columns cols={2}>
+  <Card title="Tool conventions" href="/mcp/tool-conventions">
+    The `[error_code]` prefix is one of four conventions every tool shares.
+  </Card>
+  <Card title="Long-running calls" href="/mcp/long-running-jobs">
+    How `wait` and `timeout` poll a job, and how transient errors are absorbed.
+  </Card>
+  <Card title="Credits and limits" href="/concepts/credits-and-limits">
+    Why `usage_limit_reached` and `insufficient_credits` are two different walls.
+  </Card>
+  <Card title="Run vs ask" href="/concepts/run-vs-ask">
+    Audience selection, the source of `empty_audience`.
+  </Card>
+</Columns>

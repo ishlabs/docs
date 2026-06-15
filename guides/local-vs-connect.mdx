@@ -1,0 +1,181 @@
+---
+title: "Test against localhost"
+description: "Choose between ish connect (cloud fleet reaches your localhost) and study run --local (the browser runs on your machine)."
+mode: "how-to"
+---
+
+You can simulate visits to something you are running locally two ways, and they are not the same mechanism. Pick by deciding **where the browser runs**.
+
+- `ish study run --local` runs the browser **on your machine** (Playwright), straight at `http://localhost:3000`. No tunnel, nothing leaves your laptop. Interactive studies only.
+- `ish connect <port>` opens a Cloudflare tunnel so the **remote simulators** (the browser runs in the cloud) can reach your localhost. Use it when the run is dispatched in the cloud, which includes every run through the [hosted MCP server](/mcp/overview).
+
+New to the pieces here? Skim [run vs ask](/concepts/run-vs-ask) and [study](/concepts/study) first; this page assumes them.
+
+## Choose the mechanism
+
+<Columns cols={2}>
+  <Card title="study run --local" icon="laptop">
+    The browser is Playwright on your machine. Fastest loop, watchable (`--headed`), and your local app never leaves the laptop. Interactive only.
+  </Card>
+  <Card title="ish connect" icon="cloud">
+    The cloud fleet reaches your localhost over a Cloudflare tunnel. Use it for cloud-dispatched runs, especially anything driven by the hosted MCP server or an agent.
+  </Card>
+</Columns>
+
+| Question | `study run --local` | `ish connect` |
+|---|---|---|
+| Where does the browser run | Your machine (Playwright) | The cloud |
+| Tunnel involved | No | Yes (Cloudflare) |
+| Modalities | Interactive only | Whatever the cloud run supports |
+| Watch the browser live | Yes (`--headed`, `--slow-mo`, `--devtools`) | No |
+| Works through the hosted MCP server | No (it dispatches in the cloud) | Yes |
+| Your localhost exposed to the internet | No | Yes, for the tunnel's lifetime |
+
+<Tip>
+If you are on the CLI and just want to see what simulated people make of your dev server, reach for `study run --local` first. Reach for `ish connect` only when the run is dispatched in the cloud and has to reach back to your machine.
+</Tip>
+
+## Run the browser on your machine
+
+Point an iteration at a local URL, then dispatch with `--local`. The simulation runs in a Playwright browser on your machine. See the [`study run` reference](/cli/generated/study-run) for the full flag set.
+
+<Steps>
+
+<Step title="Create an iteration pointing at your local URL">
+
+```bash
+ish iteration create --study s-075 --url http://localhost:3000
+```
+
+A plain `http://localhost:3000` is fine here. The browser is local, so no tunnel is needed.
+
+</Step>
+
+<Step title="Dispatch the run locally">
+
+```bash
+ish study run s-075 --local --sample 1 -y
+```
+
+Add `--headed` to watch the window, `--slow-mo 500` to slow each action, or `--devtools` to open Chrome DevTools alongside.
+
+</Step>
+
+</Steps>
+
+<Note>
+`--local` is interactive only. Media (video, audio, document, image) and chat studies reject it. Run those in the cloud, or use `ish connect` if their content lives on your localhost.
+</Note>
+
+Debug logging goes to stderr and `~/.ish/local-sim.log` with `--debug`. Native local runs (iOS, Android) use the same `--local` path with `--platform` and `--app`; see the [`study run` reference](/cli/generated/study-run).
+
+## Expose localhost to the cloud fleet
+
+When the run is dispatched in the cloud, the cloud browser cannot see your `localhost`. Open a tunnel first, then dispatch as usual.
+
+`ish connect <port>` spawns Cloudflare's `cloudflared`, gets a public `*.trycloudflare.com` URL, and registers it with the backend. The cloud fleet routes requests for your study through that URL to your machine. Installing the CLI is the prerequisite; see the [CLI quickstart](/start/cli-quickstart).
+
+<Steps>
+
+<Step title="Open the tunnel">
+
+```bash
+ish connect 3000
+```
+
+This runs in the foreground and prints the tunnel URL. Press Ctrl+C to disconnect. The first connect downloads `cloudflared` if it is not already on your PATH.
+
+</Step>
+
+<Step title="Point the iteration at the tunnel URL">
+
+Use the printed `*.trycloudflare.com` URL as the iteration's URL, not `localhost`. The cloud browser resolves the tunnel host, not your loopback.
+
+```bash
+ish iteration create --study s-075 --url https://<subdomain>.trycloudflare.com
+```
+
+</Step>
+
+<Step title="Dispatch the run (no --local)">
+
+```bash
+ish study run s-075 --sample 1 -y
+```
+
+Leave `--local` off. The simulation runs in the cloud and reaches your machine through the tunnel.
+
+</Step>
+
+</Steps>
+
+The full flag set, including `--detach` and `--proxy`, is in the [`connect` reference](/cli/generated/connect).
+
+### Keep the tunnel running in the background
+
+`--detach` forks after the first successful heartbeat and returns control to your shell. The detached tunnel is tracked in `~/.ish/connect.lock`.
+
+```bash
+ish connect 3000 --detach
+ish connect status
+ish disconnect
+```
+
+Foreground connects do not write a lock file. Ctrl+C is the shutdown verb in that mode; `ish disconnect` targets a detached tunnel.
+
+### Tunnel several local services through one URL
+
+Pass `--proxy /<prefix>=<port>` (repeatable) to fan one tunnel across a frontend and its APIs. The CLI runs a small local reverse proxy, tunnels that, and routes by longest-prefix match (default goes to the primary port). One origin in the cloud browser means no CORS and no cookie crossover.
+
+```bash
+ish connect 3000 --proxy /api=8000 --proxy /ws=9000
+```
+
+## Through the hosted MCP server
+
+An agent on the [hosted MCP server](/mcp/overview) dispatches every run in the cloud, so reaching your localhost always needs a tunnel. The hosted server cannot open one itself: its `localhost` is the cloud server's loopback, not your machine. The `connect` write tool is local-only and is gated off in hosted mode.
+
+So the tunnel comes from the CLI on your machine, and the agent reads its state:
+
+1. On your machine, run `ish connect <port>` (or `ish connect <port> --detach`).
+2. The agent calls `connect_status` to confirm a tunnel is active and read its `tunnel_url`. This tool is read-only and works in hosted mode.
+3. The agent uses that `tunnel_url` as the iteration URL (or as a chatbot endpoint), then dispatches `study_run`.
+
+<Warning>
+Dispatching `study_run` against a `localhost` URL (or `platform="code"`) with no active tunnel fails fast with `error_kind="TunnelInactive"` rather than stalling on a connection refused inside the cloud browser. Open the tunnel first. See the [study tools reference](/mcp/generated/tools-study) and the [connect tools reference](/mcp/generated/tools-connect).
+</Warning>
+
+If you run the MCP server locally (`ISH_AUTH_MODE=local`) instead of using the hosted one, the `connect` tool is available and can open the tunnel directly, mirroring the CLI verb.
+
+## Common pitfalls
+
+<AccordionGroup>
+
+<Accordion title="The run reaches the wrong page or refuses the connection">
+You likely pointed a cloud-dispatched run at `localhost`. The cloud browser resolves `localhost` to its own loopback, not your machine. Either dispatch with `--local`, or open `ish connect` and point the iteration at the printed `*.trycloudflare.com` URL.
+</Accordion>
+
+<Accordion title="--local rejected the study">
+`--local` is interactive only. Media and chat studies reject it. Run those in the cloud, or expose their local content with `ish connect`.
+</Accordion>
+
+<Accordion title="ish connect status says no tunnel, but I started one">
+A foreground `ish connect` does not write the lock that `status` reads. Either keep the foreground process visible, or start it with `--detach` so `ish connect status` and `ish disconnect` can find it.
+</Accordion>
+
+<Accordion title="cloudflared is missing">
+The first `ish connect` downloads `cloudflared` for your platform if it is not on your PATH. If the download fails, install it yourself (`brew install cloudflare/cloudflare/cloudflared` on macOS) and re-run.
+</Accordion>
+
+</AccordionGroup>
+
+## Next
+
+<Columns cols={2}>
+  <Card title="Run a study end to end" icon="play" href="/guides/first-study">
+    The full happy path on the CLI and the MCP server.
+  </Card>
+  <Card title="connect, disconnect reference" icon="terminal" href="/cli/generated/connect">
+    Every flag for the tunnel commands.
+  </Card>
+</Columns>

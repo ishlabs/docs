@@ -1,0 +1,33 @@
+---
+title: "connect tools"
+description: "MCP tool reference for the connect domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `connect_status`
+
+**Tier:** read-only · **Tags:** connect, read
+
+Check whether the current user has an active ``ish connect`` tunnel
+registered with the Ish backend. Works in hosted MCP mode (read-only;
+unlike the ``local-only`` ``connect`` verb, it just reads backend state).
+
+Call before dispatching ``study_run`` / ``ask_run`` against
+locally-served iterations (``platform="code"`` or a ``localhost`` /
+RFC1918 URL): a missing tunnel makes the run fail fast rather than
+stalling on a connection refused inside the cloud browser. See
+``docs_get("guides/mcp-add")``.
+
+**Returns**:
+- tunnel active → ``&#123;"active": True, "tunnel_url": &lt;str>,
+  "local_port": &lt;int>, "last_heartbeat": &lt;iso>, "created_at": &lt;iso>}``
+- no tunnel → ``&#123;"active": False}``
+
+Other backend errors (auth, network, 5xx) propagate as the normal
+``IshApiError`` envelope.
+
+_No parameters._
