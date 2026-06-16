@@ -4,12 +4,12 @@ description: One backend, two developer surfaces. How the ish CLI and the ish MC
 mode: explanation
 ---
 
-ish has one backend and two ways to drive it: the **ish CLI** and the **ish MCP server**. Both speak to the same API, the same workspaces, the same studies, the same people. Pick the surface that fits where you already are, not a different product.
+ish has one backend and two **independent** ways to drive it: the **ish CLI** and the **ish MCP server**. You do not need both — neither depends on the other, and each works completely on its own. They speak to the same API, the same workspaces, the same studies, the same people, so if you *do* use both, anything you make in one is visible in the other. Pick the one surface that fits where your work already happens.
 
-- **The CLI** is a binary you run in a shell or a CI job. You type `ish study run`, it prints a result, it exits with a code. Good for scripts, terminals, and humans who live at a prompt.
-- **The MCP server** is the same operations exposed as tools an AI agent calls. Connect Claude Code, Cursor, or any MCP client to `https://mcp.ishlabs.io/mcp` and the agent runs studies for you inside its own loop. Good for "have my coding agent check this before I ship".
+- **The CLI is the local surface.** It is a binary you run in a shell, a CI job, or from a local coding agent like Claude Code or Cursor that can shell out. It runs *on your machine*, with access to your filesystem, your localhost, and your simulators — so it is the surface for local development and for testing apps you are running locally. You type `ish study run`, it prints a result, it exits with a code.
+- **The MCP server is the hosted, agent-native surface.** It exposes the same operations as tools that any MCP agent calls over `https://mcp.ishlabs.io/mcp` — including general assistants that have no access to your machine or filesystem at all. The agent runs studies inside its own loop and reads the results straight back. Good for "have an agent check this for me", from wherever that agent lives.
 
-Same engine underneath. Simulated people experience the thing you are making and report back what they noticed, where they got stuck, and what they would do next. The surface only changes how you ask.
+Same engine underneath. Simulated people experience the thing you are making and report back what they noticed, where they got stuck, and what they would do next. The surface only changes how you ask — with one exception, [below](#what-only-the-cli-can-do).
 
 ## The shared model
 
@@ -103,18 +103,24 @@ A few operations exist only as MCP tools. They have no CLI command today.
 `connect` runs the other way. The `ish connect` CLI command exposes your localhost to ish's remote simulators through a Cloudflare tunnel, and works anywhere. The MCP `connect` tool does the same thing, but only when you run the MCP server on your own machine. The hosted server's `localhost` is the cloud host's loopback, not yours, so it refuses with a validation error. To let simulated people experience a local dev server through an agent, use the `ish connect` CLI on the same machine.
 </Info>
 
+## What only the CLI can do
+
+Because the CLI runs on your machine and the hosted MCP server does not, **testing an app that runs locally is a CLI capability**. `ish study run --local` drives the artifact on your own machine — a web app through Playwright, an Android app on an emulator, or an iOS app in the Simulator — and nothing leaves your laptop. The hosted MCP server has no path to your machine, your `localhost`, or your simulators, so it cannot do this.
+
+The one bridge is the tunnel: `ish connect <port>` exposes a local **web** build to ish's cloud simulators, and an agent on the hosted MCP can then point a study at the tunnel URL (`platform="code"`). That still needs the `ish` CLI running on the same machine — the MCP alone never reaches your localhost. Native iOS and Android runs stay CLI-only.
+
 ## Which surface to use
 
 <Columns cols={2}>
   <Card title="Reach for the CLI" icon="terminal">
-    You live in a shell. You want a study in CI. You want JSON to pipe into another tool. You want one command, one result, one exit code.
+    You work locally — at a shell, in CI, or through a local coding agent that can shell out. You need to test something running on your own machine: a localhost web build, an iOS app, an Android app. You want JSON to pipe into another tool; one command, one result, one exit code.
   </Card>
-  <Card title="Reach for the MCP" icon="robot">
-    You work through Claude Code, Cursor, or another agent. You want it to run a study inside its own loop and read the result back without leaving the editor.
+  <Card title="Reach for the MCP" icon="/images/logos/mcp.svg">
+    You drive ish from an agent — including a hosted assistant with no access to your machine. You want it to run a study inside its own loop and read the result straight back, without leaving wherever it lives.
   </Card>
 </Columns>
 
-You do not have to choose once. Create a study from the CLI, let your agent run iterations through the MCP, read the results back in either. Same backend, same objects, same findings.
+You never need both — each surface stands on its own. But they share one backend, so you *can* mix them when it helps: create a study from the CLI, let an agent run iterations through the MCP, read the results back in either. Same backend, same objects, same findings.
 
 ## Next
 
@@ -122,13 +128,13 @@ You do not have to choose once. Create a study from the CLI, let your agent run 
   <Card title="CLI quickstart" href="/start/cli-quickstart" icon="terminal">
     Install the CLI and run your first study in under five minutes.
   </Card>
-  <Card title="Connect an agent" href="/start/connect-an-agent" icon="plug">
+  <Card title="Connect an agent" href="/start/connect-an-agent" icon="/images/logos/mcp.svg">
     Point an MCP client at the hosted server.
   </Card>
   <Card title="CLI overview" href="/cli/overview" icon="rectangle-terminal">
     The full command tree and conventions.
   </Card>
-  <Card title="MCP overview" href="/mcp/overview" icon="server">
+  <Card title="MCP overview" href="/mcp/overview" icon="/images/logos/mcp.svg">
     Tools, resources, and tool conventions.
   </Card>
 </Columns>

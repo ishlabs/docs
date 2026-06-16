@@ -37,12 +37,12 @@ these lands, and why?"
 ## When each fits
 
 <Columns cols={2}>
-  <Card title="Reach for a study">
+  <Card title="Reach for a study" icon="flask">
     The person has to **do** something on a real surface. Walk an onboarding flow, read a
     landing page, watch a 30-second spot, skim a PDF, or talk to a chatbot. You want the
     journey, the friction, and the completion, not just a verdict.
   </Card>
-  <Card title="Reach for an ask">
+  <Card title="Reach for an ask" icon="scale-balanced">
     The person has to **react** to creative. Compare two headlines, three hero images, or a
     pair of ad cuts. You want a fast read on which one lands, the reasoning behind it, and
     (optionally) a pick or ratings.
@@ -51,6 +51,21 @@ these lands, and why?"
 
 The decision rule, in one sentence: if there is a surface to move through, run a study; if
 there are variants to choose between, run an ask.
+
+```mermaid
+flowchart TD
+  Q{"Surface to move through,<br/>or variants to choose?"}
+
+  Q -->|"surface"| S1["study run"]
+  S1 --> S2["dispatch the latest iteration"]
+  S2 --> S3["people experience it<br/>end to end"]
+  S3 --> S4["per-person journey<br/>plus questionnaire answers"]
+
+  Q -->|"variants"| A1["ask run"]
+  A1 --> A2["fixed panel reacts<br/>to each variant"]
+  A2 --> A3["round of reactions"]
+  A3 --> A4["per-person reactions,<br/>optional pick and ratings"]
+```
 
 ## Side by side
 

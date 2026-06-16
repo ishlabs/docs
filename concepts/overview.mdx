@@ -22,27 +22,32 @@ Everything lives under a **workspace**. Inside it, two things produce reactions,
 - a **study**: the durable path, where simulated people *do* something on a real artifact, run by run.
 - an **ask**: the lighter path, where a fixed panel *reacts* to a few variants and picks, round by round.
 
-People and sources are the shared inputs both of them draw on. Read the tree top to bottom;
-indentation is containment.
+People and sources are the shared inputs both of them draw on. The workspace is the root; a
+participant's reactions are the leaf of either branch.
 
-```
-workspace                  one product or brand. holds everything below.     (alias w-)
-├── study                  the recipe: modality + tasks + questions.          (alias s-)
-│   └── iteration          one configured batch: the URL, media, or           (alias i-)
-│       │                  chatbot endpoint people experience.
-│       └── run            a group of simulated people dispatched at once.
-│           └── participant → reactions   one person's reported journey + the reasoning.
-├── ask                    a lighter comparison: a fixed panel, no artifact.  (alias a-)
-│   └── round              one dispatch of the variants to that panel.        (alias r-)
-│       └── per-person reactions: a pick, optional ratings, and the why.
-├── people                 the saved audience a study or an ask draws from.
-└── sources                the evidence that grounds generated people.
+```mermaid
+graph TD
+  W["workspace (w-)"]
+
+  W --> S["study (s-)"]
+  S --> I["iteration (i-)"]
+  I --> R["run"]
+  R --> P["participant (pt- / t-)"]
+  P --> RX["reactions"]
+
+  W --> A["ask (a-)"]
+  A --> RND["round (r-)"]
+  RND --> PR["per-person reactions"]
+
+  PPL["people"] -.-> R
+  PPL -.-> RND
+  SRC["sources"] -.-> PPL
 ```
 
-A workspace is the root; a participant's reactions are the leaf of either branch. A study and an
-ask never nest inside each other: they sit side by side in the workspace and share its people and
-sources. The study branch is the one most of this page follows, because it is the durable one.
-The ask branch swaps iterations and runs for rounds, and is covered in
+A study and an ask never nest inside each other: they sit side by side under the workspace and
+share its people and sources. Solid arrows are containment; dotted arrows are the shared inputs
+each branch draws on. The study branch (workspace down to reactions) is the durable one most of
+this page follows. The ask branch swaps iterations and runs for rounds, and is covered in
 [runs and asks](/concepts/run-vs-ask).
 
 <Note>
@@ -184,7 +189,7 @@ Pick the surface that fits where you already work:
   <Card title="ish CLI" icon="terminal" href="/cli/generated/index">
     A command for every step above. Scriptable, JSON on every command, aliases everywhere.
   </Card>
-  <Card title="ish MCP server" icon="plug" href="/mcp/generated/index">
+  <Card title="ish MCP server" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     The same model as 40 agent-native tools at `mcp.ishlabs.io/mcp`. Let Claude, Cursor, or
     ChatGPT drive ish.
   </Card>

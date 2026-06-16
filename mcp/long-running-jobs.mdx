@@ -47,6 +47,17 @@ Many MCP clients cap a single tool call at roughly 30 seconds (Cursor and Replit
 
 On every non-blocking path (the `wait=False` success path and the `wait_timeout` path where dispatch succeeded but the wait ran out of budget), a dispatch-and-poll tool attaches a `next_action` object. It names which status tool to call, with what arguments, after how long, and which terminal-status set to compare against, so you do not parse prose to pick the next call.
 
+```mermaid
+flowchart TD
+  D["dispatch (wait=False)"] --> R["response: IDs + next_action"]
+  R --> W["do other work"]
+  W --> P["call next_action.tool<br/>after check_after_seconds"]
+  P --> C{"value at status_path<br/>in terminal_statuses?"}
+  C -->|"no"| BO["back off, then poll again"]
+  BO --> P
+  C -->|"yes"| T["terminal: read the result"]
+```
+
 <ResponseField name="next_action" type="object">
   <Expandable title="fields">
     <ResponseField name="tool" type="string">

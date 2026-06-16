@@ -6,41 +6,54 @@ mode: "how-to"
 
 ish runs as a hosted MCP server at `https://mcp.ishlabs.io/mcp`. Any client that
 speaks MCP over streamable HTTP can call ish tools (`study_run`, `ask_run`,
-`person_generate`, and the rest) once it points at that URL and signs in. Pick
-your client below for the exact steps.
+`person_generate`, and the rest) once it points at that URL and signs in. The
+endpoint and sign-in are the same everywhere; pages differ only in where the
+client keeps its config and what ish can do for that client. Pick yours below
+for the exact steps.
+
+These pages cover the **MCP** path. Local coding agents (Claude Code, Cursor, VS Code)
+can also drive ish through the [CLI](/cli/overview) instead — and testing a web, iOS, or
+Android app on your own machine needs the CLI either way, since the hosted server can't
+reach your localhost. You don't need both; see [the CLI and the MCP server](/concepts/cli-and-mcp).
 
 <Columns cols={3}>
-  <Card title="Claude Code" icon="terminal" href="/integrations/claude-code">
-    Wire it with one command.
+  <Card title="Claude Code" icon="/images/logos/claude.svg" href="/integrations/claude-code">
+    Best for terminal-driven runs, wired with one command.
   </Card>
   <Card title="Cursor" icon="/images/logos/cursor.svg" href="/integrations/cursor">
-    Wire from the CLI or settings.
+    Best for editor agents under a 30-second tool-call cap.
   </Card>
   <Card title="Claude Desktop" icon="/images/logos/claude.svg" href="/integrations/claude-desktop">
-    Connect over OAuth.
+    Best for desktop chat that reads ish resources in full.
   </Card>
   <Card title="ChatGPT" icon="/images/logos/openai.svg" href="/integrations/chatgpt">
-    Add as a connector.
+    Best for chat where you read findings through tools, not resources.
   </Card>
   <Card title="VS Code" icon="/images/logos/vscode.svg" href="/integrations/vscode">
-    Add to your user MCP config.
+    Best for Copilot agent mode, with the loopback-port OAuth handled for you.
   </Card>
   <Card title="Lovable" icon="/images/logos/lovable.svg" href="/integrations/lovable">
-    Connect inside the builder.
+    Best for testing a build, once you point ish at a reachable URL.
   </Card>
   <Card title="Replit" icon="/images/logos/replit.svg" href="/integrations/replit">
-    Connect inside the workspace.
+    Best for a repl, pointed at a webview or deployment URL.
   </Card>
   <Card title="Bolt" icon="/images/logos/bolt.svg" href="/mcp/connecting">
-    Connect the embedded agent.
+    Best for the embedded agent, pointed at a published preview.
   </Card>
   <Card title="v0" icon="/images/logos/v0.svg" href="/mcp/connecting">
-    Connect in the editor.
+    Best for the in-editor agent, pointed at a deployed URL.
   </Card>
-  <Card title="Windsurf" icon="wind" href="/mcp/connecting">
-    Add to your MCP config.
+  <Card title="Windsurf" icon="/images/logos/mcp.svg" href="/mcp/connecting">
+    Best for any MCP-over-HTTP setup the CLI can wire for you.
   </Card>
 </Columns>
+
+<Note>
+  No card for your client? Any MCP client that speaks streamable HTTP works.
+  Point it at `https://mcp.ishlabs.io/mcp`, sign in on first connect, and follow
+  [Connecting](/mcp/connecting). More clients get their own page over time.
+</Note>
 
 Every client uses the same endpoint and the same sign-in. The
 [connecting guide](/mcp/connecting) owns the add mechanism and the OAuth handshake;
