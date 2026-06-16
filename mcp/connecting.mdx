@@ -153,21 +153,11 @@ ish mcp remove --client cursor --yes
 ish mcp remove --all --yes
 ```
 
-<Tip>
-  Point the CLI at a different endpoint (a local backend or a preview environment) by
-  setting `ISH_MCP_URL` before any `ish mcp` command. `ish mcp list` reads the same
-  variable, so reported status reflects the override.
-
-  ```bash
-  ISH_MCP_URL=http://localhost:8000/mcp ish mcp add --client cursor --yes
-  ```
-</Tip>
-
 ## Where to go next
 
 <Columns cols={2}>
   <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
-    All 42 hosted tools, grouped by domain, each with its annotation tier.
+    All 40 hosted tools, grouped by domain, each with its annotation tier.
   </Card>
   <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
     The `ish://` resources for identity, docs, content types, and secrets.

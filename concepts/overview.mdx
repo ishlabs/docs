@@ -10,27 +10,40 @@ thing and report back what they noticed, where they got stuck, and what they wou
 before it ships. What you get back is a reported journey (sentiment, friction, blockers,
 positive moments, completion) with the reasoning behind every reaction, not a score.
 
-This page is the map. It names the five things ish models and how they nest, so the rest of the
-docs can assume you know what a study is versus an iteration, and where reactions come from.
+This page is the map. It names what ish models and how the pieces relate, so the rest of the
+docs can assume you know what a study is versus an ask, what an iteration is, and where reactions
+come from.
 
 ## The shape of it
 
-Five concepts stack inside each other. Read the diagram top to bottom: each level contains the
-one below it.
+Everything lives under a **workspace**. Inside it, two things produce reactions, and they are
+**siblings**, not one inside the other:
+
+- a **study**: the durable path, where simulated people *do* something on a real artifact, run by run.
+- an **ask**: the lighter path, where a fixed panel *reacts* to a few variants and picks, round by round.
+
+People and sources are the shared inputs both of them draw on. Read the tree top to bottom;
+indentation is containment.
 
 ```
-workspace            one product or brand. holds everything below.  (alias w-)
-└── study            the recipe: modality + tasks + questions.       (alias s-)
-    └── iteration    one configured batch: the URL, media, or        (alias i-)
-        │            chatbot endpoint people actually experience.
-        └── run      a group of simulated people dispatched at once.
-            └── participant   one person running through it.
-                └── reactions  their reported journey + the reasoning.
+workspace                  one product or brand. holds everything below.     (alias w-)
+├── study                  the recipe: modality + tasks + questions.          (alias s-)
+│   └── iteration          one configured batch: the URL, media, or           (alias i-)
+│       │                  chatbot endpoint people experience.
+│       └── run            a group of simulated people dispatched at once.
+│           └── participant → reactions   one person's reported journey + the reasoning.
+├── ask                    a lighter comparison: a fixed panel, no artifact.  (alias a-)
+│   └── round              one dispatch of the variants to that panel.        (alias r-)
+│       └── per-person reactions: a pick, optional ratings, and the why.
+├── people                 the saved audience a study or an ask draws from.
+└── sources                the evidence that grounds generated people.
 ```
 
-A workspace is the top of the tree and a participant's reactions are the leaf. Everything ish
-does is some traversal of this path: set up a study, point an iteration at the artifact, run it
-on a group, read what came back.
+A workspace is the root; a participant's reactions are the leaf of either branch. A study and an
+ask never nest inside each other: they sit side by side in the workspace and share its people and
+sources. The study branch is the one most of this page follows, because it is the durable one.
+The ask branch swaps iterations and runs for rounds, and is covered in
+[runs and asks](/concepts/run-vs-ask).
 
 <Note>
   Each entity owns a short alias derived from its UUID (`w-6ec`, `s-b2c`, `i-d4e`). An alias
@@ -40,12 +53,15 @@ on a group, read what came back.
   [MCP tool conventions](/mcp/tool-conventions) page lists the full prefix table.
 </Note>
 
-## The five concepts
+## The study path, step by step
+
+These are the five levels of the study branch, the durable path. The ask branch is the lighter
+sibling covered under [study or ask](#study-or-ask) below.
 
 <Steps>
   <Step title="Workspace">
-    The top-level container, one per product or brand. It holds the studies, the saved people,
-    the sources, and the credit pool everything else draws from. The backend calls this a
+    The top-level container, one per product or brand. It holds the studies and asks, the saved
+    people, the sources, and the credit pool everything else draws from. The backend calls this a
     "product"; the developer surfaces call it a workspace. See [workspace](/concepts/workspace).
   </Step>
   <Step title="Study">
@@ -169,7 +185,7 @@ Pick the surface that fits where you already work:
     A command for every step above. Scriptable, JSON on every command, aliases everywhere.
   </Card>
   <Card title="ish MCP server" icon="plug" href="/mcp/generated/index">
-    The same model as 42 agent-native tools at `mcp.ishlabs.io/mcp`. Let Claude, Cursor, or
+    The same model as 40 agent-native tools at `mcp.ishlabs.io/mcp`. Let Claude, Cursor, or
     ChatGPT drive ish.
   </Card>
 </Columns>

@@ -50,10 +50,6 @@ When a command needs a workspace, study, ask, or chat endpoint and you do not pa
   Web app base URL used to compose the links the CLI prints (for example the `url` returned by `ish study run`). Set it for a staging or self-hosted UI. Under `--dev` the base is `http://localhost:3000`.
 </ParamField>
 
-<ParamField path="ISH_MCP_URL" type="string" default="https://mcp.ishlabs.io/mcp">
-  ish MCP server URL written by `ish mcp add`. Point it at a local server for dev workflows. See the [MCP overview](/mcp/overview).
-</ParamField>
-
 ## Paths
 
 <ParamField path="ISH_HOME" type="string" default="~/.ish">
@@ -109,6 +105,10 @@ Read by the `install.sh` and `install.ps1` scripts, not by the `ish` binary itse
 ## Internal
 
 Reserved for ish development and internal tooling. Not part of the supported surface; documented so you can recognize them.
+
+<ParamField path="ISH_MCP_URL" type="string" default="https://mcp.ishlabs.io/mcp">
+  ish MCP server URL written by `ish mcp add`. Defaults to the hosted server; an internal override for pointing the CLI at a local or preview MCP server during ish development.
+</ParamField>
 
 <ParamField path="ISH_INTERNAL" type="string">
   Set to `1` to allow the internal-only `--sim-config` flag on `ish study run`.
