@@ -9,24 +9,9 @@ the ish backend. You never paste a token into a config file. For the steps to ad
 server and sign in, see [Connecting](/mcp/connecting); this page documents the auth
 machinery behind it.
 
-## Auth modes
+## How sign-in works
 
-The server runs in one of two modes, selected by the `ISH_AUTH_MODE` environment variable.
-
-| Mode | Where it runs | Inbound validation | Token source for backend calls |
-| --- | --- | --- | --- |
-| `jwt` | Hosted (`mcp.ishlabs.io`), default | Validates the inbound Supabase JWT | The validated access token |
-| `local` | Local dev only | None | `~/.ish/config.json`, refreshed on demand |
-
-<Note>
-  The hosted server you connect to always runs in `jwt` mode. The `local` mode exists for
-  running the server yourself against a local backend.
-</Note>
-
-## jwt mode
-
-In `jwt` mode the server validates every inbound request and acts as an OAuth resource
-server.
+The server validates every inbound request and acts as an OAuth resource server.
 
 **Validation.** Inbound Supabase access tokens are verified as ES256 against the project's
 JWKS, with audience `authenticated`. The backend re-validates the same token, so a request
@@ -45,27 +30,10 @@ with no pre-issued token: it discovers Supabase, registers itself over Dynamic C
 Registration, runs the OAuth code flow, and presents the resulting access token to the
 server.
 
-<ParamField path="ISH_AUTH_MODE" type="string" default="jwt">
-  Selects the auth mode. `jwt` for the hosted server, `local` for dev.
-</ParamField>
-
-<ParamField path="ISH_MCP_BASE_URL" type="string" default="http://localhost:8765">
-  Public base URL of this server. Required in `jwt` mode so the discovery metadata
-  advertises the correct base.
-</ParamField>
-
-<ParamField path="ISH_SUPABASE_PROJECT_REF" type="string" default="hngymyxdyamokpbeakps">
-  Supabase project reference. Derives the project URL, the auth base, and the JWKS URI.
-</ParamField>
-
-<ParamField path="ISH_JWT_AUDIENCE" type="string" default="authenticated">
-  Required `aud` claim on inbound tokens.
-</ParamField>
-
 ## OAuthProxy
 
-When the upstream OAuth client credentials are set, the server fronts Supabase with a
-FastMCP `OAuthProxy` instead of pointing clients straight at Supabase.
+The server fronts Supabase with a FastMCP `OAuthProxy` instead of pointing clients straight
+at Supabase.
 
 **Why it exists.** Supabase's OAuth server validates `redirect_uri` by exact string match
 and does not implement the RFC 8252 loopback exception (where an auth server ignores the
@@ -78,89 +46,24 @@ hit this.
 
 **What the proxy does.** It advertises this server as the authorization server, presents a
 full Dynamic Client Registration interface that accepts any loopback port, and holds one
-fixed redirect (`{ISH_MCP_BASE_URL}/auth/callback`) registered with Supabase. It translates
-between the client's dynamic loopback URI and the fixed upstream one, so every client works
-regardless of how it picks its redirect. The proxy runs its own PKCE leg upstream
-(S256). It does not forward RFC 8707 resource indicators, since Supabase does not implement
-them.
-
-<ParamField path="ISH_OAUTH_UPSTREAM_CLIENT_ID" type="string | null" default="null">
-  Client ID of a confidential OAuth client registered with Supabase whose `redirect_uris`
-  is exactly `{ISH_MCP_BASE_URL}/auth/callback`. Set with the secret to enable the proxy.
-</ParamField>
-
-<ParamField path="ISH_OAUTH_UPSTREAM_CLIENT_SECRET" type="string | null" default="null">
-  Secret for the upstream client (`token_endpoint_auth_method` `client_secret_basic`).
-</ParamField>
-
-The proxy turns on only when **both** variables are set. With either unset, the server
-falls back to advertising Supabase directly, which keeps it bootable before the operator
-provisions the upstream client and works for clients with a stable redirect.
-
-<Warning>
-  The proxy keeps short-lived state (authorization codes, in-flight transactions, and the
-  reference-token to upstream-token mapping) in an in-memory store by default. Run the
-  service as a single instance, or wire a shared store, so the instance that handles
-  `/authorize` and `/auth/callback` is the same one that handles `/token` and later tool
-  calls.
-</Warning>
+fixed redirect registered with Supabase. It translates between the client's dynamic loopback
+URI and the fixed upstream one, so every client works regardless of how it picks its
+redirect. The proxy runs its own PKCE leg upstream (S256). It does not forward RFC 8707
+resource indicators, since Supabase does not implement them.
 
 ## Token forwarding
 
 Tools never read headers or the local config directly. Each tool obtains the
 `Authorization` header to send to `api.ishlabs.io` through a single chokepoint.
 
-<Tabs>
-  <Tab title="jwt mode">
-    The forwarded token is the validated access token, which is the upstream Supabase JWT
-    under both the OAuthProxy and the direct provider.
-
-    Under the proxy, the inbound bearer is a short reference token the proxy mints to the
-    client; the proxy resolves it server-side to the stored upstream Supabase JWT, and that
-    JWT is what gets forwarded. Under the direct provider, the resolved token equals the
-    inbound bearer. If the resolved access-token context is unavailable, the server forwards
-    the inbound `Authorization` header verbatim; a request with no bearer is rejected.
-  </Tab>
-  <Tab title="local mode">
-    The server reads `access_token` from `~/.ish/config.json` and forwards it as a bearer.
-    If the token is expired (or within a 5-minute buffer), it refreshes against Supabase's
-    OAuth token endpoint using the stored `refresh_token` and `oauth_client_id`, writes the
-    rotated tokens back to the config (0700 dir, 0600 file), and forwards the fresh one.
-
-    A 4xx refresh response is permanent: re-run `ish login`. A 5xx or network error is
-    transient and may be retried. The config file is the same one the [ish CLI](/cli/auth)
-    owns, so the two stay coherent.
-  </Tab>
-</Tabs>
+The forwarded token is the validated access token, which is the upstream Supabase JWT. The
+inbound bearer is a short reference token the proxy mints to the client; the proxy resolves
+it server-side to the stored upstream Supabase JWT, and that JWT is what gets forwarded. If
+the resolved access-token context is unavailable, the server forwards the inbound
+`Authorization` header verbatim; a request with no bearer is rejected.
 
 The backend re-validates whatever token it receives, so forwarding is defense in depth
 rather than the only check.
-
-## local mode
-
-`local` mode is for running the server against a local backend during development. It does
-no inbound validation: the request is trusted, and the bearer comes from the CLI's saved
-session via the token-forwarding path above.
-
-<ParamField path="ISH_HOME" type="path" default="~/.ish">
-  Config directory the server reads `config.json` from. Shared with the CLI.
-</ParamField>
-
-<ParamField path="ISH_SUPABASE_URL" type="string">
-  Override the Supabase project used for token refresh. Pair with `ISH_SUPABASE_ANON_KEY`
-  to point a dev session at the dev project; otherwise the project is resolved from the
-  token's `iss` claim.
-</ParamField>
-
-<ParamField path="ISH_SUPABASE_ANON_KEY" type="string">
-  Publishable key for the refresh project. Required alongside `ISH_SUPABASE_URL`.
-</ParamField>
-
-<Note>
-  Run `ish login` before starting the server in `local` mode. With no `config.json`, an
-  expired token and no `refresh_token`, or a config written by an older CLI without
-  `oauth_client_id`, tool calls fail with a message telling you to log in again.
-</Note>
 
 ## Confirm the session
 

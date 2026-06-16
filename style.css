@@ -1,0 +1,17 @@
+/* ish docs custom styling.
+   Aligns with the ish design system: terracotta is a "whisper" reserved for links,
+   active-nav, tabs, and focus. Card-grid icons default to the accent and repeat across
+   many grids, so neutralize them to ink.
+
+   Mintlify renders a named card icon as a mask-image <svg> colored by background-color
+   (the `bg-primary` / `dark:bg-primary-light` utilities), exposed via
+   data-component-part="card-icon". Override the background-color to ink. Image-based
+   card icons (client logos) are <img> and keep their own colors. */
+
+[data-component-part="card-icon"] svg {
+  background-color: #262220 !important;
+}
+
+html.dark [data-component-part="card-icon"] svg {
+  background-color: #e8e3de !important;
+}

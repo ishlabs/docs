@@ -145,8 +145,6 @@ So the tunnel comes from the CLI on your machine, and the agent reads its state:
 Dispatching `study_run` against a `localhost` URL (or `platform="code"`) with no active tunnel fails fast with `error_kind="TunnelInactive"` rather than stalling on a connection refused inside the cloud browser. Open the tunnel first. See the [study tools reference](/mcp/generated/tools-study) and the [connect tools reference](/mcp/generated/tools-connect).
 </Warning>
 
-If you run the MCP server locally (`ISH_AUTH_MODE=local`) instead of using the hosted one, the `connect` tool is available and can open the tunnel directly, mirroring the CLI verb.
-
 ## Common pitfalls
 
 <AccordionGroup>
