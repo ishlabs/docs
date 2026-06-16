@@ -117,3 +117,21 @@ A link has two ends: the expiry you set at creation, and the revoke you run by h
 - `ish study unshare <token>` revokes a link before it expires. The URL stops working immediately, for everyone.
 
 Revoking a link does not touch the study or its results. It only closes the public door. You can share the same study again, which mints a fresh token and a new URL.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Study" icon="flask" href="/concepts/study">
+    The unit a link is scoped to: one study, not your whole workspace.
+  </Card>
+  <Card title="Reactions and results" icon="chart-simple" href="/concepts/reactions-and-results">
+    What each result surface a visitor reads actually holds.
+  </Card>
+  <Card title="Runs and asks" icon="play" href="/concepts/run-vs-ask">
+    How a run produces the results behind a link worth sending.
+  </Card>
+  <Card title="study share" icon="share-nodes" href="/cli/generated/study-extras">
+    The CLI reference for `study share` and `study unshare`, with full flags and
+    JSON shapes.
+  </Card>
+</Columns>

@@ -13,6 +13,13 @@ ChatGPT's MCP client (it connects as `openai-mcp`) reads ish's **tools** but not
 **resources**. That changes two things: how you point it at the URL, and how you read
 findings back. Both are covered below.
 
+<Note>
+  **Connect ChatGPT.** Add a custom connector in ChatGPT pointed at
+  `https://mcp.ishlabs.io/mcp` (no trailing slash). The "Copy MCP server URL"
+  action in this page's "..." menu grabs that URL for you. Step-by-step setup is
+  below.
+</Note>
+
 <Info>
   You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
   first. The OAuth step signs ChatGPT in as you.
@@ -170,7 +177,7 @@ file arrives as an argument, ish uses an out-of-band upload link instead.
 ## Where to go next
 
 <Columns cols={2}>
-  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+  <Card title="Every MCP tool" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     All 40 hosted tools, grouped by domain.
   </Card>
   <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">
