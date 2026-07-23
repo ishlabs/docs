@@ -67,7 +67,8 @@ Turns have a related safety net. An exact-duplicate replay of your **final** tur
 
 | Status | When | What to do |
 |---|---|---|
-| `401` | Missing, invalid, or expired token (pilot tokens last about 1 hour) | Refresh the token and retry. See [authentication](/api/authentication). |
+| `401` | Missing or invalid API key (a revoked key also returns 401) | Check the `Authorization` header. See [authentication](/api/authentication). |
+| `402` `spend_cap_exceeded` | The workspace spend cap was reached; this turn was not applied | Terminal: the session status becomes `spend_cap_reached`. Raise the cap or wait, then start a new session. See [billing and limits](#billing-and-limits). |
 | `403` | Persona out of scope (must be workspace-owned or platform-library) | Use an in-scope persona id. |
 | `404` | Workspace, session, or persona not found or unreachable by your token | Check the ids and that your token's workspace owns them. |
 | `409` `turn_index_mismatch` | Wrong turn index | Resubmit with `turn_index` set to the `expected_turn_index` in the body. |
@@ -75,6 +76,7 @@ Turns have a related safety net. An exact-duplicate replay of your **final** tur
 | `409` `idempotency_conflict` | Reused an `Idempotency-Key` with a different body | Use a fresh key, or send the identical body to replay. |
 | `413` | Request body too large (the base64 frame) | Reduce the frame's dimensions. See [frame size](/api/guides/environment-authoring#frame-size). |
 | `422` | Validation error (two envelope shapes, below) | Fix the payload. |
+| `429` | Per-key session-create quota exceeded (API keys only) | Transient: back off and retry the create later. |
 | `502` `decision_invalid` | The persona produced an invalid choice twice; no turn was recorded | Retriable: resubmit the **same** `turn_index` with a fresh frame. |
 
 ### Two shapes of 422
@@ -100,9 +102,17 @@ Validation errors come back in two shapes, so parse defensively:
   { "detail": "exactly one image observation block is required", "request_id": "..." }
   ```
 
+## Billing and limits
+
+Two limits can end or block a session for cost or capacity reasons, separate from the persona's own termination.
+
+**Spend cap (per workspace).** Each turn accrues credits against the workspace's balance, and the charge settles when the session ends. A workspace can carry a spend cap. When the next turn would push the workspace past its cap, that turn is refused with a `402` (`error_kind: spend_cap_exceeded`) and is **not** applied, and the session moves to the terminal `spend_cap_reached` status. Treat `spend_cap_reached` like any other terminal status and stop the loop. To keep going, raise the cap (or wait for it to reset) and start a new session.
+
+**Session-create quota (per key).** An API key has a cap on how many sessions it can open per day. A create that exceeds it returns a `429`. Unlike the spend cap, this is **transient**: back off and retry the create later. It applies to API keys only, not to user tokens.
+
 ## Open unions: tolerate unknown values
 
-`sentiment`, `session_status`, `resolution`, and the observation block `type` are **open unions**. New values may be added over time. Tolerate a value you do not recognize rather than hard-failing on it. The 11 sentiments today are `Delighted`, `Excited`, `Confident`, `Satisfied`, `Relieved`, `Neutral`, `Confused`, `Uncertain`, `Anxious`, `Frustrated`, and `Disengaged`, and `felt_intensity` is one of `mild`, `moderate`, or `strong`.
+`sentiment`, `session_status`, `resolution`, and the observation block `type` are **open unions**. New values may be added over time. Tolerate a value you do not recognize rather than hard-failing on it. `spend_cap_reached` is a live example: it joined `session_status` after the first statuses shipped. The 11 sentiments today are `Delighted`, `Excited`, `Confident`, `Satisfied`, `Relieved`, `Neutral`, `Confused`, `Uncertain`, `Anxious`, `Frustrated`, and `Disengaged`, and `felt_intensity` is one of `mild`, `moderate`, or `strong`.
 
 ## The reference loop
 

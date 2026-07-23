@@ -145,7 +145,8 @@
           "completed",
           "gave_up",
           "closed",
-          "max_turns"
+          "max_turns",
+          "spend_cap_reached"
         ],
         "title": "AgentSessionStatus",
         "type": "string"
@@ -721,7 +722,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_...`. Interim: an ish user access token (JWT) is accepted on the same header until API keys fully roll out.",
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint); scopes: `sessions:run` (create, submit turns, close) and `sessions:read` (read the session and trace). An ish user access token also works on the same header for personal scripts.",
         "scheme": "bearer",
         "type": "http"
       }
@@ -732,7 +733,7 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **agent sessions**: you open a session for one of your personas inside *your own* environment, submit what the persona perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and the persona decides one action per turn and tells you how it felt. Your code executes the chosen action and loops. The environment loop is decide-only; ish never locates or executes anything in your environment (see ADR-0020/0021).\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **persona**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the persona and is billed for the   session (the create path is `/workspaces/{workspace_id}/agent-sessions`).\n- `persona_id`: the persona the session drives.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. In production this is a **workspace API key** (prefix `ish_sk_`), a workspace-scoped machine principal you mint in Settings → Developers. While API keys are still rolling out, an ish user access token (JWT) is accepted on the same header as an **interim** transport; it will be superseded by keys and should not be relied on for machine-to-machine use.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `persona has no renderable background`) as well   as 401 / 403 / 404 / 409 / 502. `detail` may be a structured object carrying a   machine-readable `error_kind` (e.g. `idempotency_conflict`,   `turn_index_mismatch`, `decision_invalid`).\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **agent sessions**: you open a session for one of your personas inside *your own* environment, submit what the persona perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and the persona decides one action per turn and tells you how it felt. Your code executes the chosen action and loops. The environment loop is decide-only; ish never locates or executes anything in your environment (see ADR-0020/0021).\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **persona**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the persona and is billed for the   session (the create path is `/workspaces/{workspace_id}/agent-sessions`).\n- `persona_id`: the persona the session drives.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close) and `sessions:read` (read the session and trace). An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `persona has no renderable background`) as well   as 401 / 403 / 404 / 409 / 502. `detail` may be a structured object carrying a   machine-readable `error_kind` (e.g. `idempotency_conflict`,   `turn_index_mismatch`, `decision_invalid`).\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
@@ -1018,6 +1019,14 @@
               }
             }
           },
+          "402": {
+            "description": "Workspace spend cap reached; this turn was NOT applied (detail.error_kind = 'spend_cap_exceeded'). Terminal: the session status becomes spend_cap_reached.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
           "404": {
             "content": {
               "application/json": {
@@ -1246,6 +1255,14 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "description": "Per-key session-create quota exceeded (API keys only); transient, retry later.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"

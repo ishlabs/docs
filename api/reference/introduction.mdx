@@ -12,7 +12,7 @@ The reference pages in this section are generated from the API's OpenAPI specifi
 https://api.ishlabs.io
 ```
 
-Every path is versioned under `/api/v1`. Pilot integrators substitute the base URL from their onboarding.
+Every path is versioned under `/api/v1`. Substitute the base URL from your onboarding if you have one.
 
 ## Authentication
 
@@ -22,7 +22,7 @@ Every request carries a bearer token in the `Authorization` header:
 Authorization: Bearer <token>
 ```
 
-In production the token is a workspace API key (prefix `ish_sk_`). While keys roll out, an ish user access token is accepted on the same header as an interim transport. See [authentication](/api/authentication).
+The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**, then **Developers**. An ish user access token also works on the same header for personal scripts. See [authentication](/api/authentication).
 
 ## The operations
 

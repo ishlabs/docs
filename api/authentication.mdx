@@ -1,6 +1,6 @@
 ---
 title: "Authentication"
-description: "How the ish API authenticates requests today, and what changes when workspace keys land."
+description: "Mint a workspace API key, send it as a bearer token, and scope and rotate it."
 mode: "how-to"
 ---
 
@@ -11,30 +11,47 @@ curl -sS "$API_URL/api/v1/agent-sessions/$SESSION_ID" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-A request with no token, an invalid token, or an expired one returns a `401`.
+A request with no token, or an invalid one, returns a `401`.
 
-## Getting a token today
+## Mint a workspace key
 
-During the pilot, an ish contact provisions and rotates a token for your workspace. Treat it as a rotating secret: keep it out of client-side code and source control, and read it from an environment variable or a secret store.
+Create an API key in the product app under **Settings**, then **Developers**. Any member of the workspace can mint one. A key is a workspace-scoped machine principal: it acts on behalf of the workspace, and it only ever reaches the personas and sessions that workspace owns.
+
+A key looks like `ish_sk_live_...`. **It is shown once, at creation.** Copy it then; the product app masks it afterward and cannot show it again. Store it in a secret manager or an environment variable, never in client-side code or source control.
 
 <Warning>
-  Pilot tokens are short-lived (about 1 hour). When one expires, calls return `401`. Request a fresh token from your ish contact and retry. Build your integration to refresh on a `401` rather than assuming a token lasts a whole session.
+  Treat a key like a password. If one leaks, revoke it (below) and mint a replacement. Anyone holding the key has the workspace access its scopes grant.
 </Warning>
 
-## Durable workspace keys are coming
+## Scopes
 
-Per-workspace API keys that you mint and rotate yourself are on the way. You will create them in the product app under **Settings, then Developers**, see each key once at creation, and revoke or rotate them without involving an ish contact. Keys are scoped to a single workspace, so a key only ever reaches the personas and sessions that workspace owns.
+A key carries one or both of two session scopes. Grant only what the integration needs.
 
-The transport stays the same: a key travels in the `Authorization: Bearer` header exactly where the pilot token goes today, so code written now keeps working. When keys ship, this page documents the exact key format, minting flow, and scopes.
+| Scope | Grants |
+|---|---|
+| `sessions:run` | Create sessions, submit turns, and close sessions (the mutating lane) |
+| `sessions:read` | Read a session and its decision trace |
 
-## The four values you need
+A key without the scope an operation requires is refused. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
 
-The API examples throughout these docs use four placeholders. Two of them are ids you own.
+## Rotate a key
+
+There is no in-place rotation. To rotate, mint a new key, move your integration onto it, then revoke the old one from **Settings**, then **Developers**. Because a workspace can hold several live keys at once, you can overlap the two long enough to cut over with no downtime, then revoke the old key.
+
+Revoking a key takes effect immediately: the next request that presents it returns a `401`.
+
+## User tokens for personal scripts
+
+An ish user access token also works on the same `Authorization: Bearer` header. It is fine for a quick personal script you run as yourself, but it is tied to your user session rather than the workspace, so it is not the right credential for a deployed integration. Use a workspace key for anything machine-to-machine.
+
+## The values you need
+
+The API examples throughout these docs use a few placeholders.
 
 | Placeholder | What it is | Where it comes from |
 |---|---|---|
 | `API_URL` | Your ish API base | `https://api.ishlabs.io`, or the base URL from your onboarding |
-| `TOKEN` | Your bearer token | Provisioned by your ish contact today |
+| `TOKEN` | Your workspace API key | Minted in **Settings**, then **Developers** |
 | `WORKSPACE_ID` | Your workspace id (a UUID) | The workspace the session runs under (the `workspace_id` path parameter) |
 | `PERSONA_ID` | The persona id (a UUID) | The [persona](/concepts/people) you want to run (the `persona_id` field) |
 
@@ -44,7 +61,7 @@ The persona must be [workspace-owned or a platform-library profile](/api/overvie
 
 <Columns cols={2}>
   <Card title="Quickstart" icon="bolt" href="/api/quickstart">
-    Put a token to work: create a session and run a turn.
+    Put a key to work: create a session and run a turn.
   </Card>
   <Card title="Handling errors" icon="triangle-exclamation" href="/api/guides/session-loop#handling-errors">
     What `401`, `403`, and the rest mean, and how to recover.

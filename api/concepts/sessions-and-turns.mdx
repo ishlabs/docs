@@ -54,8 +54,9 @@ Ending a session is a first-class event, not a side effect, and three parties ca
 | `gave_up` | The persona quit (`gave_up`) |
 | `closed` | You closed it |
 | `max_turns` | The server truncated it at the turn budget |
+| `spend_cap_reached` | The workspace spend cap was reached mid-session; the turn that would exceed it is refused with a `402` |
 
-A natural ending takes precedence over budget truncation, so a persona that finishes on the last allowed turn reports `completed`, never `max_turns`. Session status is an open union: tolerate a status you do not recognize rather than failing on it.
+A natural ending takes precedence over budget truncation, so a persona that finishes on the last allowed turn reports `completed`, never `max_turns`. Session status is an open union: tolerate a status you do not recognize rather than failing on it. `spend_cap_reached` is a case in point: it was added after the first statuses shipped, so a client that hard-coded the original set would have to tolerate it. See [billing and limits](/api/guides/session-loop#billing-and-limits).
 
 ## Related
 
