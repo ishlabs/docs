@@ -4,10 +4,12 @@ description: "The ish MCP server: endpoint, transport, auth, and the shape of it
 mode: "reference"
 ---
 
-The ish MCP server exposes the platform as agent-native tools. It forwards the
-authenticated caller's identity to `api.ishlabs.io` and runs each call against
-that user's workspaces. A connected agent can build studies, draw an audience,
-run simulations, and read back what the simulated people noticed.
+The ish MCP server is the **hosted, agent-native surface** for ish: the place any MCP
+agent drives the platform, including general assistants with no access to your machine
+or filesystem. Connect to it directly — you don't also need the CLI. It forwards the
+authenticated caller's identity to `api.ishlabs.io` and runs each call against that
+user's workspaces. A connected agent can build studies, draw an audience, run
+simulations, and read back what the simulated people noticed.
 
 ## Endpoint
 
@@ -73,6 +75,14 @@ The hosted server exposes 40 tools, 10 resources, and no prompts.
   the hosted server, because the server's `localhost` is not the user's machine.
   It appears only when you run the server on your own machine. The
   `connect_status` read tool stays available on both.
+</Note>
+
+<Note>
+  **Not on the hosted MCP: your machine.** The hosted server has no access to your
+  filesystem, your `localhost`, or your simulators, so testing a web, iOS, or Android
+  app that runs locally is a [CLI capability](/concepts/cli-and-mcp#what-only-the-cli-can-do).
+  You can expose a local **web** build to an agent with `ish connect` (the tunnel runs
+  from the CLI), but native iOS and Android runs stay on the CLI.
 </Note>
 
 For the full tool and parameter tables, see the [tool index](/mcp/generated/index)

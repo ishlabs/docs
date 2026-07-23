@@ -9,6 +9,8 @@ You can simulate visits to something you are running locally two ways, and they 
 - `ish study run --local` runs the browser **on your machine** (Playwright), straight at `http://localhost:3000`. No tunnel, nothing leaves your laptop. Interactive studies only.
 - `ish connect <port>` opens a Cloudflare tunnel so the **remote simulators** (the browser runs in the cloud) can reach your localhost. Use it when the run is dispatched in the cloud, which includes every run through the [hosted MCP server](/mcp/overview).
 
+Both are **CLI capabilities**: they run on your own machine. The hosted [MCP server](/mcp/overview) has no path to your `localhost`, so when an agent drives a cloud run against a local build, the `ish connect` tunnel still has to come from the CLI on your machine.
+
 New to the pieces here? Skim [run vs ask](/concepts/run-vs-ask) and [study](/concepts/study) first; this page assumes them.
 
 ## Choose the mechanism
@@ -30,6 +32,22 @@ New to the pieces here? Skim [run vs ask](/concepts/run-vs-ask) and [study](/con
 | Watch the browser live | Yes (`--headed`, `--slow-mo`, `--devtools`) | No |
 | Works through the hosted MCP server | No (it dispatches in the cloud) | Yes |
 | Your localhost exposed to the internet | No | Yes, for the tunnel's lifetime |
+
+```mermaid
+flowchart LR
+  subgraph local["study run --local"]
+    direction LR
+    PW["Playwright browser<br/>on your machine"] --> LH1["localhost:3000"]
+  end
+
+  subgraph connect["ish connect"]
+    direction LR
+    CB["cloud browser"] --> TUN["Cloudflare tunnel<br/>(*.trycloudflare.com)"]
+    TUN --> LH2["localhost:3000<br/>on your machine"]
+  end
+```
+
+In the local flow the browser and your app sit on the same machine, so nothing leaves the laptop. In the connect flow the browser runs in the cloud and reaches back through the tunnel.
 
 <Tip>
 If you are on the CLI and just want to see what simulated people make of your dev server, reach for `study run --local` first. Reach for `ish connect` only when the run is dispatched in the cloud and has to reach back to your machine.

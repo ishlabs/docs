@@ -15,3 +15,17 @@
 html.dark [data-component-part="card-icon"] svg {
   background-color: #e8e3de !important;
 }
+
+/* Image-based client/install logos (/images/logos/*.svg) are <img> with a hardcoded black
+   fill and no dark variant, so they vanish on the dark card surface. Recolor them to the same
+   warm light tone as the named icons in dark mode (monochrome silhouettes, so invert is safe). */
+html.dark img[src*="/logos/"] {
+  filter: invert(0.91) brightness(1.03);
+}
+
+/* Card polish: warm accent border + subtle lift on hover across card grids. */
+#content-area a[href] > div:hover,
+.ish-card:hover {
+  border-color: #d87a55;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}

@@ -6,6 +6,12 @@ mode: "how-to"
 
 Wire Claude Code to the hosted ish MCP server so the agent can call ish tools (`study_run`, `ask_run`, `person_generate`, and the rest) from your terminal. The server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in over OAuth on first connect, so no token is written to your config.
 
+<Note>
+  **Connect Claude Code.** Run `claude mcp add --transport http --scope user ish
+  https://mcp.ishlabs.io/mcp` in your terminal, or use the "Copy MCP server URL"
+  action in this page's "..." menu to grab the URL. The full steps are below.
+</Note>
+
 <Info>
   You need an ish account. If you do not have one, [get ish free](https://app.ishlabs.io)
   first. The OAuth step signs Claude Code in as you.
@@ -101,12 +107,14 @@ You get a narrative reaction with the reasoning attached, not a single score. Th
 
 ## Point a study at localhost
 
-To simulate a build running on your own machine, open a tunnel with [`ish connect`](/cli/generated/connect), then point the study at the tunnel URL or use `platform="code"`. Before dispatching, Claude Code can call [`connect_status`](/mcp/generated/tools-connect) to confirm the tunnel is registered, so a missing tunnel fails fast instead of stalling inside the cloud browser.
+To simulate a build running on your own machine, open a tunnel with [`ish connect`](/cli/generated/connect) — a CLI command you run on the same machine, since the hosted MCP server can't reach your localhost itself — then point the study at the tunnel URL or use `platform="code"`. Before dispatching, Claude Code can call [`connect_status`](/mcp/generated/tools-connect) to confirm the tunnel is registered, so a missing tunnel fails fast instead of stalling inside the cloud browser.
+
+The tunnel reaches a local **web** build. Native iOS and Android apps run locally through the CLI (`ish study run --local --platform ios|android`), not over the MCP. See [the CLI and the MCP server](/concepts/cli-and-mcp#what-only-the-cli-can-do).
 
 ## Where to go next
 
 <Columns cols={2}>
-  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+  <Card title="Every MCP tool" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     All 40 hosted tools, grouped by domain, each with its annotation tier.
   </Card>
   <Card title="MCP resources" icon="folder-open" href="/mcp/generated/resources">

@@ -201,12 +201,21 @@ study_run(study_id="s-b2c", audience={"sample": 5})
 
 ## Related
 
-- [Workspace](/concepts/workspace), [study](/concepts/study), and the
-  [run vs ask](/concepts/run-vs-ask) distinction, the three things active context
-  tracks.
-- [Session reference](/cli/generated/session) for the full `status` / `whoami`
-  output and JSON shape.
-- [Global flags](/cli/global-flags) for `--workspace` / `--study` / `--ask`,
-  aliases, capture mode, and exit codes.
-- [Tool conventions](/mcp/tool-conventions) for how aliases carry identity across
-  MCP calls.
+<Columns cols={2}>
+  <Card title="Workspace" icon="folder-open" href="/concepts/workspace">
+    The parent scope active context tracks, and how a command resolves which one
+    to act on.
+  </Card>
+  <Card title="Runs and asks" icon="play" href="/concepts/run-vs-ask">
+    The study-versus-ask distinction behind the `study` and `ask` handles.
+  </Card>
+  <Card title="Session reference" icon="terminal" href="/cli/generated/session">
+    The full `status` / `whoami` output and JSON shape.
+  </Card>
+  <Card title="Global flags" icon="keyboard" href="/cli/global-flags">
+    `--workspace` / `--study` / `--ask`, aliases, capture mode, and exit codes.
+  </Card>
+  <Card title="Tool conventions" icon="/images/logos/mcp.svg" href="/mcp/tool-conventions">
+    How aliases carry identity across MCP calls without a saved context.
+  </Card>
+</Columns>

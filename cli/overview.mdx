@@ -4,7 +4,46 @@ description: "Install the ish CLI, keep it current, and find the right command."
 mode: "reference"
 ---
 
-The ish CLI (`@ishlabs/cli`, binary `ish`) drives ish from a terminal or a coding agent. It ships as a single standalone binary (from the install script or Homebrew) or as a global npm package. Both expose the same commands.
+The ish CLI (`@ishlabs/cli`, binary `ish`) drives ish from a terminal or a local coding agent. It is the **local surface** for ish: it runs on your machine, so it is the choice for local development and the only way to test a web, iOS, or Android app running on your own machine (the hosted MCP server can't reach your machine). If you'd rather drive ish from an agent without local access, use the [MCP server](/mcp/overview) instead — you don't need both. See [the CLI and the MCP server](/concepts/cli-and-mcp) for the full comparison.
+
+It ships as a single standalone binary (from the install script or Homebrew) or as a global npm package. Both expose the same commands.
+
+Install it with one line:
+
+```bash
+curl -fsSL https://ishlabs.io/install.sh | sh
+```
+
+Then sign in, point a study at a URL, and read what one simulated person noticed:
+
+```bash
+ish login
+ish study create --name "Landing page" --modality interactive --url https://example.com \
+  --assignment "First look:Decide if you would keep reading" \
+  --question "What stood out, and what was confusing?"
+ish study run --sample 1 -y --wait
+ish study results --summary
+```
+
+The run prints progress on stderr, then the reported journey. Output looks like this (representative):
+
+```text Representative output
+✓ study created  s-b2c  "Landing page"
+✓ run dispatched  1 person  ...done
+Sentiment   positive
+Noticed     The headline framed the value before the form.
+Stuck       Pricing was two scrolls down; expected it above the fold.
+Next        Would click "See plans" if it were visible sooner.
+```
+
+What you can do from the CLI:
+
+- Create studies across modalities (interactive, text, video, audio, image, document, chat) and run them with [`ish study`](/cli/generated/study).
+- Draw and inspect a simulated audience with [`ish person`](/cli/generated/person).
+- Compare variants fast with [`ish ask`](/cli/generated/ask), without a full study run.
+- Read back the reported journey and slice it with [`ish study results`](/cli/generated/study-results).
+- Expose a `localhost` build to simulated people with [`ish connect`](/cli/generated/connect).
+- Share a result as a public link and script the whole flow in CI.
 
 For a guided first run, see the [quickstart](/quickstart). For the full per-command flag tables, see the [command index](/cli/generated/index). Global flags, the auth token resolution order, and exit codes live on the [global flags](/cli/global-flags) page.
 

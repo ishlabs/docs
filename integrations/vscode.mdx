@@ -13,6 +13,13 @@ mechanism and the OAuth handshake, see [connect an agent](/start/connect-an-agen
 VS Code holds MCP servers under a top-level `servers` key (most other clients use
 `mcpServers`), and each ish block is `{ "type": "http", "url": "..." }`.
 
+<Note>
+  **Connect VS Code in one click.** Use the "Connect to VS Code" action in this
+  page's "..." menu to install the ish server straight into VS Code. To wire it
+  yourself, the server URL is `https://mcp.ishlabs.io/mcp` and the manual steps
+  are below.
+</Note>
+
 ## Connect
 
 Pick one path. All three write the same VS Code MCP config and end with the same OAuth
@@ -181,7 +188,7 @@ ish mcp remove --client vscode --yes
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+  <Card title="Every MCP tool" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     All 40 hosted tools, grouped by domain.
   </Card>
   <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">

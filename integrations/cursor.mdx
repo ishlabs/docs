@@ -10,6 +10,13 @@ The server lives at `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and si
 you in over OAuth on first connect, so no token ever lands in a config file. For the
 full add mechanism and the OAuth handshake, see [connect an agent](/start/connect-an-agent).
 
+<Note>
+  **Connect Cursor in one click.** Use the "Connect to Cursor" action in this
+  page's "..." menu to install the ish server straight into Cursor. To wire it
+  yourself, the server URL is `https://mcp.ishlabs.io/mcp` and the manual steps
+  are below.
+</Note>
+
 ## Connect
 
 Pick one path. Both write the same `~/.cursor/mcp.json` server block and end with the
@@ -143,7 +150,7 @@ versus a quick `ask_run`, see [run vs ask](/concepts/run-vs-ask).
 ## Next steps
 
 <Columns cols={2}>
-  <Card title="Every MCP tool" icon="cube" href="/mcp/generated/index">
+  <Card title="Every MCP tool" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     All 40 hosted tools, grouped by domain.
   </Card>
   <Card title="Run a study" icon="play" href="/mcp/generated/tools-study">

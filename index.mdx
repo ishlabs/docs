@@ -10,8 +10,8 @@ where they got stuck, and what they would do next, before it ships.
 
 The output is a reported journey: sentiment, friction, blockers, positive moments,
 completion, each carrying the reasoning behind it. You see why a reaction happened, not
-just a number. ish is honest about the approximation. An ish of someone is close enough
-to make a better decision, not a precise prediction.
+just a number. An ish of someone is close enough to make a better decision, not a precise
+prediction.
 
 <Note>
   Reach for ish when the question is "will this land before we put it in front of
@@ -19,6 +19,27 @@ to make a better decision, not a precise prediction.
   not a scoring tool, and not a chatbot you talk to. Simulated people experience your
   artifact and report back.
 </Note>
+
+## Install, connect, run, share
+
+<Steps>
+  <Step title="Install" icon="download">
+    Drop the CLI on your PATH with one line, or wire ish into your agent over MCP.
+    [Install the CLI](/start/cli-quickstart).
+  </Step>
+  <Step title="Connect" icon="plug">
+    Point a client at the hosted MCP server, or sign in from the terminal with
+    `ish login`. [Connect an agent](/start/connect-an-agent).
+  </Step>
+  <Step title="Run" icon="play">
+    Create a study, draw an audience, and simulate a visit.
+    [Run a study end to end](/guides/first-study).
+  </Step>
+  <Step title="Share" icon="share">
+    Hand anyone a public, no-login link to the reported journey.
+    [Share results](/concepts/sharing).
+  </Step>
+</Steps>
 
 ## The shape of a run
 
@@ -33,23 +54,31 @@ Every run follows the same arc, whichever surface you drive it from:
 A study covers any pre-ship artifact, not just web pages: interactive (a URL), text,
 video, audio, image, document, and chat (probe an external chatbot endpoint).
 
-## Two ways to drive it
+## Choose how you build
 
-One backend, two developer surfaces. Pick the one that fits how you work.
+One backend, two independent surfaces — the **CLI** and the **MCP server**. You don't
+need both; pick the one that fits where you work. The CLI runs on your machine (local
+development, scripts, local coding agents); the MCP server is for agents, including
+hosted ones with no access to your machine.
 
-<Columns cols={2}>
+<Columns cols={3}>
   <Card title="The ish CLI" icon="terminal" href="/start/cli-quickstart">
     Install `@ishlabs/cli`, sign in, and simulate your first visit from the terminal.
-    Built for humans at a prompt and for scripts in CI.
+    The local surface — built for a prompt and for CI, and the only way to test a web,
+    iOS, or Android app running on your own machine.
   </Card>
-  <Card title="ish over MCP" icon="plug" href="/start/connect-an-agent">
-    Connect ish to your AI agent over the hosted MCP server at `mcp.ishlabs.io/mcp`,
-    then run studies as agent-native tools.
+  <Card title="ish over MCP" icon="/images/logos/mcp.svg" href="/start/connect-an-agent">
+    Connect any agent — including hosted assistants with no access to your machine — to
+    the MCP server at `mcp.ishlabs.io/mcp`, then run studies as agent-native tools.
+  </Card>
+  <Card title="Your AI client" icon="grid-2" href="/integrations">
+    Claude, Cursor, ChatGPT, VS Code, and more. Each connects to the MCP server and
+    signs in the same way.
   </Card>
 </Columns>
 
-The CLI and the MCP server speak to the same platform, so a study you create in one is
-visible in the other.
+Each surface works on its own, so you never need both. They do share one backend, so if
+you happen to use both, a study you create in one shows up in the other.
 
 ## Connect an AI agent
 
@@ -73,8 +102,11 @@ The MCP server wires into the clients you already use. OAuth runs on first conne
   <Card title="CLI reference" icon="terminal" href="/cli/generated/index">
     Every command and flag, grouped by namespace.
   </Card>
-  <Card title="MCP reference" icon="cube" href="/mcp/generated/index">
+  <Card title="MCP reference" icon="/images/logos/mcp.svg" href="/mcp/generated/index">
     Every tool and resource the hosted server exposes.
+  </Card>
+  <Card title="The ish API" icon="diagram-project" href="/api/overview">
+    Put a persona in the decision loop of your own environment, turn by turn.
   </Card>
   <Card title="Get ish free" icon="arrow-up-right" href="https://app.ishlabs.io">
     Create an account and keep your studies.
