@@ -170,6 +170,32 @@
         ]
       },
       {
+        "tab": "API",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["api/overview", "api/quickstart", "api/authentication"]
+          },
+          {
+            "group": "Core concepts",
+            "pages": [
+              "api/concepts/sessions-and-turns",
+              "api/concepts/observations",
+              "api/concepts/decide-only-loop",
+              "api/concepts/intent-and-resolution"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "api/guides/session-loop",
+              "api/guides/environment-authoring",
+              "api/guides/scoring-outcomes"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "Help",
         "groups": [
           {
@@ -208,7 +234,8 @@
     }
   },
   "redirects": [
-    { "source": "/quickstart", "destination": "/start/cli-quickstart" }
+    { "source": "/quickstart", "destination": "/start/cli-quickstart" },
+    { "source": "/api", "destination": "/api/overview" }
   ],
   "contextual": {
     "options": ["copy", "view", "chatgpt", "claude", "mcp", "cursor", "vscode"]

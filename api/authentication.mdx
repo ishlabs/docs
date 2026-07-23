@@ -1,0 +1,53 @@
+---
+title: "Authentication"
+description: "How the ish API authenticates requests today, and what changes when workspace keys land."
+mode: "how-to"
+---
+
+Every request to the ish API carries a bearer token in the `Authorization` header:
+
+```bash
+curl -sS "$API_URL/api/v1/agent-sessions/$SESSION_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+A request with no token, an invalid token, or an expired one returns a `401`.
+
+## Getting a token today
+
+During the pilot, an ish contact provisions and rotates a token for your workspace. Treat it as a rotating secret: keep it out of client-side code and source control, and read it from an environment variable or a secret store.
+
+<Warning>
+  Pilot tokens are short-lived (about 1 hour). When one expires, calls return `401`. Request a fresh token from your ish contact and retry. Build your integration to refresh on a `401` rather than assuming a token lasts a whole session.
+</Warning>
+
+## Durable workspace keys are coming
+
+Per-workspace API keys that you mint and rotate yourself are on the way. You will create them in the product app under **Settings, then Developers**, see each key once at creation, and revoke or rotate them without involving an ish contact. Keys are scoped to a single workspace, so a key only ever reaches the personas and sessions that workspace owns.
+
+The transport stays the same: a key travels in the `Authorization: Bearer` header exactly where the pilot token goes today, so code written now keeps working. When keys ship, this page documents the exact key format, minting flow, and scopes.
+
+## The four values you need
+
+The API examples throughout these docs use four placeholders. Two of them are ids you own.
+
+| Placeholder | What it is | Where it comes from |
+|---|---|---|
+| `API_URL` | Your ish API base | `https://api.ishlabs.io`, or the base URL from your onboarding |
+| `TOKEN` | Your bearer token | Provisioned by your ish contact today |
+| `PRODUCT_ID` | Your workspace id (a UUID) | The workspace the session runs under |
+| `PERSON_ID` | The persona id (a UUID) | The [persona](/concepts/people) you want to run |
+
+{/* E2-VOCAB: PRODUCT_ID names the workspace id (product_id wire field); PERSON_ID names the persona id (person_id wire field) */}
+`PRODUCT_ID` is your workspace id and `PERSON_ID` is the persona id, as the wire names them today. The persona must be [workspace-owned or a platform-library profile](/api/overview#which-personas-you-can-run); anything else returns a `403`.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/api/quickstart">
+    Put a token to work: create a session and run a turn.
+  </Card>
+  <Card title="Handling errors" icon="triangle-exclamation" href="/api/guides/session-loop#handling-errors">
+    What `401`, `403`, and the rest mean, and how to recover.
+  </Card>
+</Columns>

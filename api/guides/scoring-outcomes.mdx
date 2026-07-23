@@ -1,0 +1,42 @@
+---
+title: "Score outcomes"
+description: "The persona's words are perception, not a verdict. Judge task success from your own environment's state."
+mode: "how-to"
+---
+
+The persona tells you how a moment felt: a `comment`, a `sentiment`, a `status`. That is its **perception**, not a judgment of whether the task actually succeeded. A persona can be confidently wrong, exactly as a real person can. If you score success off its words, you will record passes on failed goals.
+
+## The persona can be confidently wrong
+
+In a real run where a volume control had been secretly reversed, the persona declared "Volume 10 is perfect!" and finished with a `completed` status, while the frame plainly read **VOL 12**. Scoring off `session_status` and `sentiment` would have logged a clean pass on a broken control.
+
+This is not a defect in the persona; it is the point. The persona is the **experience layer**: did the interface feel confusing, where did it hesitate, what did it misread. A real person would have made the same mistake in front of the same reversed control. What the persona cannot be is the **verdict layer**, the source of truth on whether the goal was met.
+
+## Score from your own state
+
+Judge task outcomes from your environment's own state, the ground truth you already hold, and never from the persona's narration.
+
+1. Keep a source of truth in your environment: the value the control was set to, the page the flow reached, the order that was placed.
+2. After the run, assert against that state on your side. Did the volume reach the target? Did the checkout complete?
+3. Use the persona's `comment`, `sentiment`, and `felt_intensity` for the experience read: where it hesitated, what confused it, where friction showed up.
+
+The two layers answer different questions. Your state answers "did it work". The persona answers "how did it feel to try". You want both, kept separate.
+
+## Never feed your state to the persona
+
+If your web adapter exposes a `state()` method (see [author your environment](/api/guides/environment-authoring#the-web-adapter)), it is for your own scoring only. **Never send that state to the persona as an observation.** The persona perceives only rendered senses; handing it the true state turns it from a simulated human into a solver and destroys the very signal you are running it for. Keep `state()` on your side of the wire, and assert against it there.
+
+## In intent mode, no_match is its own signal
+
+A `no_match` resolution is not a failure to score against your state; it is a finding in its own right. The persona reached for something your environment does not offer, and `unmet_expectation` names the gap. Read those alongside your state assertions: your state tells you whether the goal was met, and the `no_match` stream tells you where the persona expected an affordance that was not there. See [intent and resolution](/api/concepts/intent-and-resolution#the-finding-channel).
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Intent and resolution" icon="route" href="/api/concepts/intent-and-resolution">
+    Where the finding signal comes from in intent mode.
+  </Card>
+  <Card title="Observations" icon="eye" href="/api/concepts/observations">
+    Why the persona must never see your ground-truth state.
+  </Card>
+</Columns>

@@ -1,0 +1,140 @@
+---
+title: "Run the session loop"
+description: "The complete integration contract: turn ordering, errors as observations, retries, pagination, and idempotency."
+mode: "how-to"
+---
+
+This is the complete contract for driving a session turn by turn. The [quickstart](/api/quickstart) runs one happy-path turn; this page covers the ordering rule that trips people up, how errors travel, how to index turns, and how to recover from each failure. If you follow one thing here, make it [the loop order](#the-loop-order).
+
+## The loop order
+
+Each turn hands you a decision and a session status. Act on them **in this order**:
+
+1. **If `action_name` is non-null, execute it first**, even if this turn is terminal. A non-null action is always yours to run. If executing fails, add an `error` block to your next turn.
+2. **Then honor `session_status`.** If it is anything other than `open` (`completed`, `gave_up`, `max_turns`), stop, after executing any action from step 1.
+3. **Otherwise (`open`), take the next turn.** If you executed an action, capture the new frame and submit at `turn_index + 1`. If `action_name` was null (an intent `no_match` or `none_needed`), execute nothing, the world is unchanged, and submit the next turn anyway. The outcome feeds back to the persona.
+
+<Warning>
+  A terminal turn can still carry your last action. The persona often bundles its final action with `done` in the **same** response: a non-null `action_name` and a terminal `session_status` together. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action. The TV never powers off; the order never places. `session_status` describes the persona's decision state, never your obligation to execute a returned action.
+</Warning>
+
+The persona may also **split** the two: the action on a `continue` turn, then `done` with a null `action_name` on the next turn. Both bundled and split are valid, and the ordering above handles both. Execute a non-null action, then check the status.
+
+## Errors are observations
+
+There is no separate "executed" field on a turn. When an action you executed fails, you report it as an `error` observation block on the **next** turn, alongside the image:
+
+```json
+{
+  "turn_index": 3,
+  "observation": [
+    { "type": "image", "data": "<base64 PNG>" },
+    { "type": "error", "data": "The power button did not respond." }
+  ],
+  "valid_actions": [ ... ]
+}
+```
+
+A failed execution is something a person would perceive, a dead button or a blocked door, so it travels through the same channel as everything else the persona senses. One turn carries **exactly one image block**; the optional `error` block is additional, never a second image.
+
+## Turn indexing
+
+The `turn_index` on a turn must equal the session's current turn count. The first turn is `0`, and every recorded turn increments it by one.
+
+**Every returned turn is recorded, including `no_match` and `none_needed` turns.** Drive the next index off the response's `turn_index`, plus one, not off whether you executed anything. Two cases move differently:
+
+- A `502 decision_invalid` records **nothing**. Retry the **same** `turn_index` with a fresh frame.
+- A `409 turn_index_mismatch` hands you the index the server expected. Resubmit with `turn_index` set to that `expected_turn_index`.
+
+## Reading the trace
+
+Read a session back to replay its decisions. The trace is a cursor page: pass `after_index` to get turns strictly after an index and `limit` to size the page (default 50, max 200). Page again with `after_index` set to the last index you received while `has_more` is true.
+
+```bash
+curl -sS "$API_URL/api/v1/agent-sessions/$SESSION_ID?after_index=0&limit=50" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+The model behind the page is in [sessions and turns](/api/concepts/sessions-and-turns).
+
+## Idempotency and replay
+
+The create call takes an optional `Idempotency-Key` header. The same key with the same body returns the existing session (`200`, not `201`); the same key with a different body is a `409` with `error_kind: idempotency_conflict`.
+
+Turns have a related safety net. An exact-duplicate replay of your **final** turn, the same `turn_index`, the same `observation`, the same `valid_actions`, returns the stored decision **even after the session has ended**. Replay is checked before the "is the session open?" guard, so a lost response to the last turn is always safe to retry. A *different* body at that index is a `turn_index_mismatch`.
+
+## Handling errors
+
+| Status | When | What to do |
+|---|---|---|
+| `401` | Missing, invalid, or expired token (pilot tokens last about 1 hour) | Refresh the token and retry. See [authentication](/api/authentication). |
+| `403` | Persona out of scope (must be workspace-owned or platform-library) | Use an in-scope persona id. |
+| `404` | Workspace, session, or persona not found or unreachable by your token | Check the ids and that your token's workspace owns them. |
+| `409` `turn_index_mismatch` | Wrong turn index | Resubmit with `turn_index` set to the `expected_turn_index` in the body. |
+| `409` session ended | You posted a turn after the session closed or terminated | The session is terminal; start a new one. |
+| `409` `idempotency_conflict` | Reused an `Idempotency-Key` with a different body | Use a fresh key, or send the identical body to replay. |
+| `413` | Request body too large (the base64 frame) | Reduce the frame's dimensions. See [frame size](/api/guides/environment-authoring#frame-size). |
+| `422` | Validation error (two envelope shapes, below) | Fix the payload. |
+| `502` `decision_invalid` | The persona produced an invalid choice twice; no turn was recorded | Retriable: resubmit the **same** `turn_index` with a fresh frame. |
+
+### Two shapes of 422
+
+Validation errors come back in two shapes, so parse defensively:
+
+- **A malformed request** (wrong types, a missing field, an invalid observation `type`, a bad enum value, `parameters` outside the allowed subset) returns a structured envelope with an `errors` array of field locations:
+
+  ```json
+  {
+    "error": "Validation error",
+    "error_code": "validation_error",
+    "status": 422,
+    "retryable": false,
+    "detail": "Validation error",
+    "errors": [ { "loc": ["body", "observation", 0, "type"], "msg": "...", "type": "..." } ]
+  }
+  ```
+
+- **A business-rule rejection** raised inside the endpoint (for example "exactly one image observation block is required", or a declared-action that is not enum-or-string) returns a plain `detail`:
+
+  ```json
+  { "detail": "exactly one image observation block is required", "request_id": "..." }
+  ```
+
+## Open unions: tolerate unknown values
+
+`sentiment`, `session_status`, `resolution`, and the observation block `type` are **open unions**. New values may be added over time. Tolerate a value you do not recognize rather than hard-failing on it. The 11 sentiments today are `Delighted`, `Excited`, `Confident`, `Satisfied`, `Relieved`, `Neutral`, `Confused`, `Uncertain`, `Anxious`, `Frustrated`, and `Disengaged`, and `felt_intensity` is one of `mild`, `moderate`, or `strong`.
+
+## The reference loop
+
+The whole contract in one place, in any language:
+
+```text
+create session               -> session_id ; turn_index = 0 ; pending_error = null
+loop:
+    actions = observe_available_actions()        # what a user could do right now
+    frame   = capture_frame_png_base64()         # the current view
+    obs     = [ {type:"image", data:frame} ] + (pending_error ? [pending_error] : [])
+    resp    = POST /agent-sessions/{id}/turns  { turn_index, observation:obs, valid_actions:actions }
+        on 409 turn_index_mismatch -> turn_index = err.expected_turn_index ; continue
+        on 502 decision_invalid    -> retry SAME turn_index with a fresh frame
+    d = resp.decision
+    if d.action_name != null:                     # ALWAYS execute a non-null action FIRST,
+        ok = execute(d.action_name, d.arguments)  # even on a terminal turn (action + done can bundle)
+        pending_error = ok ? null : {type:"error", data:"<what failed>"}
+    else:
+        pending_error = null                      # no_match / none_needed: nothing to execute
+    if resp.session_status != "open": break       # THEN stop: completed / gave_up / max_turns
+    turn_index = resp.turn_index + 1              # every returned turn is recorded
+DELETE /agent-sessions/{id}                        # when you are done
+```
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Author your environment" icon="pen-ruler" href="/api/guides/environment-authoring">
+    Declare actions, write labels, size frames.
+  </Card>
+  <Card title="Score outcomes" icon="ruler-combined" href="/api/guides/scoring-outcomes">
+    Judge success from your state, not the persona's words.
+  </Card>
+</Columns>

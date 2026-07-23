@@ -1,0 +1,157 @@
+---
+title: "Quickstart"
+description: "Create a session, run one turn of the loop, and read how the persona reacted."
+mode: "tutorial"
+---
+
+This walks one happy path: create a session, send the first turn, read the persona's decision, and close. By the end you will have run one full turn of the loop and seen the shape of every response. For the complete integration contract (ordering, retries, pagination, every error), follow [run the session loop](/api/guides/session-loop) next.
+
+<Info>
+  You need a workspace, a persona to run, and a bearer token. See [authentication](/api/authentication) for how to get a token today. The examples use `api.ishlabs.io` as a placeholder base; pilot integrators substitute the base URL from their onboarding.
+</Info>
+
+## Step 1: set your placeholders
+
+Four values stand in for yours throughout. `PRODUCT_ID` is your workspace id and `PERSON_ID` is the persona id, as the wire names them today.
+
+{/* E2-VOCAB: PRODUCT_ID -> workspace id, PERSON_ID -> persona id */}
+```bash
+export API_URL="https://api.ishlabs.io"   # your ish API base
+export TOKEN="..."                         # your bearer token
+export PRODUCT_ID="..."                     # the workspace the session runs under (UUID)
+export PERSON_ID="..."                      # the persona to run (UUID)
+```
+
+## Step 2: create a session
+
+A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the persona, a goal, a description of the environment, and a pacing contract.
+
+{/* E2-VOCAB: create path /products/{product_id}/agent-sessions -> /workspaces/{workspace_id}/agent-sessions; person_id -> persona_id */}
+```bash
+curl -sS -X POST "$API_URL/api/v1/products/$PRODUCT_ID/agent-sessions" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+  -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
+{
+  "person_id": "$PERSON_ID",
+  "goal": "Turn the TV on and find something you would actually watch.",
+  "environment": { "name": "tv_remote", "platform": "device" },
+  "pacing": "frame_on_demand",
+  "max_turns": 20,
+  "reasoning_effort": "low"
+}
+JSON
+```
+
+The response is a `201`:
+
+```json
+{ "id": "b1c2...uuid", "status": "open", "decision_mode": "intent", "turn_count": 0, "max_turns": 20 }
+```
+
+`decision_mode` echoes your workspace's resolved default. Because you can omit it on create, this is how you discover the mode you are in. Plan for `intent`. Capture the id:
+
+```bash
+export SESSION_ID="b1c2...uuid"   # the "id" from the create response
+```
+
+<Tip>
+  The optional `Idempotency-Key` header makes create retry-safe. The same key with the same body returns the existing session (`200`, not `201`); the same key with a different body is a `409`.
+</Tip>
+
+## Step 3: submit the first turn
+
+Each turn sends what the persona perceives (one image block) plus the actions available this turn. The `turn_index` must equal the session's current turn count, so the first turn is `0`.
+
+The `data` below is a valid 1x1 PNG placeholder. In practice you send a real screenshot; see [frame size](/api/guides/environment-authoring#frame-size) for dimensions.
+
+```bash
+IMG="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4YWMDAAMQAUEiFmcFAAAAAElFTkSuQmCC"
+curl -sS -X POST "$API_URL/api/v1/agent-sessions/$SESSION_ID/turns" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @- <<JSON
+{
+  "turn_index": 0,
+  "observation": [ { "type": "image", "data": "$IMG" } ],
+  "valid_actions": [
+    {
+      "name": "press_button",
+      "description": "Press a button on the remote.",
+      "parameters": {
+        "type": "object",
+        "properties": { "button": { "enum": ["power", "ch_up", "ch_down", "vol_up", "vol_down", "mute"] } },
+        "required": ["button"]
+      }
+    }
+  ],
+  "frame_age_ms": 0
+}
+JSON
+```
+
+## Step 4: read the decision and act
+
+The turn response carries the persona's decision and the session status after the turn:
+
+```json
+{
+  "turn_id": "...uuid",
+  "turn_index": 0,
+  "decision": {
+    "action_name": "press_button",
+    "arguments": { "button": "power" },
+    "comment": "Let me switch it on.",
+    "sentiment": "Confident",
+    "felt_intensity": "mild",
+    "status": "continue",
+    "intent": "turn the tv on",
+    "resolution": "matched",
+    "unmet_expectation": null
+  },
+  "session_status": "open",
+  "usage": { "turns": 1 }
+}
+```
+
+Act on it in this order:
+
+<Steps>
+  <Step title="Execute a non-null action first">
+    If `action_name` is non-null, carry it out in your environment, **even if this turn is terminal**. Here you press `power`.
+  </Step>
+  <Step title="Then honor the session status">
+    If `session_status` is not `"open"`, stop after executing. Here it is `"open"`, so you continue.
+  </Step>
+  <Step title="Take the next turn">
+    Capture the new frame and submit the next turn at `turn_index + 1`. Every returned turn is recorded, so drive the next index off the response, not off whether you executed.
+  </Step>
+</Steps>
+
+<Warning>
+  A terminal turn can still carry your last action. The persona often bundles its final action with `done` in the same response. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action: the TV never powers off, the order never places. Always read `action_name` and execute it before you stop. Full detail in [run the session loop](/api/guides/session-loop#the-loop-order).
+</Warning>
+
+## Step 5: close the session
+
+When the persona is done or you are, close the session. Closing an already-closed session is a no-op `200`.
+
+```bash
+curl -sS -X DELETE "$API_URL/api/v1/agent-sessions/$SESSION_ID" -H "Authorization: Bearer $TOKEN"
+```
+
+That is the whole loop: create, then observe, decide, execute, repeat, then close.
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Run the session loop" icon="repeat" href="/api/guides/session-loop">
+    The complete contract: turn indexing, retries, bundled and split terminals, every error.
+  </Card>
+  <Card title="Author your environment" icon="pen-ruler" href="/api/guides/environment-authoring">
+    Declare actions, write labels, render frames that decode.
+  </Card>
+  <Card title="Score outcomes" icon="ruler-combined" href="/api/guides/scoring-outcomes">
+    Judge success from your own state, not the persona's words.
+  </Card>
+  <Card title="Sessions and turns" icon="layer-group" href="/api/concepts/sessions-and-turns">
+    The session model, the trace, and pacing.
+  </Card>
+</Columns>

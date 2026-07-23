@@ -1,0 +1,51 @@
+---
+title: "The decide-only loop"
+description: "ish decides, you execute. Why the declared action set is the addressing scheme, and what that buys you."
+mode: "explanation"
+---
+
+The ish API sells the decision, never the execution. Each turn, ish reads your frame and returns exactly one chosen action plus how the persona felt. Carrying that action out is your job, in your own environment. There is no locator, no coordinate resolution, no element matching, and no execution driver anywhere on our side.
+
+## One turn
+
+A turn is a clean split of labor:
+
+1. You send a [human-sensory observation](/api/concepts/observations) plus the set of actions declared available this turn.
+2. ish returns one chosen action from that set, plus the persona's comment, sentiment, felt intensity, and status.
+3. You execute the chosen action in your environment and report the result as the next turn's observation, or as an `error` block if it did not take effect.
+
+You rendered the frame, so you know how to capture it. You built the environment, so you know how to press its own buttons. The one thing left, deciding what a particular human would do, is what ish does.
+
+## The declared action set is the addressing scheme
+
+ish addresses your world only through the labels you declare. There is no other handle. This is the inverse of a fixed-vocabulary approach, and it is the point.
+
+Computer-use APIs fix the vocabulary: the model chooses from a provider-defined action space (click at these coordinates, type, scroll). That works when the environment is a generic screen. ish inverts it: **you declare the action space, per turn, in your environment's own terms**, and ish never owns or resolves those actions. A remote's buttons, a game's moves, a form's fields: you name what is available this turn, and the persona picks from exactly that.
+
+The declaration can change every turn, because what is available changes as the persona moves. A menu opens and new actions appear; a modal closes and they disappear. You send the set that is true right now.
+
+## Why decide-only
+
+The research app already ships a harness that both decides and executes, locating a target in a page and driving a click against it. That harness hit two structural walls:
+
+- **Canvas content has nothing to locate.** When an environment paints to a `<canvas>`, a game, a WebGL scene, a custom-rendered app, there is no addressable element under the pixels for an execute step to grab.
+- **Headless rendering degrades perception** in exactly those environments, so even capturing the frame gets unreliable.
+
+The decide-only loop routes around both. Your environment renders its own frame and executes its own declared action, both of which it already does well. ish only has to decide, which it does from pixels. The persona proved this on a dense 3D scene: valid decisions over a declared action set, with grounded, in-the-moment commentary.
+
+## What it buys you
+
+- **The hard walls become your cheap problem.** Rendering a frame and pressing your own button are things your environment already knows how to do.
+- **A clean, auditable trace.** Server-side session and turn rows give a replayable decision log (the observation reference, the declared set, the chosen action, latency, retries) without you re-sending state, and without ish holding execution liability for what you did with the decision.
+- **Your vocabulary stays yours.** Because ish never defines or resolves actions, the action space stays described in your terms, turn after turn.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Observations" icon="eye" href="/api/concepts/observations">
+    What the persona is allowed to perceive, and why.
+  </Card>
+  <Card title="Sessions and turns" icon="layer-group" href="/api/concepts/sessions-and-turns">
+    The server-side state this loop records.
+  </Card>
+</Columns>

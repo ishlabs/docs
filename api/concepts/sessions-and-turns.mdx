@@ -1,0 +1,69 @@
+---
+title: "Sessions and turns"
+description: "The server-side session model, the decision trace, pacing, and how a session ends."
+mode: "explanation"
+---
+
+A session is the unit of work in the ish API: one persona, one goal, inside one environment, over a series of turns. State lives on the server as a session row plus one row per turn. You send only the per-turn delta and never re-transmit history. The session *is* the decision trace.
+
+## The shape of a session
+
+A session moves through three phases:
+
+1. **Create.** You name the persona, the goal, the environment, and a pacing contract. The server opens the session and returns its id.
+2. **Turns.** Each turn you send what the persona perceives plus the actions available, and read back the persona's decision. The server records every turn.
+3. **Close.** The persona ends it, you close it, or the server truncates it at a turn budget.
+
+Because state is server-side, a turn carries only what changed: the new frame and the actions available now. You do not resend past turns. To replay the whole trace, read it back (below).
+
+## Turn indexing
+
+Every turn carries a `turn_index`, and it must equal the session's current turn count. The first turn is `0`; each recorded turn increments it by one.
+
+The subtlety is what counts as recorded. **Every returned turn is recorded, including turns where nothing was executed.** A turn where the persona wanted something your environment does not offer, or concluded without acting, still increments the index. Do not infer the next index from "did I execute an action?" Drive it off the response's `turn_index`, plus one.
+
+Two cases move the index differently, and both are covered in [run the session loop](/api/guides/session-loop):
+
+- A rejected decision the model could not make validly records nothing, so you retry the **same** index.
+- A turn-index mismatch hands you back the index the server expected; resubmit with that.
+
+## The decision trace
+
+Reading a session back returns its state plus a page of the recorded turns. Each turn in the trace carries the decision, which observation kinds it saw (by kind and hash, never the frame bytes, since you own those), its latency, how many validation retries it took, the token counts, the frame age, and when it was created.
+
+The trace is a **cursor page**. Pass `after_index` to get turns strictly after a given index and `limit` to size the page (the default is 50, the maximum 200). The response's `has_more` is true when more turns remain; page again with `after_index` set to the last index you received.
+
+## Pacing
+
+Every session declares a **pacing contract**, and it is recorded on the session and carried on the trace, because the same decision means different things at different pacings:
+
+- `pause_on_decide`: your environment blocks until ish decides. Turn-based worlds.
+- `frame_on_demand`: your turn pulls a fresh frame. Most integrations.
+- `free_running`: the world advances regardless of ish's turn.
+
+Pacing is also what makes frame provenance readable. Each turn can report `frame_age_ms`, the time between capturing the frame and posting it. It is near zero for `pause_on_decide` and `frame_on_demand`, and meaningful only for `free_running`, where the world moved while the frame was in flight.
+
+## How a session ends
+
+Ending a session is a first-class event, not a side effect, and three parties can cause it. The session status records which:
+
+| Status | Who ended it |
+|---|---|
+| `open` | Still running |
+| `completed` | The persona finished (`done`) |
+| `gave_up` | The persona quit (`gave_up`) |
+| `closed` | You closed it |
+| `max_turns` | The server truncated it at the turn budget |
+
+A natural ending takes precedence over budget truncation, so a persona that finishes on the last allowed turn reports `completed`, never `max_turns`. Session status is an open union: tolerate a status you do not recognize rather than failing on it.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="The decide-only loop" icon="diagram-project" href="/api/concepts/decide-only-loop">
+    Why the session records decisions and never executes them.
+  </Card>
+  <Card title="Run the session loop" icon="repeat" href="/api/guides/session-loop">
+    The turn-by-turn contract this model drives.
+  </Card>
+</Columns>

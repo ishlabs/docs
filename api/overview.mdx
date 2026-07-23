@@ -1,0 +1,66 @@
+---
+title: "The ish API"
+description: "Put an ish persona in the decision loop of your own environment and read how it reacts, turn by turn."
+mode: "explanation"
+---
+
+The ish API is the entry point for human feedback on whatever you are building, in whichever format you can render it. Instead of handing ish a finished artifact and reading a reported journey afterward, you put an ish persona directly inside your environment's decision loop and watch it react while it moves.
+
+Each turn, you show the persona what a human would see and the set of actions available right now. It picks one action and tells you how it felt about the moment. You carry the action out in your own environment, capture the next view, and take the next turn. The environment can be a web app, a device UI, a game, or anything a person perceives.
+
+## The idea in five lines
+
+- An ish persona decides what to do inside your environment from what a human would **see**.
+- Each turn you send **one rendered frame** (what the persona perceives) plus **the actions available right now**.
+- ish replies with the **chosen action** and how the persona **felt**: a comment, a sentiment, an intensity.
+- **You execute** that action in your environment, capture the frame again, and send the next turn.
+- ish only **decides**; you **execute**. No locators, no automation on our side. See [the decide-only loop](/api/concepts/decide-only-loop).
+
+## What makes this different from a study
+
+The [ish CLI](/cli/overview) and the [ish MCP server](/mcp/overview) drive the research app: a [study](/concepts/study) sends simulated people through a finished artifact and reports back a journey once each one is done. The API is a separate surface with a different shape. Here the persona is a live decision brain inside your environment, one turn at a time, and you own both the rendering and the execution.
+
+The two surfaces share their foundations. A [persona](/concepts/people) is the same reusable simulated person, and a [workspace](/concepts/workspace) is the same tenant that owns your personas and holds your credits. They do not share studies, iterations, or runs. You do not need a study to use the API.
+
+## What the persona perceives
+
+The persona reads meaning off the pixels, the same way a person sitting in front of your screen would. You send human-sensory frames only: an image now, with audio reserved for later. Structured state (a scene graph, game-state JSON, a DOM dump) is refused at the boundary, because a persona handed the true state is a solver, not a simulated human. The rules and the reasoning live in [observations](/api/concepts/observations).
+
+## Which personas you can run
+
+A session runs one persona, and the API admits two classes:
+
+- **Workspace-owned personas**, the profiles your workspace created and owns.
+- **Platform-library personas**, the owner-less profiles the platform curates for broad reuse.
+
+Real-person "me" profiles are out of scope for the API by policy, not by accident: a person's own digital profile carries likeness and personal data that this surface deliberately does not touch. The create call refuses anything outside the two classes above with a `403`. For the persona model itself, see [people and audiences](/concepts/people).
+
+## Two decision modes
+
+Every session runs in one of two modes, and the create response tells you which:
+
+- **Intent** is the default and the product path. The persona says what it *wants*, and a resolver maps that onto one of your declared actions. Intent resolves three ways: `matched` (an action to run), `no_match` (the persona wanted something your environment does not offer, usually the signal you are after), and `none_needed` (the persona is done).
+- **Direct** is an evaluation baseline where the persona picks one of your declared actions itself. It sees the action list, so it is not the path a real integration uses.
+
+Both are covered in [intent and resolution](/api/concepts/intent-and-resolution).
+
+## Authentication
+
+Every request carries a bearer token. Today an ish contact provisions and rotates a short-lived token for your workspace; durable per-workspace keys you mint yourself are coming. See [authentication](/api/authentication) for the current story and what changes.
+
+## Where to go next
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/api/quickstart">
+    Create a session, run one turn, and read the decision.
+  </Card>
+  <Card title="Run the session loop" icon="repeat" href="/api/guides/session-loop">
+    The complete integration contract: ordering, errors, retries, pagination.
+  </Card>
+  <Card title="The decide-only loop" icon="diagram-project" href="/api/concepts/decide-only-loop">
+    Why ish decides and you execute, and what that buys you.
+  </Card>
+  <Card title="Author your environment" icon="pen-ruler" href="/api/guides/environment-authoring">
+    Declare actions, write labels that do not leak, render frames that decode.
+  </Card>
+</Columns>
