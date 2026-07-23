@@ -1,0 +1,1279 @@
+{
+  "components": {
+    "headers": {
+      "XRequestId": {
+        "description": "Per-response correlation id, present on EVERY response (success and error). Error bodies echo it as `request_id`.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "AgentSessionDetailResponse": {
+        "description": "Full session state + ordered decision trace (GET).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "has_more": {
+            "description": "True when more turns exist beyond this page (page with after_index).",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "person_snapshot": {
+            "additionalProperties": true,
+            "title": "Person Snapshot",
+            "type": "object"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "reasoning_effort": {
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/AgentTurnView"
+            },
+            "title": "Turns",
+            "type": "array"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "persona_id",
+          "workspace_id",
+          "goal",
+          "environment",
+          "pacing",
+          "decision_mode",
+          "status",
+          "max_turns",
+          "turn_count",
+          "reasoning_effort",
+          "person_snapshot",
+          "created_at",
+          "turns",
+          "has_more"
+        ],
+        "title": "AgentSessionDetailResponse",
+        "type": "object"
+      },
+      "AgentSessionResponse": {
+        "properties": {
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "decision_mode",
+          "turn_count",
+          "max_turns"
+        ],
+        "title": "AgentSessionResponse",
+        "type": "object"
+      },
+      "AgentSessionStatus": {
+        "enum": [
+          "open",
+          "completed",
+          "gave_up",
+          "closed",
+          "max_turns"
+        ],
+        "title": "AgentSessionStatus",
+        "type": "string"
+      },
+      "AgentTurnView": {
+        "description": "One recorded turn in the session trace (GET). Observations are stored by\nreference only (kinds + sha256) — the caller owns the frames (ADR-0021).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TurnDecisionView"
+          },
+          "frame_age_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Age Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "observation_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Observation Kinds",
+            "type": "array"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "validation_retries": {
+            "title": "Validation Retries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_index",
+          "decision",
+          "observation_kinds",
+          "latency_ms",
+          "validation_retries",
+          "input_tokens",
+          "output_tokens",
+          "frame_age_ms",
+          "created_at"
+        ],
+        "title": "AgentTurnView",
+        "type": "object"
+      },
+      "CreateAgentSessionRequest": {
+        "properties": {
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode",
+            "default": "intent"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor"
+          },
+          "goal": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Goal",
+            "type": "string"
+          },
+          "max_turns": {
+            "default": 50,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "persona_id": {
+            "format": "uuid",
+            "title": "Persona Id",
+            "type": "string"
+          },
+          "reasoning_effort": {
+            "default": "low",
+            "pattern": "^(low|medium|high)$",
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "resolver_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Guidance"
+          }
+        },
+        "required": [
+          "persona_id",
+          "goal",
+          "environment",
+          "pacing"
+        ],
+        "title": "CreateAgentSessionRequest",
+        "type": "object"
+      },
+      "DecisionMode": {
+        "enum": [
+          "direct",
+          "intent"
+        ],
+        "title": "DecisionMode",
+        "type": "string"
+      },
+      "DeclaredAction": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "resolver_hint": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Hint"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "DeclaredAction",
+        "type": "object"
+      },
+      "EnvironmentDescriptor": {
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "platform": {
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "platform"
+        ],
+        "title": "EnvironmentDescriptor",
+        "type": "object"
+      },
+      "Error": {
+        "description": "Generic error envelope for 4xx/5xx responses other than request-shape validation.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "description": "A human-readable message, OR a structured object carrying a machine-readable `error_kind` (e.g. `idempotency_conflict`, `turn_index_mismatch`, `decision_invalid`).",
+            "title": "Detail"
+          },
+          "request_id": {
+            "description": "Correlation id; identical to the `X-Request-Id` response header. Quote it in support requests.",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "request_id"
+        ],
+        "title": "Error",
+        "type": "object"
+      },
+      "FeltIntensity": {
+        "description": "How strongly the persona feels the labelled emotion (LLM-emitted).\n\nOrdinal magnitude knob consumed by ``app/sentiment/affect.py``:\n``moderate`` reproduces the legacy calibration; ``mild``/``strong`` vary\nthe radius of (valence, arousal) WITHOUT flipping the valence sign.",
+        "enum": [
+          "mild",
+          "moderate",
+          "strong"
+        ],
+        "title": "FeltIntensity",
+        "type": "string"
+      },
+      "FieldError": {
+        "description": "One field-level entry in a ValidationError envelope.",
+        "properties": {
+          "allowed_values": {
+            "description": "For enum/literal failures, the accepted values.",
+            "items": {},
+            "title": "Allowed Values",
+            "type": "array"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offending value (truncated); omitted for containers.",
+            "title": "Input"
+          },
+          "loc": {
+            "description": "Path to the offending field.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "FieldError",
+        "type": "object"
+      },
+      "ObservationBlock": {
+        "additionalProperties": false,
+        "description": "One human-sensory block. `state` is deliberately absent (ADR-0020).",
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "image",
+              "error"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "ObservationBlock",
+        "type": "object"
+      },
+      "PacingContract": {
+        "enum": [
+          "pause_on_decide",
+          "frame_on_demand",
+          "free_running"
+        ],
+        "title": "PacingContract",
+        "type": "string"
+      },
+      "Sentiment": {
+        "description": "Categorical user sentiment during interactive simulation steps.\n\nThe LLM emits only this label (plus an ordinal felt_intensity); the\nbackend derives the PAD coordinates valence + arousal + control from it\nvia ``app/sentiment/affect.py``. The labels span the valence x arousal\nquadrants (active/passive x positive/negative) so the agent can express\nthe full affective range, including disengagement / abandonment.",
+        "enum": [
+          "Delighted",
+          "Excited",
+          "Confident",
+          "Satisfied",
+          "Relieved",
+          "Neutral",
+          "Confused",
+          "Uncertain",
+          "Anxious",
+          "Frustrated",
+          "Disengaged"
+        ],
+        "title": "Sentiment",
+        "type": "string"
+      },
+      "TurnDecisionView": {
+        "description": "The per-turn decision as the caller sees it — a superset of the persona's\nTurnDecision with the Mode B intent/resolver extensions.\n\n``action_name`` is null when there is nothing to execute (a Mode B no_match\nor none_needed). ``intent``/``resolution``/``unmet_expectation`` are all None\nin direct mode; the experiential payload (comment/sentiment/felt_intensity/\nstatus) is always the persona's — in either mode, and on a no_match/none_needed.",
+        "properties": {
+          "action_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "felt_intensity": {
+            "$ref": "#/components/schemas/FeltIntensity"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "enum": [
+                  "matched",
+                  "no_match",
+                  "none_needed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Resolver outcome (None in direct mode). Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Resolution"
+          },
+          "sentiment": {
+            "$ref": "#/components/schemas/Sentiment"
+          },
+          "status": {
+            "enum": [
+              "continue",
+              "done",
+              "gave_up"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unmet_expectation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unmet Expectation"
+          }
+        },
+        "required": [
+          "action_name",
+          "comment",
+          "sentiment",
+          "felt_intensity",
+          "status"
+        ],
+        "title": "TurnDecisionView",
+        "type": "object"
+      },
+      "TurnRequest": {
+        "properties": {
+          "frame_age_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Age Ms"
+          },
+          "observation": {
+            "description": "Human-sensory observation blocks (image now; error carries execution feedback). New block `type` values may be added. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "items": {
+              "$ref": "#/components/schemas/ObservationBlock"
+            },
+            "minItems": 1,
+            "title": "Observation",
+            "type": "array"
+          },
+          "turn_index": {
+            "minimum": 0.0,
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "valid_actions": {
+            "items": {
+              "$ref": "#/components/schemas/DeclaredAction"
+            },
+            "title": "Valid Actions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "turn_index",
+          "observation",
+          "valid_actions"
+        ],
+        "title": "TurnRequest",
+        "type": "object"
+      },
+      "TurnResponse": {
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/TurnDecisionView"
+          },
+          "session_status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status after this turn. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "usage": {
+            "additionalProperties": true,
+            "title": "Usage",
+            "type": "object"
+          }
+        },
+        "required": [
+          "turn_id",
+          "turn_index",
+          "decision",
+          "session_status",
+          "usage"
+        ],
+        "title": "TurnResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "description": "Request body / parameter validation failure (HTTP 422). A field-level envelope so callers can pinpoint the offending field, value, and allowed values without parsing prose.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "error_code": {
+            "description": "Stable machine code, e.g. `validation_error`.",
+            "title": "Error Code",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "error",
+          "error_code",
+          "status",
+          "retryable",
+          "detail",
+          "errors"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_...`. Interim: an ish user access token (JWT) is accepted on the same header until API keys fully roll out.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "ish developer platform",
+      "url": "https://docs.ishlabs.io/"
+    },
+    "description": "The ish Developer API — the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **agent sessions**: you open a session for one of your personas inside *your own* environment, submit what the persona perceives (human-sensory observations — a rendered screen, an error message) along with the set of actions your environment currently offers, and the persona decides one action per turn and tells you how it felt. Your code executes the chosen action and loops. The environment loop is decide-only — ish never locates or executes anything in your environment (see ADR-0020/0021).\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **persona**, and **session**, and the wire uses these names directly:\n\n- `workspace_id` — the workspace that owns the persona and is billed for the   session (the create path is `/workspaces/{workspace_id}/agent-sessions`).\n- `persona_id` — the persona the session drives.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. In production this is a **workspace API key** (prefix `ish_sk_`), a workspace-scoped machine principal you mint in Settings → Developers. While API keys are still rolling out, an ish user access token (JWT) is accepted on the same header as an **interim** transport — it will be superseded by keys and should not be relied on for machine-to-machine use.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist — parse defensively, they differ:\n\n- **`ValidationError`** — the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate — ignore it for API use).\n- **`Error`** — everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `persona has no renderable background`) as well   as 401 / 403 / 404 / 409 / 502. `detail` may be a structured object carrying a   machine-readable `error_kind` (e.g. `idempotency_conflict`,   `turn_index_mismatch`, `decision_invalid`).\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n",
+    "license": {
+      "identifier": "LicenseRef-Proprietary",
+      "name": "Proprietary"
+    },
+    "title": "ish Developer API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/agent-sessions/{session_id}": {
+      "delete": {
+        "description": "Close an open session (idempotent no-op on an already-closed one).",
+        "operationId": "closeAgentSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The agent session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Close Agent Session",
+        "tags": [
+          "agent-sessions"
+        ]
+      },
+      "get": {
+        "description": "The full session state + a cursor page of the decision trace.\n\n``after_index`` returns turns strictly after that turn_index; ``limit``\n(default 50, max 200) caps the page. ``has_more`` in the body signals\nwhether to page again.",
+        "operationId": "getAgentSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_index",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After Index"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The agent session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Agent Session",
+        "tags": [
+          "agent-sessions"
+        ]
+      }
+    },
+    "/api/v1/agent-sessions/{session_id}/turns": {
+      "post": {
+        "description": "Submit one observation + declared action set; get the persona's choice.",
+        "operationId": "submitTurn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The agent session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The turn conflicts with session state: the session is not open, or `turn_index` does not match the session's current turn (`detail.error_kind = 'turn_index_mismatch'`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The persona's decision could not be produced this turn (`detail.error_kind = 'decision_invalid'`); no turn is recorded — retry the same `turn_index`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit Turn",
+        "tags": [
+          "agent-sessions"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/agent-sessions": {
+      "post": {
+        "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.",
+        "operationId": "createAgentSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Idempotent replay: an existing session was returned because the Idempotency-Key and request body matched a prior create.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The persona is out of scope for an external-environment session (ADR-0022: workspace-owned or platform-library personas only).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) or persona (`persona_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The Idempotency-Key was reused with a different request body (`detail.error_kind = 'idempotency_conflict'`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Agent Session",
+        "tags": [
+          "agent-sessions"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "Production",
+      "url": "https://api.ishlabs.io"
+    }
+  ]
+}

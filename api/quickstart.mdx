@@ -12,27 +12,25 @@ This walks one happy path: create a session, send the first turn, read the perso
 
 ## Step 1: set your placeholders
 
-Four values stand in for yours throughout. `PRODUCT_ID` is your workspace id and `PERSON_ID` is the persona id, as the wire names them today.
+Four values stand in for yours throughout. `WORKSPACE_ID` is the workspace the session runs under and `PERSONA_ID` is the persona to run.
 
-{/* E2-VOCAB: PRODUCT_ID -> workspace id, PERSON_ID -> persona id */}
 ```bash
 export API_URL="https://api.ishlabs.io"   # your ish API base
 export TOKEN="..."                         # your bearer token
-export PRODUCT_ID="..."                     # the workspace the session runs under (UUID)
-export PERSON_ID="..."                      # the persona to run (UUID)
+export WORKSPACE_ID="..."                  # the workspace the session runs under (UUID)
+export PERSONA_ID="..."                    # the persona to run (UUID)
 ```
 
 ## Step 2: create a session
 
 A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the persona, a goal, a description of the environment, and a pacing contract.
 
-{/* E2-VOCAB: create path /products/{product_id}/agent-sessions -> /workspaces/{workspace_id}/agent-sessions; person_id -> persona_id */}
 ```bash
-curl -sS -X POST "$API_URL/api/v1/products/$PRODUCT_ID/agent-sessions" \
+curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/agent-sessions" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
 {
-  "person_id": "$PERSON_ID",
+  "persona_id": "$PERSONA_ID",
   "goal": "Turn the TV on and find something you would actually watch.",
   "environment": { "name": "tv_remote", "platform": "device" },
   "pacing": "frame_on_demand",

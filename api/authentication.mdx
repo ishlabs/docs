@@ -35,11 +35,10 @@ The API examples throughout these docs use four placeholders. Two of them are id
 |---|---|---|
 | `API_URL` | Your ish API base | `https://api.ishlabs.io`, or the base URL from your onboarding |
 | `TOKEN` | Your bearer token | Provisioned by your ish contact today |
-| `PRODUCT_ID` | Your workspace id (a UUID) | The workspace the session runs under |
-| `PERSON_ID` | The persona id (a UUID) | The [persona](/concepts/people) you want to run |
+| `WORKSPACE_ID` | Your workspace id (a UUID) | The workspace the session runs under (the `workspace_id` path parameter) |
+| `PERSONA_ID` | The persona id (a UUID) | The [persona](/concepts/people) you want to run (the `persona_id` field) |
 
-{/* E2-VOCAB: PRODUCT_ID names the workspace id (product_id wire field); PERSON_ID names the persona id (person_id wire field) */}
-`PRODUCT_ID` is your workspace id and `PERSON_ID` is the persona id, as the wire names them today. The persona must be [workspace-owned or a platform-library profile](/api/overview#which-personas-you-can-run); anything else returns a `403`.
+The persona must be [workspace-owned or a platform-library profile](/api/overview#which-personas-you-can-run); anything else returns a `403`.
 
 ## Related
 
