@@ -12,10 +12,27 @@
       "AgentSessionDetailResponse": {
         "description": "Full session state + ordered decision trace (GET).",
         "properties": {
+          "accrued_cents": {
+            "description": "This session's spend in USD cents (0 if none / pre-E8).",
+            "title": "Accrued Cents",
+            "type": "integer"
+          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
           },
           "decision_mode": {
             "$ref": "#/components/schemas/DecisionMode"
@@ -99,11 +116,149 @@
           "turn_count",
           "reasoning_effort",
           "person_snapshot",
+          "created_by_api_key_id",
+          "accrued_cents",
           "created_at",
           "turns",
           "has_more"
         ],
         "title": "AgentSessionDetailResponse",
+        "type": "object"
+      },
+      "AgentSessionListItem": {
+        "description": "One row in the workspace session list (GET .../agent-sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_cents`` is the SUM of the session's per-turn\n``amount_cents`` snapshots (ADR-0023, E8), computed in the list query (LEFT\nJOIN, no N+1); it is 0 for a session with no billable turns / pre-E8 rows.",
+        "properties": {
+          "accrued_cents": {
+            "description": "This session's spend in USD cents (0 if none / pre-E8).",
+            "title": "Accrued Cents",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "settled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settled At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "goal",
+          "environment",
+          "persona_id",
+          "turn_count",
+          "max_turns",
+          "decision_mode",
+          "created_by_api_key_id",
+          "accrued_cents",
+          "created_at",
+          "updated_at",
+          "settled_at"
+        ],
+        "title": "AgentSessionListItem",
+        "type": "object"
+      },
+      "AgentSessionListResponse": {
+        "description": "A keyset-paginated page of a workspace's agent sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
+        "properties": {
+          "has_more": {
+            "description": "True when more sessions exist beyond this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSessionListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the final page.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more",
+          "next_cursor"
+        ],
+        "title": "AgentSessionListResponse",
         "type": "object"
       },
       "AgentSessionResponse": {
@@ -146,7 +301,8 @@
           "gave_up",
           "closed",
           "max_turns",
-          "spend_cap_reached"
+          "spend_cap_reached",
+          "balance_exhausted"
         ],
         "title": "AgentSessionStatus",
         "type": "string"
@@ -1107,6 +1263,208 @@
       }
     },
     "/api/v1/workspaces/{workspace_id}/agent-sessions": {
+      "get": {
+        "description": "List a workspace's agent sessions, newest first (keyset-paginated).\n\nOrdered ``created_at DESC, id DESC``. Page forward with ``after`` set to the\nprior response's ``next_cursor``; ``has_more`` signals another page. Each row\nis a summary (status, goal, environment, persona, turn counts, key\nattribution, accrued credits, timestamps) — the per-turn decision trace lives\non the detail GET.",
+        "operationId": "listAgentSessions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by session status (repeatable).",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSessionStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by session status (repeatable).",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter to sessions opened by this API key.",
+            "in": "query",
+            "name": "api_key_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to sessions opened by this API key.",
+              "title": "Api Key Id"
+            }
+          },
+          {
+            "description": "Only sessions created at/after this ISO 8601 instant.",
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only sessions created at/after this ISO 8601 instant.",
+              "title": "Created From"
+            }
+          },
+          {
+            "description": "Only sessions created at/before this ISO 8601 instant.",
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only sessions created at/before this ISO 8601 instant.",
+              "title": "Created To"
+            }
+          },
+          {
+            "description": "Opaque keyset cursor from a prior page's next_cursor.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque keyset cursor from a prior page's next_cursor.",
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Agent Sessions",
+        "tags": [
+          "agent-sessions"
+        ]
+      },
       "post": {
         "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.",
         "operationId": "createAgentSession",
