@@ -37,6 +37,18 @@
           "decision_mode": {
             "$ref": "#/components/schemas/DecisionMode"
           },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
+          },
           "environment": {
             "$ref": "#/components/schemas/EnvironmentDescriptor",
             "description": "The environment as frozen at create (name + kind snapshot)."
@@ -126,6 +138,7 @@
           "pacing",
           "decision_mode",
           "status",
+          "ended_reason",
           "max_turns",
           "turn_count",
           "reasoning_effort",
@@ -166,6 +179,18 @@
           },
           "decision_mode": {
             "$ref": "#/components/schemas/DecisionMode"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
           },
           "environment": {
             "$ref": "#/components/schemas/EnvironmentDescriptor",
@@ -248,13 +273,14 @@
           "accrued_credits",
           "created_at",
           "updated_at",
-          "settled_at"
+          "settled_at",
+          "ended_reason"
         ],
         "title": "AgentSessionListItem",
         "type": "object"
       },
       "AgentSessionListResponse": {
-        "description": "A keyset-paginated page of a workspace's agent sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
+        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
         "properties": {
           "has_more": {
             "description": "True when more sessions exist beyond this page.",
@@ -1614,7 +1640,7 @@
                 }
               }
             },
-            "description": "The agent session was not found or is not reachable by this principal.",
+            "description": "The session was not found or is not reachable by this principal.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1649,7 +1675,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Close Agent Session",
+        "summary": "Close Session",
         "tags": [
           "sessions"
         ]
@@ -1737,7 +1763,7 @@
                 }
               }
             },
-            "description": "The agent session was not found or is not reachable by this principal.",
+            "description": "The session was not found or is not reachable by this principal.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -1772,7 +1798,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Get Agent Session",
+        "summary": "Get Session",
         "tags": [
           "sessions"
         ]
@@ -1851,7 +1877,7 @@
                 }
               }
             },
-            "description": "The agent session was not found or is not reachable by this principal.",
+            "description": "The session was not found or is not reachable by this principal.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2139,7 +2165,7 @@
     },
     "/api/v1/workspaces/{workspace_id}/sessions": {
       "get": {
-        "description": "List a workspace's agent sessions, newest first (keyset-paginated).\n\nOrdered ``created_at DESC, id DESC``. Page forward with ``after`` set to the\nprior response's ``next_cursor``; ``has_more`` signals another page. Each row\nis a summary (status, goal, environment, persona, turn counts, key\nattribution, accrued credits, timestamps) — the per-turn decision trace lives\non the detail GET.",
+        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered ``created_at DESC, id DESC``. Page forward with ``after`` set to the\nprior response's ``next_cursor``; ``has_more`` signals another page. Each row\nis a summary (status, goal, environment, persona, turn counts, key\nattribution, accrued credits, timestamps) — the per-turn decision trace lives\non the detail GET.",
         "operationId": "listSessions",
         "parameters": [
           {
@@ -2335,7 +2361,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "List Agent Sessions",
+        "summary": "List Sessions",
         "tags": [
           "sessions"
         ]
@@ -2508,7 +2534,7 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Create Agent Session",
+        "summary": "Create Session",
         "tags": [
           "sessions"
         ]
