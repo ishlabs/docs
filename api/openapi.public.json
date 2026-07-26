@@ -153,7 +153,7 @@
         "type": "object"
       },
       "AgentSessionListItem": {
-        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0024), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
+        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0025), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
         "properties": {
           "accrued_credits": {
             "description": "This session's spend in credits (0 if it had no billable turns).",
@@ -700,7 +700,7 @@
         "type": "object"
       },
       "EnvironmentKind": {
-        "description": "What KIND of surface a registered environment is (ADR-0025).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``agent_sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
+        "description": "What KIND of surface a registered environment is (ADR-0026).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``agent_sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
         "enum": [
           "web",
           "device",
@@ -1285,7 +1285,7 @@
   "paths": {
     "/api/v1/environments/{environment_id}": {
       "delete": {
-        "description": "Delete an environment.\n\nA hard delete, not an archive: sessions that ran here keep their frozen\nname/kind snapshot and their ``environment_id`` is SET NULL, so nothing in the\ndecision trace is lost. Archive-vs-delete is therefore a UX question, not a\ndata-integrity one, and pre-launch the cheap answer wins (ADR-0025).",
+        "description": "Delete an environment.\n\nA hard delete, not an archive: sessions that ran here keep their frozen\nname/kind snapshot and their ``environment_id`` is SET NULL, so nothing in the\ndecision trace is lost. Archive-vs-delete is therefore a UX question, not a\ndata-integrity one, and pre-launch the cheap answer wins (ADR-0026).",
         "operationId": "deleteEnvironment",
         "parameters": [
           {
