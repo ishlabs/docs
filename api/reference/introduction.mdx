@@ -1,6 +1,6 @@
 ---
 title: "API reference"
-description: "The agent-sessions endpoints: base URL, authentication, conventions, and the four operations."
+description: "The agent-sessions endpoints: base URL, authentication, conventions, and the five operations."
 mode: "reference"
 ---
 
@@ -26,14 +26,17 @@ The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**
 
 ## The operations
 
-The API is one surface, **agent sessions**: open a session for a persona, submit turns, read the trace, and close it. Four operations, in the order a session uses them.
+The API is one surface, **agent sessions**: open a session for a persona, submit turns, read the trace, list your sessions, and close it. Five operations.
 
 | Operation | Method and path | Purpose |
 |---|---|---|
 | Create agent session | `POST /api/v1/workspaces/{workspace_id}/agent-sessions` | Open a decide-only session for a workspace or platform-library persona |
+| List agent sessions | `GET /api/v1/workspaces/{workspace_id}/agent-sessions` | List the workspace's agent sessions |
 | Submit turn | `POST /api/v1/agent-sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the persona's choice |
 | Get agent session | `GET /api/v1/agent-sessions/{session_id}` | Read the session state plus a cursor page of the decision trace |
 | Close agent session | `DELETE /api/v1/agent-sessions/{session_id}` | Close an open session (idempotent no-op on an already-closed one) |
+
+Two operations nest under the workspace (`/workspaces/{workspace_id}/…`) because they create a session in it or list the sessions it owns. The other three act on an existing session by its globally-unique `session_id`, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
 
 The turn-by-turn contract that drives these (ordering, retries, indexing) is in [run the session loop](/api/guides/session-loop).
 

@@ -60,10 +60,10 @@ export SESSION_ID="b1c2...uuid"   # the "id" from the create response
 
 Each turn sends what the persona perceives (one image block) plus the actions available this turn. The `turn_index` must equal the session's current turn count, so the first turn is `0`.
 
-The `data` below is a valid 1x1 PNG placeholder. In practice you send a real screenshot; see [frame size](/api/guides/environment-authoring#frame-size) for dimensions.
+The `data` is the raw base64 of a real screenshot, with no `data:` prefix. Encode your own frame as shown below. Send a real frame: a blank or degenerate image (for example a 1x1 pixel) is rejected by the vision model. See [frame size](/api/guides/environment-authoring#frame-size) for dimensions.
 
 ```bash
-IMG="iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGM4YWMDAAMQAUEiFmcFAAAAAElFTkSuQmCC"
+IMG=$(base64 -i screenshot.png | tr -d '\n')
 curl -sS -X POST "$API_URL/api/v1/agent-sessions/$SESSION_ID/turns" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @- <<JSON
 {
