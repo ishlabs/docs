@@ -201,10 +201,16 @@
             },
             "pages": [
               "api/reference/introduction",
-              "POST /api/v1/workspaces/{workspace_id}/agent-sessions",
-              "POST /api/v1/agent-sessions/{session_id}/turns",
-              "GET /api/v1/agent-sessions/{session_id}",
-              "DELETE /api/v1/agent-sessions/{session_id}"
+              "POST /api/v1/workspaces/{workspace_id}/sessions",
+              "GET /api/v1/workspaces/{workspace_id}/sessions",
+              "POST /api/v1/sessions/{session_id}/turns",
+              "GET /api/v1/sessions/{session_id}",
+              "DELETE /api/v1/sessions/{session_id}",
+              "POST /api/v1/workspaces/{workspace_id}/environments",
+              "GET /api/v1/workspaces/{workspace_id}/environments",
+              "GET /api/v1/environments/{environment_id}",
+              "PATCH /api/v1/environments/{environment_id}",
+              "DELETE /api/v1/environments/{environment_id}"
             ]
           }
         ]

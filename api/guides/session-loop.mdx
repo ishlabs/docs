@@ -51,7 +51,7 @@ The `turn_index` on a turn must equal the session's current turn count. The firs
 Read a session back to replay its decisions. The trace is a cursor page: pass `after_index` to get turns strictly after an index and `limit` to size the page (default 50, max 200). Page again with `after_index` set to the last index you received while `has_more` is true.
 
 ```bash
-curl -sS "$API_URL/api/v1/agent-sessions/$SESSION_ID?after_index=0&limit=50" \
+curl -sS "$API_URL/api/v1/sessions/$SESSION_ID?after_index=0&limit=50" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -124,7 +124,7 @@ loop:
     actions = observe_available_actions()        # what a user could do right now
     frame   = capture_frame_png_base64()         # the current view
     obs     = [ {type:"image", data:frame} ] + (pending_error ? [pending_error] : [])
-    resp    = POST /agent-sessions/{id}/turns  { turn_index, observation:obs, valid_actions:actions }
+    resp    = POST /sessions/{id}/turns  { turn_index, observation:obs, valid_actions:actions }
         on 409 turn_index_mismatch -> turn_index = err.expected_turn_index ; continue
         on 502 decision_invalid    -> retry SAME turn_index with a fresh frame
     d = resp.decision
@@ -135,7 +135,7 @@ loop:
         pending_error = null                      # no_match / none_needed: nothing to execute
     if resp.session_status != "open": break       # THEN stop: completed / gave_up / max_turns
     turn_index = resp.turn_index + 1              # every returned turn is recorded
-DELETE /agent-sessions/{id}                        # when you are done
+DELETE /sessions/{id}                        # when you are done
 ```
 
 ## Related

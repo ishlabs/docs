@@ -7,7 +7,7 @@ mode: "how-to"
 Every request to the ish API carries a bearer token in the `Authorization` header:
 
 ```bash
-curl -sS "$API_URL/api/v1/agent-sessions/$SESSION_ID" \
+curl -sS "$API_URL/api/v1/sessions/$SESSION_ID" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
@@ -25,14 +25,18 @@ A key looks like `ish_sk_live_...`. **It is shown once, at creation.** Copy it t
 
 ## Scopes
 
-A key carries one or both of two session scopes. Grant only what the integration needs.
+A key carries any combination of four scopes. Grant only what the integration needs.
 
 | Scope | Grants |
 |---|---|
 | `sessions:run` | Create sessions, submit turns, and close sessions (the mutating lane) |
 | `sessions:read` | Read a session and its decision trace |
+| `environments:read` | Read the workspace's registered environments |
+| `environments:write` | Register, update, and delete environments |
 
-A key without the scope an operation requires is refused. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
+A new key is minted with the two `sessions:*` scopes. The `environments:*` pair is not granted by default — ask for it when the integration manages the registry rather than just running against it.
+
+A key without the scope an operation requires is refused with `403` and `detail.error_kind = "insufficient_scope"`, which names the `required_scope`. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
 
 ## Rotate a key
 

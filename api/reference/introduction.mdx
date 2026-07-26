@@ -1,10 +1,10 @@
 ---
 title: "API reference"
-description: "The agent-sessions endpoints: base URL, authentication, conventions, and the five operations."
+description: "The sessions and environments endpoints: base URL, authentication, conventions, and the ten operations."
 mode: "reference"
 ---
 
-The reference pages in this section are generated from the API's OpenAPI specification. Each operation page lists its parameters, request body, responses, and an interactive request builder. This page is the orientation: the base URL, how requests authenticate, the response conventions, and the four operations in lifecycle order.
+The reference pages in this section are generated from the API's OpenAPI specification. Each operation page lists its parameters, request body, responses, and an interactive request builder. This page is the orientation: the base URL, how requests authenticate, the response conventions, and the operations in lifecycle order.
 
 ## Base URL
 
@@ -22,21 +22,41 @@ Every request carries a bearer token in the `Authorization` header:
 Authorization: Bearer <token>
 ```
 
-The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**, then **Developers**. An ish user access token also works on the same header for personal scripts. See [authentication](/api/authentication).
+The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**, then **Developers**. Keys are minted with `sessions:run` and `sessions:read`; ask for `environments:read` / `environments:write` if the key manages environments. An ish user access token also works on the same header for personal scripts. See [authentication](/api/authentication).
+
+## What "session" means here
+
+A **session** is one persona working toward one goal in your environment, turn by turn. It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.
 
 ## The operations
 
-The API is one surface, **agent sessions**: open a session for a persona, submit turns, read the trace, list your sessions, and close it. Five operations.
+Two surfaces. **Sessions** is the loop: open a session for a persona, submit turns, read the trace, list your sessions, close it. **Environments** is the registry: name a target once and reference it from every session that runs against it, instead of describing it inline each time.
 
 | Operation | Method and path | Purpose |
 |---|---|---|
-| Create agent session | `POST /api/v1/workspaces/{workspace_id}/agent-sessions` | Open a decide-only session for a workspace or platform-library persona |
-| List agent sessions | `GET /api/v1/workspaces/{workspace_id}/agent-sessions` | List the workspace's agent sessions |
-| Submit turn | `POST /api/v1/agent-sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the persona's choice |
-| Get agent session | `GET /api/v1/agent-sessions/{session_id}` | Read the session state plus a cursor page of the decision trace |
-| Close agent session | `DELETE /api/v1/agent-sessions/{session_id}` | Close an open session (idempotent no-op on an already-closed one) |
+| Create session | `POST /api/v1/workspaces/{workspace_id}/sessions` | Open a decide-only session for a workspace or platform-library persona |
+| List sessions | `GET /api/v1/workspaces/{workspace_id}/sessions` | List the workspace's sessions |
+| Submit turn | `POST /api/v1/sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the persona's choice |
+| Get session | `GET /api/v1/sessions/{session_id}` | Read the session state plus a cursor page of the decision trace |
+| Close session | `DELETE /api/v1/sessions/{session_id}` | Close an open session (idempotent no-op on an already-closed one) |
+| Create environment | `POST /api/v1/workspaces/{workspace_id}/environments` | Register a named target sessions can be opened against |
+| List environments | `GET /api/v1/workspaces/{workspace_id}/environments` | List the workspace's registered environments |
+| Get environment | `GET /api/v1/environments/{environment_id}` | Read one registered environment |
+| Update environment | `PATCH /api/v1/environments/{environment_id}` | Partially update an environment; omitted fields are untouched |
+| Delete environment | `DELETE /api/v1/environments/{environment_id}` | Delete an environment |
 
-Two operations nest under the workspace (`/workspaces/{workspace_id}/…`) because they create a session in it or list the sessions it owns. The other three act on an existing session by its globally-unique `session_id`, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
+Operations that create a thing in a workspace, or list what it owns, nest under `/workspaces/{workspace_id}/…`. The rest act on an existing session or environment by its globally-unique id, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
+
+## Environments
+
+Every session names the environment it runs in, one of two ways, and you must supply **exactly one**:
+
+- `environment_id` — a registered environment. It supplies the default operating notes for the resolver and a default action vocabulary, and its name and kind are snapshotted onto the session.
+- `environment` — an ad-hoc descriptor (`{ name, platform }`) described inline on the session.
+
+An environment has a `kind` (`web`, `device`, `world` today; treat it as an open union) and a `config` validated per kind: `web` needs `config.url`, `device` needs `config.app_artifact`, and any kind may declare an `origins` allowlist. Identity is the `environment_id`, never the URL — a target reached through a rotating tunnel host keeps the same environment across sessions.
+
+Renaming or deleting an environment never rewrites history: a session keeps the name and kind it was opened with, and its `environment_id` simply becomes null.
 
 The turn-by-turn contract that drives these (ordering, retries, indexing) is in [run the session loop](/api/guides/session-loop).
 

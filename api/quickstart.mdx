@@ -23,10 +23,14 @@ export PERSONA_ID="..."                    # the persona to run (UUID)
 
 ## Step 2: create a session
 
-A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the persona, a goal, a description of the environment, and a pacing contract.
+A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the persona, a goal, the environment, and a pacing contract.
+
+A "session" here is one persona working toward one goal in your environment, turn by turn — not a study session, and nothing to do with a browser session.
+
+The environment comes one of two ways and you supply **exactly one**: an inline `environment` descriptor, as below, or an `environment_id` naming an environment you registered once (which then supplies the default operating notes and action vocabulary for every session that uses it). Start inline; register one when you find yourself repeating it.
 
 ```bash
-curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/agent-sessions" \
+curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
 {
@@ -64,7 +68,7 @@ The `data` is the raw base64 of a real screenshot, with no `data:` prefix. Encod
 
 ```bash
 IMG=$(base64 -i screenshot.png | tr -d '\n')
-curl -sS -X POST "$API_URL/api/v1/agent-sessions/$SESSION_ID/turns" \
+curl -sS -X POST "$API_URL/api/v1/sessions/$SESSION_ID/turns" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d @- <<JSON
 {
   "turn_index": 0,
@@ -132,7 +136,7 @@ Act on it in this order:
 When the persona is done or you are, close the session. Closing an already-closed session is a no-op `200`.
 
 ```bash
-curl -sS -X DELETE "$API_URL/api/v1/agent-sessions/$SESSION_ID" -H "Authorization: Bearer $TOKEN"
+curl -sS -X DELETE "$API_URL/api/v1/sessions/$SESSION_ID" -H "Authorization: Bearer $TOKEN"
 ```
 
 That is the whole loop: create, then observe, decide, execute, repeat, then close.
