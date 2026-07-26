@@ -1,0 +1,59 @@
+---
+title: "Intent and resolution"
+description: "The default intent mode, how a resolver maps intent to your actions, and how no_match becomes a finding."
+mode: "explanation"
+---
+
+Every session runs in one of two decision modes. **Intent** is the default and the path a real integration uses. **Direct** is an evaluation baseline. The create response echoes which mode you are in, and because you can omit the mode on create, that echo is how you discover it. Plan for intent.
+
+## Intent mode
+
+In intent mode the persona forms a free-form **intent** from perception alone. It says what a human would try, in its own words ("turn the tv on", "find the checkout button"), carrying no knowledge of your action vocabulary. A separate **resolver** then maps that intent onto the actions you declared this turn.
+
+Splitting the two keeps the persona honest. It reasons the way a person does, off what it sees, and never off the list of buttons you happen to expose. The resolver, not the persona, does the mapping onto your controls.
+
+Resolution comes back three ways:
+
+- `matched`: the intent maps to a declared action. `action_name` and `arguments` are set; execute it.
+- `no_match`: the persona wanted something your environment does not offer. `action_name` is null, and `unmet_expectation` names the gap. This is usually the signal you are after.
+- `none_needed`: the persona concluded and named no control. `action_name` is null and `unmet_expectation` stays null. This is not a failed mapping; the persona is finishing or stepping away, and the session ends through its own status.
+
+<Note>
+  `no_match` and `none_needed` both come back with a null `action_name`, but they mean different things. `no_match` is a persona that wanted something absent (a finding). `none_needed` is a persona that is done. Do not treat them alike.
+</Note>
+
+## The finding channel
+
+Three fields on the decision carry the research signal in intent mode:
+
+- `intent`: what the persona wanted, in its words.
+- `resolution`: whether that intent mapped, and how.
+- `unmet_expectation`: on a `no_match`, what the environment did not afford.
+
+A stream of `no_match` results with their `unmet_expectation` text is the clearest read you get on where your environment falls short of what a person expects. The persona reaching for something you never built is the point of running it.
+
+## The experiential payload is always the persona's
+
+Regardless of mode or resolution, four fields always come straight from the persona: `comment`, `sentiment`, `felt_intensity`, and `status`. They are present on a `matched` turn, a `no_match` turn, and a `none_needed` turn alike. They are the persona's in-the-moment experience, not a verdict on whether the task succeeded. Read [score outcomes](/api/guides/scoring-outcomes) before you trust them as a measure of success.
+
+## Direct mode
+
+In direct mode the persona picks one of your declared actions itself, so it sees the action list. The intent fields (`intent`, `resolution`, `unmet_expectation`) are all null. Because the persona reads your action vocabulary directly, direct mode is an evaluation baseline, not the product path; the intent split is what makes the behavior a real prediction.
+
+## Token accounting differs by mode
+
+The two modes count tokens differently, because intent mode runs two model calls (the persona's intent and the resolver's mapping):
+
+- **Intent:** the per-turn `input_tokens` is the combined total across both calls, and `output_tokens` is null by design.
+- **Direct:** you get the real per-call input and output split.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="The decide-only loop" icon="diagram-project" href="/api/concepts/decide-only-loop">
+    You declare the actions; the resolver maps intent onto them.
+  </Card>
+  <Card title="Score outcomes" icon="ruler-combined" href="/api/guides/scoring-outcomes">
+    Why the persona's words are perception, not a verdict.
+  </Card>
+</Columns>

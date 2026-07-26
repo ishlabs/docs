@@ -1,0 +1,73 @@
+---
+title: "Authentication"
+description: "Mint a workspace API key, send it as a bearer token, and scope and rotate it."
+mode: "how-to"
+---
+
+Every request to the ish API carries a bearer token in the `Authorization` header:
+
+```bash
+curl -sS "$API_URL/api/v1/sessions/$SESSION_ID" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+A request with no token, or an invalid one, returns a `401`.
+
+## Mint a workspace key
+
+Create an API key in the product app under **Settings**, then **Developers**. Any member of the workspace can mint one. A key is a workspace-scoped machine principal: it acts on behalf of the workspace, and it only ever reaches the personas and sessions that workspace owns.
+
+A key looks like `ish_sk_live_...`. **It is shown once, at creation.** Copy it then; the product app masks it afterward and cannot show it again. Store it in a secret manager or an environment variable, never in client-side code or source control.
+
+<Warning>
+  Treat a key like a password. If one leaks, revoke it (below) and mint a replacement. Anyone holding the key has the workspace access its scopes grant.
+</Warning>
+
+## Scopes
+
+A key carries any combination of four scopes. Grant only what the integration needs.
+
+| Scope | Grants |
+|---|---|
+| `sessions:run` | Create sessions, submit turns, and close sessions (the mutating lane) |
+| `sessions:read` | Read a session and its decision trace |
+| `environments:read` | Read the workspace's registered environments |
+| `environments:write` | Register, update, and delete environments |
+
+A new key is minted with the two `sessions:*` scopes. The `environments:*` pair is not granted by default — ask for it when the integration manages the registry rather than just running against it.
+
+A key without the scope an operation requires is refused with `403` and `detail.error_kind = "insufficient_scope"`, which names the `required_scope`. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
+
+## Rotate a key
+
+There is no in-place rotation. To rotate, mint a new key, move your integration onto it, then revoke the old one from **Settings**, then **Developers**. Because a workspace can hold several live keys at once, you can overlap the two long enough to cut over with no downtime, then revoke the old key.
+
+Revoking a key takes effect immediately: the next request that presents it returns a `401`.
+
+## User tokens for personal scripts
+
+An ish user access token also works on the same `Authorization: Bearer` header. It is fine for a quick personal script you run as yourself, but it is tied to your user session rather than the workspace, so it is not the right credential for a deployed integration. Use a workspace key for anything machine-to-machine.
+
+## The values you need
+
+The API examples throughout these docs use a few placeholders.
+
+| Placeholder | What it is | Where it comes from |
+|---|---|---|
+| `API_URL` | Your ish API base | `https://api.ishlabs.io`, or the base URL from your onboarding |
+| `TOKEN` | Your workspace API key | Minted in **Settings**, then **Developers** |
+| `WORKSPACE_ID` | Your workspace id (a UUID) | The workspace the session runs under (the `workspace_id` path parameter) |
+| `PERSONA_ID` | The persona id (a UUID) | The [persona](/concepts/people) you want to run (the `persona_id` field) |
+
+The persona must be [workspace-owned or a platform-library profile](/api/overview#which-personas-you-can-run); anything else returns a `403`.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/api/quickstart">
+    Put a key to work: create a session and run a turn.
+  </Card>
+  <Card title="Handling errors" icon="triangle-exclamation" href="/api/guides/session-loop#handling-errors">
+    What `401`, `403`, and the rest mean, and how to recover.
+  </Card>
+</Columns>

@@ -1,0 +1,2555 @@
+{
+  "components": {
+    "headers": {
+      "XRequestId": {
+        "description": "Per-response correlation id, present on EVERY response (success and error). Error bodies echo it as `request_id`.",
+        "schema": {
+          "type": "string"
+        }
+      }
+    },
+    "schemas": {
+      "AgentSessionDetailResponse": {
+        "description": "Full session state + ordered decision trace (GET).",
+        "properties": {
+          "accrued_credits": {
+            "description": "This session's spend in credits (0 if it had no billable turns).",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor",
+            "description": "The environment as frozen at create (name + kind snapshot)."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Id"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "has_more": {
+            "description": "True when more turns exist beyond this page (page with after_index).",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "person_snapshot": {
+            "additionalProperties": true,
+            "title": "Person Snapshot",
+            "type": "object"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "reasoning_effort": {
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/AgentTurnView"
+            },
+            "title": "Turns",
+            "type": "array"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "persona_id",
+          "workspace_id",
+          "goal",
+          "environment",
+          "environment_id",
+          "pacing",
+          "decision_mode",
+          "status",
+          "ended_reason",
+          "max_turns",
+          "turn_count",
+          "reasoning_effort",
+          "person_snapshot",
+          "created_by_api_key_id",
+          "accrued_credits",
+          "created_at",
+          "turns",
+          "has_more"
+        ],
+        "title": "AgentSessionDetailResponse",
+        "type": "object"
+      },
+      "AgentSessionListItem": {
+        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0024), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
+        "properties": {
+          "accrued_credits": {
+            "description": "This session's spend in credits (0 if it had no billable turns).",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor",
+            "description": "The environment as frozen at create (name + kind snapshot)."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Id"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "settled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settled At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "goal",
+          "environment",
+          "environment_id",
+          "persona_id",
+          "turn_count",
+          "max_turns",
+          "decision_mode",
+          "created_by_api_key_id",
+          "accrued_credits",
+          "created_at",
+          "updated_at",
+          "settled_at",
+          "ended_reason"
+        ],
+        "title": "AgentSessionListItem",
+        "type": "object"
+      },
+      "AgentSessionListResponse": {
+        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
+        "properties": {
+          "has_more": {
+            "description": "True when more sessions exist beyond this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AgentSessionListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the final page.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more",
+          "next_cursor"
+        ],
+        "title": "AgentSessionListResponse",
+        "type": "object"
+      },
+      "AgentSessionResponse": {
+        "properties": {
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "decision_mode",
+          "turn_count",
+          "max_turns"
+        ],
+        "title": "AgentSessionResponse",
+        "type": "object"
+      },
+      "AgentSessionStatus": {
+        "enum": [
+          "open",
+          "completed",
+          "gave_up",
+          "closed",
+          "max_turns",
+          "spend_cap_reached",
+          "balance_exhausted"
+        ],
+        "title": "AgentSessionStatus",
+        "type": "string"
+      },
+      "AgentTurnView": {
+        "description": "One recorded turn in the session trace (GET). Observations are stored by\nreference only (kinds + sha256); the caller owns the frames (ADR-0021).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TurnDecisionView"
+          },
+          "frame_age_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Age Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "observation_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Observation Kinds",
+            "type": "array"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "validation_retries": {
+            "title": "Validation Retries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_index",
+          "decision",
+          "observation_kinds",
+          "latency_ms",
+          "validation_retries",
+          "input_tokens",
+          "output_tokens",
+          "frame_age_ms",
+          "created_at"
+        ],
+        "title": "AgentTurnView",
+        "type": "object"
+      },
+      "CreateAgentSessionRequest": {
+        "properties": {
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode",
+            "default": "intent"
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentDescriptor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An ad-hoc environment described inline. Mutually exclusive with `environment_id`; supply exactly one."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A registered environment in this workspace. Mutually exclusive with `environment`; supply exactly one.",
+            "title": "Environment Id"
+          },
+          "goal": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Goal",
+            "type": "string"
+          },
+          "max_turns": {
+            "default": 50,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "persona_id": {
+            "format": "uuid",
+            "title": "Persona Id",
+            "type": "string"
+          },
+          "reasoning_effort": {
+            "default": "low",
+            "pattern": "^(low|medium|high)$",
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "resolver_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Guidance"
+          }
+        },
+        "required": [
+          "persona_id",
+          "goal",
+          "pacing"
+        ],
+        "title": "CreateAgentSessionRequest",
+        "type": "object"
+      },
+      "CreateEnvironmentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/EnvironmentConfig"
+          },
+          "declared_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default action vocabulary for sessions in this environment (same shape as a turn's `valid_actions`). A turn may still declare its own, which wins for that turn.",
+            "title": "Declared Actions"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/EnvironmentKind",
+            "description": "What kind of surface this is. Closed on write, open on read: Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "operating_notes": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Operating manual for the RESOLVER only, never shown to the persona. Becomes the default `resolver_guidance` for sessions opened against this environment; a session may pass its own, which wins.",
+            "title": "Operating Notes"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "required": [
+          "name",
+          "kind"
+        ],
+        "title": "CreateEnvironmentRequest",
+        "type": "object"
+      },
+      "DecisionMode": {
+        "enum": [
+          "direct",
+          "intent"
+        ],
+        "title": "DecisionMode",
+        "type": "string"
+      },
+      "DeclaredAction": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "pattern": "^[a-z][a-z0-9_]{0,63}$",
+            "title": "Name",
+            "type": "string"
+          },
+          "parameters": {
+            "additionalProperties": true,
+            "title": "Parameters",
+            "type": "object"
+          },
+          "resolver_hint": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Hint"
+          }
+        },
+        "required": [
+          "name",
+          "description"
+        ],
+        "title": "DeclaredAction",
+        "type": "object"
+      },
+      "EnvironmentConfig": {
+        "additionalProperties": false,
+        "description": "The per-kind payload stored in ``environments.config``.\n\nEvery field is optional at the type level and REQUIRED-BY-KIND at the\nvalidator level, the same shape ``InteractiveIterationDetails`` uses for its\nplatform↔field coupling. ``extra=\"forbid\"``: a silently-ignored config key is\na customer debugging a target that was never set.",
+        "properties": {
+          "app_artifact": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Artifact"
+          },
+          "origins": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origins"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "EnvironmentConfig",
+        "type": "object"
+      },
+      "EnvironmentDescriptor": {
+        "description": "An ad-hoc environment, described inline on the session that uses it.\n\nAlso the shape of the FROZEN SNAPSHOT a session carries after it was opened\nagainst a REGISTERED environment (``environment_id``), which is why the field\nis still named ``platform``: it holds the environment's ``kind``, and renaming a\nlive public field to match the newer internal vocabulary would break clients\nfor no behavioural gain.",
+        "properties": {
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "platform": {
+            "description": "The kind of surface (e.g. `web`, `device`, `world`). Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "platform"
+        ],
+        "title": "EnvironmentDescriptor",
+        "type": "object"
+      },
+      "EnvironmentKind": {
+        "description": "What KIND of surface a registered environment is (ADR-0025).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``agent_sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
+        "enum": [
+          "web",
+          "device",
+          "world"
+        ],
+        "title": "EnvironmentKind",
+        "type": "string"
+      },
+      "EnvironmentListResponse": {
+        "description": "Every environment in the workspace, oldest first.\n\nDeliberately unpaginated: an environment is a hand-registered config object\n(the measured ceiling is a handful per workspace, not a stream), so a cursor\nwould be ceremony. If that stops being true this grows the same keyset shape\nthe session list uses.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "EnvironmentListResponse",
+        "type": "object"
+      },
+      "EnvironmentResponse": {
+        "description": "A registered environment as the caller sees it.",
+        "properties": {
+          "config": {
+            "$ref": "#/components/schemas/EnvironmentConfig"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "declared_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Actions"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "description": "What kind of surface this is. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "operating_notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operating Notes"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "kind",
+          "slug",
+          "config",
+          "operating_notes",
+          "declared_actions",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EnvironmentResponse",
+        "type": "object"
+      },
+      "Error": {
+        "description": "Generic error envelope for 4xx/5xx responses other than request-shape validation.",
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "additionalProperties": true,
+                "type": "object"
+              }
+            ],
+            "description": "A human-readable message, OR a structured object carrying a machine-readable `error_kind` (e.g. `idempotency_conflict`, `turn_index_mismatch`, `decision_invalid`).",
+            "title": "Detail"
+          },
+          "request_id": {
+            "description": "Correlation id; identical to the `X-Request-Id` response header. Quote it in support requests.",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "detail",
+          "request_id"
+        ],
+        "title": "Error",
+        "type": "object"
+      },
+      "FeltIntensity": {
+        "description": "How strongly the persona feels the labelled emotion (LLM-emitted).\n\nOrdinal magnitude knob consumed by ``app/sentiment/affect.py``:\n``moderate`` reproduces the legacy calibration; ``mild``/``strong`` vary\nthe radius of (valence, arousal) WITHOUT flipping the valence sign.",
+        "enum": [
+          "mild",
+          "moderate",
+          "strong"
+        ],
+        "title": "FeltIntensity",
+        "type": "string"
+      },
+      "FieldError": {
+        "description": "One field-level entry in a ValidationError envelope.",
+        "properties": {
+          "allowed_values": {
+            "description": "For enum/literal failures, the accepted values.",
+            "items": {},
+            "title": "Allowed Values",
+            "type": "array"
+          },
+          "input": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Offending value (truncated); omitted for containers.",
+            "title": "Input"
+          },
+          "loc": {
+            "description": "Path to the offending field.",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "FieldError",
+        "type": "object"
+      },
+      "ObservationBlock": {
+        "additionalProperties": false,
+        "description": "One human-sensory block. `state` is deliberately absent (ADR-0020).",
+        "properties": {
+          "data": {
+            "title": "Data",
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "image",
+              "error"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "data"
+        ],
+        "title": "ObservationBlock",
+        "type": "object"
+      },
+      "PacingContract": {
+        "enum": [
+          "pause_on_decide",
+          "frame_on_demand",
+          "free_running"
+        ],
+        "title": "PacingContract",
+        "type": "string"
+      },
+      "Sentiment": {
+        "description": "Categorical user sentiment during interactive simulation steps.\n\nThe LLM emits only this label (plus an ordinal felt_intensity); the\nbackend derives the PAD coordinates valence + arousal + control from it\nvia ``app/sentiment/affect.py``. The labels span the valence x arousal\nquadrants (active/passive x positive/negative) so the agent can express\nthe full affective range, including disengagement / abandonment.",
+        "enum": [
+          "Delighted",
+          "Excited",
+          "Confident",
+          "Satisfied",
+          "Relieved",
+          "Neutral",
+          "Confused",
+          "Uncertain",
+          "Anxious",
+          "Frustrated",
+          "Disengaged"
+        ],
+        "title": "Sentiment",
+        "type": "string"
+      },
+      "TurnDecisionView": {
+        "description": "The per-turn decision as the caller sees it: a superset of the persona's\nTurnDecision with the Mode B intent/resolver extensions.\n\n``action_name`` is null when there is nothing to execute (a Mode B no_match\nor none_needed). ``intent``/``resolution``/``unmet_expectation`` are all None\nin direct mode; the experiential payload (comment/sentiment/felt_intensity/\nstatus) is always the persona's, in either mode, and on a no_match/none_needed.",
+        "properties": {
+          "action_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "title": "Arguments",
+            "type": "object"
+          },
+          "comment": {
+            "title": "Comment",
+            "type": "string"
+          },
+          "felt_intensity": {
+            "$ref": "#/components/schemas/FeltIntensity"
+          },
+          "intent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Intent"
+          },
+          "resolution": {
+            "anyOf": [
+              {
+                "enum": [
+                  "matched",
+                  "no_match",
+                  "none_needed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Resolver outcome (None in direct mode). Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Resolution"
+          },
+          "sentiment": {
+            "$ref": "#/components/schemas/Sentiment"
+          },
+          "status": {
+            "enum": [
+              "continue",
+              "done",
+              "gave_up"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "unmet_expectation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unmet Expectation"
+          }
+        },
+        "required": [
+          "action_name",
+          "comment",
+          "sentiment",
+          "felt_intensity",
+          "status"
+        ],
+        "title": "TurnDecisionView",
+        "type": "object"
+      },
+      "TurnRequest": {
+        "properties": {
+          "frame_age_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Age Ms"
+          },
+          "observation": {
+            "description": "Human-sensory observation blocks (image now; error carries execution feedback). New block `type` values may be added. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "items": {
+              "$ref": "#/components/schemas/ObservationBlock"
+            },
+            "minItems": 1,
+            "title": "Observation",
+            "type": "array"
+          },
+          "turn_index": {
+            "minimum": 0.0,
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "valid_actions": {
+            "items": {
+              "$ref": "#/components/schemas/DeclaredAction"
+            },
+            "title": "Valid Actions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "turn_index",
+          "observation",
+          "valid_actions"
+        ],
+        "title": "TurnRequest",
+        "type": "object"
+      },
+      "TurnResponse": {
+        "properties": {
+          "decision": {
+            "$ref": "#/components/schemas/TurnDecisionView"
+          },
+          "session_status": {
+            "$ref": "#/components/schemas/AgentSessionStatus",
+            "description": "Session status after this turn. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_id": {
+            "format": "uuid",
+            "title": "Turn Id",
+            "type": "string"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "usage": {
+            "additionalProperties": true,
+            "title": "Usage",
+            "type": "object"
+          }
+        },
+        "required": [
+          "turn_id",
+          "turn_index",
+          "decision",
+          "session_status",
+          "usage"
+        ],
+        "title": "TurnResponse",
+        "type": "object"
+      },
+      "UpdateEnvironmentRequest": {
+        "additionalProperties": false,
+        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the three nullable fields (it clears them), so\n\"omitted\" and \"explicitly null\" must stay distinguishable — the router reads\n``model_fields_set`` rather than testing for None. ``kind`` is updatable but\nre-validates the config against the NEW kind, so a web→device switch that\nleaves only a ``url`` behind is a 422 rather than a broken row.",
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "declared_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Declared Actions"
+          },
+          "kind": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentKind"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "operating_notes": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operating Notes"
+          },
+          "slug": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Slug"
+          }
+        },
+        "title": "UpdateEnvironmentRequest",
+        "type": "object"
+      },
+      "ValidationError": {
+        "description": "Request body / parameter validation failure (HTTP 422). A field-level envelope so callers can pinpoint the offending field, value, and allowed values without parsing prose.",
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "error": {
+            "title": "Error",
+            "type": "string"
+          },
+          "error_code": {
+            "description": "Stable machine code, e.g. `validation_error`.",
+            "title": "Error Code",
+            "type": "string"
+          },
+          "errors": {
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "title": "Errors",
+            "type": "array"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "integer"
+          },
+          "suggestions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Suggestions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "error",
+          "error_code",
+          "status",
+          "retryable",
+          "detail",
+          "errors"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and trace), `environments:read` and `environments:write` (manage the workspace's registered environments). A key is minted with the two `sessions:*` scopes by default; the `environments:*` pair must be requested. An ish user access token also works on the same header for personal scripts.",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {
+      "name": "ish developer platform",
+      "url": "https://docs.ishlabs.io/"
+    },
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your personas inside *your own* environment, submit what the persona perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and the persona decides one action per turn and tells you how it felt. Your code executes the chosen action and loops. The environment loop is decide-only; ish never locates or executes anything in your environment (see ADR-0020/0021).\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **persona**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the persona and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `persona_id`: the persona the session drives.\n- `environment_id`: a registered environment in that workspace — a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single persona working toward one goal in your environment, turn by turn.** It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), and `environments:read` / `environments:write` for the environment registry. Keys are minted with the two `sessions:*` scopes; ask for `environments:*` explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `persona has no renderable background`) as well   as 401 / 403 / 404 / 409 / 502. `detail` may be a structured object carrying a   machine-readable `error_kind` (e.g. `idempotency_conflict`,   `turn_index_mismatch`, `decision_invalid`).\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n",
+    "license": {
+      "identifier": "LicenseRef-Proprietary",
+      "name": "Proprietary"
+    },
+    "title": "ish Developer API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/environments/{environment_id}": {
+      "delete": {
+        "description": "Delete an environment.\n\nA hard delete, not an archive: sessions that ran here keep their frozen\nname/kind snapshot and their ``environment_id`` is SET NULL, so nothing in the\ndecision trace is lost. Archive-vs-delete is therefore a UX question, not a\ndata-integrity one, and pre-launch the cheap answer wins (ADR-0025).",
+        "operationId": "deleteEnvironment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "environment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Environment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Environment",
+        "tags": [
+          "environments"
+        ]
+      },
+      "get": {
+        "description": "One registered environment.",
+        "operationId": "getEnvironment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "environment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Environment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Environment",
+        "tags": [
+          "environments"
+        ]
+      },
+      "patch": {
+        "description": "Partially update an environment. Omitted fields are untouched.\n\nSessions already opened here are unaffected: they carry a frozen snapshot of\nthe name/kind, exactly so a rename cannot rewrite history.",
+        "operationId": "updateEnvironment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "environment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Environment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnvironmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The new name is already taken by another environment in the workspace (`detail.error_kind = 'environment_name_taken'`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Environment",
+        "tags": [
+          "environments"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}": {
+      "delete": {
+        "description": "Close an open session (idempotent no-op on an already-closed one).",
+        "operationId": "closeSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Close Session",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "get": {
+        "description": "The full session state + a cursor page of the decision trace.\n\n``after_index`` returns turns strictly after that turn_index; ``limit``\n(default 50, max 200) caps the page. ``has_more`` in the body signals\nwhether to page again.",
+        "operationId": "getSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "after_index",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After Index"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionDetailResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/turns": {
+      "post": {
+        "description": "Submit one observation + declared action set; get the persona's choice.",
+        "operationId": "submitTurn",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurnRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurnResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "402": {
+            "description": "The turn was refused and NOT applied; the session is terminal. `detail.error_kind` says which remedy applies: `credits_exhausted` (no spendable credits — top up), `plan_allowance_exhausted` (the plan's allowance for this period is spent — it refreshes, or top up now), or `spend_cap_reached` (the workspace's own per-period cap — raise it). The first two end the session as `balance_exhausted`, the third as `spend_cap_reached`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The session was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The turn conflicts with session state: the session is not open, or `turn_index` does not match the session's current turn (`detail.error_kind = 'turn_index_mismatch'`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The persona's decision could not be produced this turn (`detail.error_kind = 'decision_invalid'`); no turn is recorded; retry the same `turn_index`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Submit Turn",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/environments": {
+      "get": {
+        "description": "Every environment registered in this workspace, oldest first.",
+        "operationId": "listEnvironments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Environments",
+        "tags": [
+          "environments"
+        ]
+      },
+      "post": {
+        "description": "Register an environment: a named target sessions can be opened against.",
+        "operationId": "createEnvironment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnvironmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "An environment with this name already exists in the workspace (`detail.error_kind = 'environment_name_taken'`); names are unique per workspace, case-insensitive.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Environment",
+        "tags": [
+          "environments"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/sessions": {
+      "get": {
+        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered ``created_at DESC, id DESC``. Page forward with ``after`` set to the\nprior response's ``next_cursor``; ``has_more`` signals another page. Each row\nis a summary (status, goal, environment, persona, turn counts, key\nattribution, accrued credits, timestamps) — the per-turn decision trace lives\non the detail GET.",
+        "operationId": "listSessions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by session status (repeatable).",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSessionStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by session status (repeatable).",
+              "title": "Status"
+            }
+          },
+          {
+            "description": "Filter to sessions opened by this API key.",
+            "in": "query",
+            "name": "api_key_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to sessions opened by this API key.",
+              "title": "Api Key Id"
+            }
+          },
+          {
+            "description": "Only sessions created at/after this ISO 8601 instant.",
+            "in": "query",
+            "name": "created_from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only sessions created at/after this ISO 8601 instant.",
+              "title": "Created From"
+            }
+          },
+          {
+            "description": "Only sessions created at/before this ISO 8601 instant.",
+            "in": "query",
+            "name": "created_to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Only sessions created at/before this ISO 8601 instant.",
+              "title": "Created To"
+            }
+          },
+          {
+            "description": "Opaque keyset cursor from a prior page's next_cursor.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque keyset cursor from a prior page's next_cursor.",
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Sessions",
+        "tags": [
+          "sessions"
+        ]
+      },
+      "post": {
+        "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.",
+        "operationId": "createSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAgentSessionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Idempotent replay: an existing session was returned because the Idempotency-Key and request body matched a prior create.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The persona is out of scope for an external-environment session (ADR-0022: workspace-owned or platform-library personas only).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`), persona (`persona_id`), or environment (`environment_id`) was not found or is not reachable by this principal.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The Idempotency-Key was reused with a different request body (`detail.error_kind = 'idempotency_conflict'`).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "description": "Per-key session-create quota exceeded (API keys only); transient, retry later.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "servers": [
+    {
+      "description": "Production",
+      "url": "https://api.ishlabs.io"
+    }
+  ]
+}

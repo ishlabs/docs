@@ -96,7 +96,7 @@ The standalone binary is built per platform and architecture. The install script
 | Linux | `arm64`, `x64` |
 | Windows | `x64` |
 
-The npm package requires Node 18 or newer (`engines.node` is `>=18.0.0`). Homebrew installs `node` and `cloudflared` as dependencies; `cloudflared` is used by [`ish connect`](/cli/generated/connect).
+The npm package requires Node 18 or newer (`engines.node` is `>=18.0.0`). Homebrew installs `node` as its only dependency; `cloudflared` (for [`ish connect`](/cli/generated/connect)) is fetched by the CLI at runtime, not declared by the formula.
 
 ### Install location and PATH
 
@@ -115,7 +115,7 @@ The install script writes the binary to `~/.ish/bin/ish` and appends a PATH line
 </ParamField>
 
 <Note>
-  `cloudflared` is not bundled. The install scripts print how to add it (`brew install cloudflare/cloudflare/cloudflared`, `winget install Cloudflare.cloudflared`). It is only needed for [`ish connect`](/cli/generated/connect).
+  `cloudflared` is not bundled and is not a formula dependency. The first [`ish connect`](/cli/generated/connect) downloads it for your platform if it is not already on your PATH; if that download fails, install it yourself (`brew install cloudflare/cloudflare/cloudflared`, `winget install Cloudflare.cloudflared`).
 </Note>
 
 ## Upgrade

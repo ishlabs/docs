@@ -1,0 +1,113 @@
+---
+title: "Author your environment"
+description: "Declare actions the persona can pick, write labels that do not leak, guide the resolver, and render frames that decode."
+mode: "how-to"
+---
+
+Your environment holds up two things each turn: the frame the persona perceives and the actions it may pick from. This guide covers how to declare actions, keep labels honest, guide the resolver in intent mode, and render frames that survive the wire. For the reasoning behind the rules, see [observations](/api/concepts/observations) and [the decide-only loop](/api/concepts/decide-only-loop).
+
+## Declare actions
+
+Each turn you send `valid_actions`, the set available right now. The set can change every turn as the persona moves through your environment. A declared action has this shape:
+
+```json
+{
+  "name": "press_button",
+  "description": "Press a button on the remote.",
+  "parameters": { },
+  "resolver_hint": "optional; intent mode only"
+}
+```
+
+- `name` matches `^[a-z][a-z0-9_]{0,63}$`: lowercase, starting with a letter, up to 64 characters.
+- `description` says what the control does, for the resolver.
+- `parameters` is a restricted JSON Schema subset (below), or `{}` for no parameters.
+- `resolver_hint` is an optional per-control note read only by the resolver in intent mode (below).
+
+## The parameters subset
+
+`parameters` accepts a deliberately small subset of JSON Schema. Anything outside it is a `422`.
+
+- `{}`: no parameters; or
+- `{ "type": "object", "properties": { ... }, "required": [ ... ] }`, where each property is **either**
+  - an **enum**: `{ "enum": ["a", "b", ...] }` (a non-empty list), or
+  - a **free string**: `{ "type": "string" }` (an optional `"description"` is allowed).
+- No integers, numbers, booleans, nested objects, arrays, or other keywords.
+- Every name in `required` must exist in `properties`.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "button": { "enum": ["power", "ch_up", "ch_down", "vol_up", "vol_down", "mute"] }
+  },
+  "required": ["button"]
+}
+```
+
+Put human-readable option names in the enum. They are printed on the screen, so naming them is not a leak.
+
+## Keep labels from leaking
+
+A label names what is *pressable*, never what it *means*. The persona reads meaning off the pixels, so a label that encodes hidden state hands it knowledge a person would not have.
+
+- Declare `move` with a direction, not `walk_to_treasure`.
+- Declare a from-and-to square pair, not the chess move `Nxe5+` (which leaks the piece, the capture, and the check).
+- Declare `click` on a visible target, not `rusty key` (which leaks an object's identity and role before the persona has looked).
+
+Your on-screen control hints also shape the persona's intents, because it reads them literally. If your UI overlays "press the up arrow key", the persona will intend exactly that. Write control labels the way you want intents phrased. The reasoning is in [observations](/api/concepts/observations#the-label-leak-rule).
+
+## Guide the resolver (intent mode)
+
+In intent mode a resolver maps the persona's intent onto your declared actions. Two layers let you steer it, and **neither is ever shown to the persona**:
+
+- `resolver_hint` is a **per-control** note on a single declared action (up to 1000 characters). Use it to disambiguate one control: "this toggles mute, not volume".
+- `resolver_guidance` is a **session-level, environment-wide** manual passed on create (up to 8000 characters). Use it for rules that span the whole environment: how your navigation works, what a gesture does, which controls are modal.
+
+They complement each other. Reach for a hint when one control is ambiguous, and for guidance when the whole environment needs a manual.
+
+## The web adapter
+
+You can drive the API from any client. For web environments there is a small convention worth following, an object on `window.__ishEnv` that the loop reads each turn:
+
+```js
+meta()              // -> { name, platform, pacing }   matches your create-session environment and pacing
+declaredActions()   // -> [ { name, description, parameters, resolver_hint? } ]   reflects NOW; may change every turn
+execute(name, args) // -> Promise<{ ok, error }>   performs the action; resolves after the page visually settles
+state()             // -> { ...your ground truth... }   OPTIONAL; for your own scoring only; NEVER sent to the persona
+```
+
+A failed `execute` (`{ ok: false, error }`) becomes the next turn's `error` block. There is no separate executed field. Native, desktop, and game integrations do not need this adapter; they run the same loop directly: observe, post, execute.
+
+<Warning>
+  `state()` is for your own scoring and must never reach the persona. Sending it as an observation defeats the whole point of running the persona. See [score outcomes](/api/guides/scoring-outcomes).
+</Warning>
+
+## WebGL and 3D environments
+
+Read this before you integrate anything that paints to a `<canvas>`. **Headless browsers do not render WebGL reliably.** Three failure paths integrators have hit:
+
+- headless rendering returns a **blank** frame (a black image, tens of seconds per capture);
+- `canvas.toDataURL()` returns blank unless the context was created with `preserveDrawingBuffer: true`;
+- `page.screenshot()` **hangs** for tens of seconds and times out.
+
+Run a **headed browser on a real GPU** for any WebGL or 3D environment. For simple, non-heavy WebGL pages, `--use-angle=swiftshader` is a software-rendering fallback that lets a headless capture work, but it is not enough for dense scenes (a point cloud, a splat world); those need a real GPU.
+
+## Frame size
+
+Real frames are far larger than a 1x1 placeholder. A frame about 1024 pixels wide is roughly 1 to 2 MB of base64, already close to the limit; a full 1080p frame exceeds it.
+
+- Keep frames around **1280x800**, as **PNG**.
+- The hard ceiling is a `413`. If you hit it, reduce the frame's **dimensions**, not its format.
+- The bytes are labeled `image/png`, so send PNG. Sending JPEG under that label can fail to decode. To shrink a frame, scale it down; do not switch format.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Observations" icon="eye" href="/api/concepts/observations">
+    Why labels must not leak and state is refused.
+  </Card>
+  <Card title="Intent and resolution" icon="route" href="/api/concepts/intent-and-resolution">
+    How the resolver maps intent onto your actions.
+  </Card>
+</Columns>

@@ -1,0 +1,86 @@
+---
+title: "API reference"
+description: "The sessions and environments endpoints: base URL, authentication, conventions, and the ten operations."
+mode: "reference"
+---
+
+The reference pages in this section are generated from the API's OpenAPI specification. Each operation page lists its parameters, request body, responses, and an interactive request builder. This page is the orientation: the base URL, how requests authenticate, the response conventions, and the operations in lifecycle order.
+
+## Base URL
+
+```
+https://api.ishlabs.io
+```
+
+Every path is versioned under `/api/v1`. Substitute the base URL from your onboarding if you have one.
+
+## Authentication
+
+Every request carries a bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer <token>
+```
+
+The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**, then **Developers**. Keys are minted with `sessions:run` and `sessions:read`; ask for `environments:read` / `environments:write` if the key manages environments. An ish user access token also works on the same header for personal scripts. See [authentication](/api/authentication).
+
+## What "session" means here
+
+A **session** is one persona working toward one goal in your environment, turn by turn. It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.
+
+## The operations
+
+Two surfaces. **Sessions** is the loop: open a session for a persona, submit turns, read the trace, list your sessions, close it. **Environments** is the registry: name a target once and reference it from every session that runs against it, instead of describing it inline each time.
+
+| Operation | Method and path | Purpose |
+|---|---|---|
+| Create session | `POST /api/v1/workspaces/{workspace_id}/sessions` | Open a decide-only session for a workspace or platform-library persona |
+| List sessions | `GET /api/v1/workspaces/{workspace_id}/sessions` | List the workspace's sessions |
+| Submit turn | `POST /api/v1/sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the persona's choice |
+| Get session | `GET /api/v1/sessions/{session_id}` | Read the session state plus a cursor page of the decision trace |
+| Close session | `DELETE /api/v1/sessions/{session_id}` | Close an open session (idempotent no-op on an already-closed one) |
+| Create environment | `POST /api/v1/workspaces/{workspace_id}/environments` | Register a named target sessions can be opened against |
+| List environments | `GET /api/v1/workspaces/{workspace_id}/environments` | List the workspace's registered environments |
+| Get environment | `GET /api/v1/environments/{environment_id}` | Read one registered environment |
+| Update environment | `PATCH /api/v1/environments/{environment_id}` | Partially update an environment; omitted fields are untouched |
+| Delete environment | `DELETE /api/v1/environments/{environment_id}` | Delete an environment |
+
+Operations that create a thing in a workspace, or list what it owns, nest under `/workspaces/{workspace_id}/…`. The rest act on an existing session or environment by its globally-unique id, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
+
+## Environments
+
+Every session names the environment it runs in, one of two ways, and you must supply **exactly one**:
+
+- `environment_id` — a registered environment. It supplies the default operating notes for the resolver and a default action vocabulary, and its name and kind are snapshotted onto the session.
+- `environment` — an ad-hoc descriptor (`{ name, platform }`) described inline on the session.
+
+An environment has a `kind` (`web`, `device`, `world` today; treat it as an open union) and a `config` validated per kind: `web` needs `config.url`, `device` needs `config.app_artifact`, and any kind may declare an `origins` allowlist. Identity is the `environment_id`, never the URL — a target reached through a rotating tunnel host keeps the same environment across sessions.
+
+Renaming or deleting an environment never rewrites history: a session keeps the name and kind it was opened with, and its `environment_id` simply becomes null.
+
+The turn-by-turn contract that drives these (ordering, retries, indexing) is in [run the session loop](/api/guides/session-loop).
+
+## Response conventions
+
+- **Correlation id.** Every response carries an `X-Request-Id` header. Error bodies echo it as `request_id`. Quote it in support requests.
+- **Two error envelopes.** A request-shape failure (HTTP 422) uses the `ValidationError` envelope, a field-level object with `error_code` and an `errors` array so you can pinpoint the offending field. Everything else (401, 403, 404, 409, 502, and handler-raised 422s) uses the `Error` envelope, a `{ detail, request_id }` object where `detail` may be a string or a structured object carrying a machine-readable `error_kind` such as `idempotency_conflict`, `turn_index_mismatch`, or `decision_invalid`. The recovery table for each is in [handling errors](/api/guides/session-loop#handling-errors).
+- **Open unions.** Several enum-typed and block-typed fields (`sentiment`, `session_status`, `resolution`, the observation block `type`) may gain new values over time. Tolerate a value you do not recognize rather than failing on it.
+- **Idempotency.** Create accepts an `Idempotency-Key` header; a retry with the same key and body replays the existing session. See the create operation and [run the session loop](/api/guides/session-loop#idempotency-and-replay).
+- **Pagination.** Get returns a cursor page of the trace: pass `after_index` and `limit` (default 50, max 200), and page again while `has_more` is true.
+
+## Before you integrate
+
+<Columns cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/api/quickstart">
+    Run one turn end to end against the live wire.
+  </Card>
+  <Card title="Run the session loop" icon="repeat" href="/api/guides/session-loop">
+    The full contract: ordering, retries, errors, pagination.
+  </Card>
+  <Card title="Observations" icon="eye" href="/api/concepts/observations">
+    What a turn may send, and why state is refused.
+  </Card>
+  <Card title="Author your environment" icon="pen-ruler" href="/api/guides/environment-authoring">
+    Declare actions and render frames that decode.
+  </Card>
+</Columns>
