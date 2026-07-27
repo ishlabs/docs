@@ -29,13 +29,15 @@ A "session" here is one persona working toward one goal in your environment, tur
 
 The environment comes one of two ways and you supply **exactly one**: an inline `environment` descriptor, as below, or an `environment_id` naming an environment you registered once (which then supplies the default operating notes and action vocabulary for every session that uses it). Start inline; register one when you find yourself repeating it.
 
+The assignment works the same way: `assignment` is a required object with exactly one shape. `{"goal": ...}` describes the intent inline; `{"id": ...}` binds an assignment you registered, freezing its goal and revision onto the session so later edits to the registered assignment never change what this session ran against.
+
 ```bash
 curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
 {
   "persona_id": "$PERSONA_ID",
-  "goal": "Turn the TV on and find something you would actually watch.",
+  "assignment": { "goal": "Turn the TV on and find something you would actually watch." },
   "environment": { "name": "tv_remote", "platform": "device" },
   "pacing": "frame_on_demand",
   "max_turns": 20,

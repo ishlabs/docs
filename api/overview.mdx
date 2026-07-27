@@ -8,6 +8,10 @@ The ish API is the entry point for human feedback on whatever you are building, 
 
 Each turn, you show the persona what a human would see and the set of actions available right now. It picks one action and tells you how it felt about the moment. You carry the action out in your own environment, capture the next view, and take the next turn. The environment can be a web app, a device UI, a game, or anything a person perceives.
 
+<Warning>
+**Breaking change, 2026-07-27.** Session create bodies now carry the intent as a required `assignment` object with exactly one shape: `{"goal": ...}` inline, or `{"id": ...}` binding a registered assignment. A top-level `goal` field is rejected with a 422, and session reads return an `assignment` object in place of the flat `goal`. Idempotency-Keys stored before this change no longer replay: a retried old-shape body is a 422, and reusing an old key with a new-shape body is a 409 `idempotency_conflict`. Mint fresh keys after migrating.
+</Warning>
+
 ## The idea in five lines
 
 - An ish persona decides what to do inside your environment from what a human would **see**.

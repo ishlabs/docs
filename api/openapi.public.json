@@ -9,231 +9,62 @@
       }
     },
     "schemas": {
-      "AgentSessionDetailResponse": {
-        "description": "Full session state + ordered decision trace (GET).",
+      "AssignmentDescriptor": {
+        "additionalProperties": false,
+        "description": "An ad-hoc assignment, described inline on the session that uses it.\n\nGoal-only BY DESIGN (ADR-0028 invariant 1): on this lane the caller drives\nthe actor, so steps in the create body would hand the grader's answer key\nto the process executing the actions. Register an assignment to attach\nsteps.",
         "properties": {
-          "accrued_credits": {
-            "description": "This session's spend in credits (0 if it had no billable turns).",
-            "title": "Accrued Credits",
-            "type": "integer"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "created_by_api_key_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created By Api Key Id"
-          },
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode"
-          },
-          "ended_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
-            "title": "Ended Reason"
-          },
-          "environment": {
-            "$ref": "#/components/schemas/EnvironmentDescriptor",
-            "description": "The environment as frozen at create (name + kind snapshot)."
-          },
-          "environment_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Id"
-          },
           "goal": {
+            "description": "What the participant is trying to do, in their own terms. Rendered into the persona prompt as the situation paragraph.",
+            "maxLength": 2000,
+            "minLength": 1,
             "title": "Goal",
-            "type": "string"
-          },
-          "has_more": {
-            "description": "True when more turns exist beyond this page (page with after_index).",
-            "title": "Has More",
-            "type": "boolean"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "max_turns": {
-            "title": "Max Turns",
-            "type": "integer"
-          },
-          "pacing": {
-            "$ref": "#/components/schemas/PacingContract"
-          },
-          "person_snapshot": {
-            "additionalProperties": true,
-            "title": "Person Snapshot",
-            "type": "object"
-          },
-          "persona_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Id"
-          },
-          "reasoning_effort": {
-            "title": "Reasoning Effort",
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/AgentSessionStatus",
-            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
-          },
-          "turn_count": {
-            "title": "Turn Count",
-            "type": "integer"
-          },
-          "turns": {
-            "items": {
-              "$ref": "#/components/schemas/AgentTurnView"
-            },
-            "title": "Turns",
-            "type": "array"
-          },
-          "workspace_id": {
-            "format": "uuid",
-            "title": "Workspace Id",
             "type": "string"
           }
         },
         "required": [
-          "id",
-          "persona_id",
-          "workspace_id",
-          "goal",
-          "environment",
-          "environment_id",
-          "pacing",
-          "decision_mode",
-          "status",
-          "ended_reason",
-          "max_turns",
-          "turn_count",
-          "reasoning_effort",
-          "person_snapshot",
-          "created_by_api_key_id",
-          "accrued_credits",
-          "created_at",
-          "turns",
-          "has_more"
+          "goal"
         ],
-        "title": "AgentSessionDetailResponse",
+        "title": "AssignmentDescriptor",
         "type": "object"
       },
-      "AgentSessionListItem": {
-        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0025), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
+      "AssignmentListResponse": {
+        "description": "Every assignment in the workspace family, oldest first.\n\nDeliberately unpaginated, matching environments: a registered assignment is\na hand-authored definition (a handful per workspace), not a stream.",
         "properties": {
-          "accrued_credits": {
-            "description": "This session's spend in credits (0 if it had no billable turns).",
-            "title": "Accrued Credits",
-            "type": "integer"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "created_by_api_key_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created By Api Key Id"
-          },
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode"
-          },
-          "ended_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
-            "title": "Ended Reason"
-          },
-          "environment": {
-            "$ref": "#/components/schemas/EnvironmentDescriptor",
-            "description": "The environment as frozen at create (name + kind snapshot)."
-          },
-          "environment_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Id"
-          },
-          "goal": {
-            "title": "Goal",
-            "type": "string"
-          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AssignmentListResponse",
+        "type": "object"
+      },
+      "AssignmentRef": {
+        "additionalProperties": false,
+        "description": "A registered assignment in this workspace, bound by id.",
+        "properties": {
           "id": {
+            "description": "A registered assignment. Its goal is frozen onto the session at create; later edits to the registry row never touch this session.",
             "format": "uuid",
             "title": "Id",
             "type": "string"
-          },
-          "max_turns": {
-            "title": "Max Turns",
-            "type": "integer"
-          },
-          "persona_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Id"
-          },
-          "settled_at": {
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "AssignmentRef",
+        "type": "object"
+      },
+      "AssignmentResponse": {
+        "description": "A registered assignment as the caller sees it.",
+        "properties": {
+          "archived_at": {
             "anyOf": [
               {
                 "format": "date-time",
@@ -243,58 +74,10 @@
                 "type": "null"
               }
             ],
-            "title": "Settled At"
+            "description": "Set when the assignment is archived (DELETE). An archived assignment stays readable by id so existing sessions keep resolving, is hidden from the default list, refuses new sessions (409), and frees its name for reuse.",
+            "title": "Archived At"
           },
-          "status": {
-            "$ref": "#/components/schemas/AgentSessionStatus",
-            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
-          },
-          "turn_count": {
-            "title": "Turn Count",
-            "type": "integer"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "status",
-          "goal",
-          "environment",
-          "environment_id",
-          "persona_id",
-          "turn_count",
-          "max_turns",
-          "decision_mode",
-          "created_by_api_key_id",
-          "accrued_credits",
-          "created_at",
-          "updated_at",
-          "settled_at",
-          "ended_reason"
-        ],
-        "title": "AgentSessionListItem",
-        "type": "object"
-      },
-      "AgentSessionListResponse": {
-        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
-        "properties": {
-          "has_more": {
-            "description": "True when more sessions exist beyond this page.",
-            "title": "Has More",
-            "type": "boolean"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/AgentSessionListItem"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
+          "background": {
             "anyOf": [
               {
                 "type": "string"
@@ -303,160 +86,33 @@
                 "type": "null"
               }
             ],
-            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the final page.",
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items",
-          "has_more",
-          "next_cursor"
-        ],
-        "title": "AgentSessionListResponse",
-        "type": "object"
-      },
-      "AgentSessionResponse": {
-        "properties": {
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode"
+            "description": "Persona-facing background, or null. Stored and fingerprinted; not yet rendered into session prompts (parity ships with study adoption).",
+            "title": "Background"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "goal": {
+            "title": "Goal",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
             "title": "Id",
             "type": "string"
           },
-          "max_turns": {
-            "title": "Max Turns",
-            "type": "integer"
-          },
-          "status": {
-            "$ref": "#/components/schemas/AgentSessionStatus",
-            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
-          },
-          "turn_count": {
-            "title": "Turn Count",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "id",
-          "status",
-          "decision_mode",
-          "turn_count",
-          "max_turns"
-        ],
-        "title": "AgentSessionResponse",
-        "type": "object"
-      },
-      "AgentSessionStatus": {
-        "enum": [
-          "open",
-          "completed",
-          "gave_up",
-          "closed",
-          "max_turns",
-          "spend_cap_reached",
-          "balance_exhausted"
-        ],
-        "title": "AgentSessionStatus",
-        "type": "string"
-      },
-      "AgentTurnView": {
-        "description": "One recorded turn in the session trace (GET). Observations are stored by\nreference only (kinds + sha256); the caller owns the frames (ADR-0021).",
-        "properties": {
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
+          "name": {
+            "title": "Name",
             "type": "string"
           },
-          "decision": {
-            "$ref": "#/components/schemas/TurnDecisionView"
-          },
-          "frame_age_ms": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Frame Age Ms"
-          },
-          "input_tokens": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Input Tokens"
-          },
-          "latency_ms": {
-            "title": "Latency Ms",
+          "revision": {
+            "description": "Increments on every write to this assignment. Sessions freeze the revision they bound, so runs are comparable within a revision of the content.",
+            "title": "Revision",
             "type": "integer"
           },
-          "observation_kinds": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Observation Kinds",
-            "type": "array"
-          },
-          "output_tokens": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Output Tokens"
-          },
-          "turn_index": {
-            "title": "Turn Index",
-            "type": "integer"
-          },
-          "validation_retries": {
-            "title": "Validation Retries",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "turn_index",
-          "decision",
-          "observation_kinds",
-          "latency_ms",
-          "validation_retries",
-          "input_tokens",
-          "output_tokens",
-          "frame_age_ms",
-          "created_at"
-        ],
-        "title": "AgentTurnView",
-        "type": "object"
-      },
-      "CreateAgentSessionRequest": {
-        "properties": {
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode",
-            "default": "intent"
-          },
-          "environment": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EnvironmentDescriptor"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "An ad-hoc environment described inline. Mutually exclusive with `environment_id`; supply exactly one."
-          },
-          "environment_id": {
+          "source_assignment_id": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -466,37 +122,177 @@
                 "type": "null"
               }
             ],
-            "description": "A registered environment in this workspace. Mutually exclusive with `environment`; supply exactly one.",
-            "title": "Environment Id"
+            "description": "Lineage: the assignment this one was copied from, if any.",
+            "title": "Source Assignment Id"
           },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AssignmentStepView"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Grader-only answer key, or null when the assignment has none. Steps never reach the acting persona; on the sessions lane they are inert until run verification ships (documented, never silently ignored).",
+            "title": "Steps"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "goal",
+          "background",
+          "steps",
+          "revision",
+          "source_assignment_id",
+          "archived_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "AssignmentResponse",
+        "type": "object"
+      },
+      "AssignmentSnapshot": {
+        "description": "The session's intent as frozen at create.\n\n``goal`` is always present (the snapshot). ``id``/``name``/``revision`` are\nnull for a session opened with an inline descriptor; ``name`` reads the\nLIVE registry row (display only) while ``goal`` and ``revision`` stay\nfrozen, so a rename shows through but content never drifts.",
+        "properties": {
           "goal": {
-            "maxLength": 2000,
-            "minLength": 1,
             "title": "Goal",
             "type": "string"
           },
-          "max_turns": {
-            "default": 50,
-            "maximum": 200.0,
-            "minimum": 1.0,
-            "title": "Max Turns",
-            "type": "integer"
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
           },
-          "pacing": {
-            "$ref": "#/components/schemas/PacingContract"
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
           },
-          "persona_id": {
-            "format": "uuid",
-            "title": "Persona Id",
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The registry row's revision at bind time. Two runs of one assignment are comparable within a revision of its content.",
+            "title": "Revision"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "goal"
+        ],
+        "title": "AssignmentSnapshot",
+        "type": "object"
+      },
+      "AssignmentStep": {
+        "description": "Author-supplied atomic action for post-session verification.\n\nAuthors provide ``name`` (required, short verb-phrase) and optionally a\nlonger ``description`` for nuance. ``id`` is the step's PERMANENT\nidentity: a client that has one (from a prior read, or client-minted at\nauthoring) sends it back and the server keeps it verbatim; the server\nmints one (slugified from name) only when it is absent. It is therefore\noptional on request inputs but always populated on response payloads —\nthe JSONB column on ``Assignment.steps`` carries the id back through\n``from_attributes``. Use ``AssignmentStepResolved`` where an id MUST be\npresent (verifier paths, step_completion joins).",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "AssignmentStep",
+        "type": "object"
+      },
+      "AssignmentStepView": {
+        "description": "A stored step as the caller sees it (id always present).",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
             "type": "string"
           },
-          "reasoning_effort": {
-            "default": "low",
-            "pattern": "^(low|medium|high)$",
-            "title": "Reasoning Effort",
+          "name": {
+            "title": "Name",
             "type": "string"
-          },
-          "resolver_guidance": {
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "AssignmentStepView",
+        "type": "object"
+      },
+      "CreateAssignmentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
             "anyOf": [
               {
                 "maxLength": 8000,
@@ -506,15 +302,50 @@
                 "type": "null"
               }
             ],
-            "title": "Resolver Guidance"
+            "description": "Persona-facing background for the situation (context the participant 'knows' going in). Optional. NOT YET RENDERED on the sessions lane: it is stored and content-fingerprinted, but the session prompt currently carries the goal only — prompt parity ships with study adoption.",
+            "title": "Background"
+          },
+          "get_or_create": {
+            "default": false,
+            "description": "Idempotent register for CI: when a LIVE assignment with this name (case-insensitive, family-scoped) already exists, return it with 200 instead of 409. The existing row is returned AS IS — nothing on this request is applied to it.",
+            "title": "Get Or Create",
+            "type": "boolean"
+          },
+          "goal": {
+            "description": "The persona-facing intent: what the participant is trying to do, in their own terms. Rendered into the persona prompt as the situation paragraph — identical treatment to a session's inline goal.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Goal",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AssignmentStep"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Grader-only answer key: the atomic actions a run should be graded against. NEVER shown to the acting persona. Step ids are permanent identity — provided ids are kept verbatim, missing ids are minted server-side.",
+            "title": "Steps"
           }
         },
         "required": [
-          "persona_id",
-          "goal",
-          "pacing"
+          "name",
+          "goal"
         ],
-        "title": "CreateAgentSessionRequest",
+        "title": "CreateAssignmentRequest",
         "type": "object"
       },
       "CreateEnvironmentRequest": {
@@ -523,21 +354,20 @@
           "config": {
             "$ref": "#/components/schemas/EnvironmentConfig"
           },
-          "declared_actions": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Default action vocabulary for sessions in this environment (same shape as a turn's `valid_actions`). A turn may still declare its own, which wins for that turn.",
-            "title": "Declared Actions"
+          "example_actions": {
+            "description": "Example action vocabulary for this environment (same shape as a turn's `valid_actions`). NON-AUTHORITATIVE: documentation and SDK scaffolding only, never read at turn time — every turn declares its own `valid_actions`, which is the only authoritative source.",
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Example Actions",
+            "type": "array"
+          },
+          "get_or_create": {
+            "default": false,
+            "description": "Idempotent register for CI: when a LIVE environment with this name (case-insensitive) and the SAME kind already exists, return it with 200 instead of 409. The existing row is returned AS IS — config, notes and example_actions on this request are ignored, never silently applied, and the address-dedupe check is not evaluated on this path (nothing is written). A name held by a different kind still conflicts (409).",
+            "title": "Get Or Create",
+            "type": "boolean"
           },
           "kind": {
             "$ref": "#/components/schemas/EnvironmentKind",
@@ -580,6 +410,162 @@
           "kind"
         ],
         "title": "CreateEnvironmentRequest",
+        "type": "object"
+      },
+      "CreateEnvironmentVersionRequest": {
+        "additionalProperties": false,
+        "description": "Author a new variant of an environment.\n\n``version`` is absent by design: it is server-assigned as max+1. No surveyed\nplatform lets the user author the immutable version identifier (ADR-0027's\nsurvey), and users get NAMED things over auto counters — which is what\n``label`` is.\n\n``is_default`` is absent too: the default pointer moves only through the\ndedicated ``set-default`` endpoint, so clear-then-set lives in exactly one\nplace. Authoring a variant therefore never silently redirects traffic.",
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentConfig"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "REPLACES the environment's config for runs pinned to this version (never merged). Omit to inherit the environment's config."
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "example_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replaces the environment's example actions for this variant. NON-AUTHORITATIVE: documentation and SDK scaffolding only, never read at turn time. Omit to inherit.",
+            "title": "Example Actions"
+          },
+          "label": {
+            "description": "The human handle for this variant, unique per environment case-insensitively. Sessions pin to it by name.",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label"
+        ],
+        "title": "CreateEnvironmentVersionRequest",
+        "type": "object"
+      },
+      "CreateSessionRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "assignment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AssignmentRef"
+              },
+              {
+                "$ref": "#/components/schemas/AssignmentDescriptor"
+              }
+            ],
+            "description": "The session's intent: `{goal}` describes it inline, `{id}` binds a registered assignment (its goal is frozen onto the session). Supply exactly one shape.",
+            "title": "Assignment"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode",
+            "default": "intent"
+          },
+          "environment": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentDescriptor"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "An ad-hoc environment described inline. Mutually exclusive with `environment_id`; supply exactly one."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A registered environment in this workspace. Mutually exclusive with `environment`; supply exactly one.",
+            "title": "Environment Id"
+          },
+          "environment_version": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pin this session to a declared version of the registered environment, by label (case-insensitive; the canonical label is recorded). Requires `environment_id`. Omit to use the environment's default version, or to run unversioned when it has none. An unknown label is a 404, never a new bucket.",
+            "title": "Environment Version"
+          },
+          "max_turns": {
+            "default": 50,
+            "maximum": 200.0,
+            "minimum": 1.0,
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "persona_id": {
+            "format": "uuid",
+            "title": "Persona Id",
+            "type": "string"
+          },
+          "reasoning_effort": {
+            "default": "low",
+            "pattern": "^(low|medium|high)$",
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "resolver_guidance": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolver Guidance"
+          }
+        },
+        "required": [
+          "persona_id",
+          "assignment",
+          "pacing"
+        ],
+        "title": "CreateSessionRequest",
         "type": "object"
       },
       "DecisionMode": {
@@ -700,7 +686,7 @@
         "type": "object"
       },
       "EnvironmentKind": {
-        "description": "What KIND of surface a registered environment is (ADR-0026).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``agent_sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
+        "description": "What KIND of surface a registered environment is (ADR-0026).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
         "enum": [
           "web",
           "device",
@@ -729,28 +715,51 @@
       "EnvironmentResponse": {
         "description": "A registered environment as the caller sees it.",
         "properties": {
+          "address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Normalized target identity derived from `config` (scheme, host and path only). A duplicate-registration guard, NOT the environment's identity — sessions always reference the id.",
+            "title": "Address"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the environment is archived (DELETE). An archived environment stays readable by id so existing sessions keep resolving, is hidden from the default list, and frees its name for reuse.",
+            "title": "Archived At"
+          },
           "config": {
-            "$ref": "#/components/schemas/EnvironmentConfig"
+            "$ref": "#/components/schemas/StoredEnvironmentConfig"
           },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
             "type": "string"
           },
-          "declared_actions": {
-            "anyOf": [
-              {
-                "items": {
-                  "additionalProperties": true,
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Declared Actions"
+          "example_actions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Example Actions",
+            "type": "array"
+          },
+          "hosting": {
+            "description": "Who computes the next observation for this environment. Derived from kind and config, never client-set. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Hosting",
+            "type": "string"
           },
           "id": {
             "format": "uuid",
@@ -776,6 +785,11 @@
               }
             ],
             "title": "Operating Notes"
+          },
+          "revision": {
+            "description": "Increments on every write to this environment's identity or configuration. Usage is aggregated by (id, revision), so a run reports against the configuration it actually ran on. Archiving does not change it.",
+            "title": "Revision",
+            "type": "integer"
           },
           "slug": {
             "anyOf": [
@@ -807,11 +821,141 @@
           "slug",
           "config",
           "operating_notes",
-          "declared_actions",
+          "example_actions",
+          "hosting",
+          "address",
+          "revision",
+          "archived_at",
           "created_at",
           "updated_at"
         ],
         "title": "EnvironmentResponse",
+        "type": "object"
+      },
+      "EnvironmentVersionListResponse": {
+        "description": "Every version of one environment, oldest first by ``version``.\n\nUnpaginated for the same reason the environments list is: variants are\nhand-authored config objects, a handful per environment.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/EnvironmentVersionResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "EnvironmentVersionListResponse",
+        "type": "object"
+      },
+      "EnvironmentVersionResponse": {
+        "description": "A declared variant as the caller sees it.",
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the variant is archived. An archived version stays readable and comparable so its stored runs keep resolving, is hidden from the default list, refuses new sessions, and frees its label for reuse.",
+            "title": "Archived At"
+          },
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoredEnvironmentConfig"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "This variant's own config, or null when it inherits the environment's. Replaces (never merges with) the environment's."
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "effective_config": {
+            "$ref": "#/components/schemas/StoredEnvironmentConfig",
+            "description": "The config a run pinned to this version operates under: this version's `config` when set, otherwise the environment's. Provided so callers never re-implement the replace rule."
+          },
+          "environment_id": {
+            "format": "uuid",
+            "title": "Environment Id",
+            "type": "string"
+          },
+          "example_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Example Actions"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_default": {
+            "description": "Whether a session that names this environment WITHOUT pinning a version resolves here. At most one live default per environment; an environment with no default resolves unversioned.",
+            "title": "Is Default",
+            "type": "boolean"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "description": "Monotonic per environment, server-assigned, never reused — even after the variant is archived.",
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "environment_id",
+          "version",
+          "label",
+          "description",
+          "config",
+          "effective_config",
+          "example_actions",
+          "is_default",
+          "archived_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "EnvironmentVersionResponse",
         "type": "object"
       },
       "Error": {
@@ -963,6 +1107,612 @@
         "title": "Sentiment",
         "type": "string"
       },
+      "SessionDetailResponse": {
+        "description": "Full session state + ordered decision trace (GET).",
+        "properties": {
+          "accrued_credits": {
+            "description": "This session's spend in credits (0 if it had no billable turns).",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/AssignmentSnapshot",
+            "description": "The session's intent as frozen at create (ADR-0028)."
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the session left `open` (UTC), stamped on the first terminal transition and never moved. Null while the session is open. This is the timestamp `sessions_ended` usage buckets on.",
+            "title": "Ended At"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor",
+            "description": "The environment as frozen at create (name + kind snapshot)."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Id"
+          },
+          "environment_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Revision"
+          },
+          "environment_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Version Id"
+          },
+          "environment_version_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Version Label"
+          },
+          "has_more": {
+            "description": "True when more turns exist beyond this page (page with after_index).",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "pacing": {
+            "$ref": "#/components/schemas/PacingContract"
+          },
+          "person_snapshot": {
+            "additionalProperties": true,
+            "title": "Person Snapshot",
+            "type": "object"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Id"
+          },
+          "reasoning_effort": {
+            "title": "Reasoning Effort",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/SessionTurnView"
+            },
+            "title": "Turns",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "persona_id",
+          "workspace_id",
+          "assignment",
+          "environment",
+          "environment_id",
+          "environment_revision",
+          "environment_version_id",
+          "environment_version_label",
+          "pacing",
+          "decision_mode",
+          "status",
+          "ended_reason",
+          "max_turns",
+          "turn_count",
+          "reasoning_effort",
+          "person_snapshot",
+          "created_by_api_key_id",
+          "accrued_credits",
+          "created_at",
+          "updated_at",
+          "ended_at",
+          "turns",
+          "has_more"
+        ],
+        "title": "SessionDetailResponse",
+        "type": "object"
+      },
+      "SessionListItem": {
+        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0025), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
+        "properties": {
+          "accrued_credits": {
+            "description": "This session's spend in credits (0 if it had no billable turns).",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "assignment": {
+            "$ref": "#/components/schemas/AssignmentSnapshot",
+            "description": "The session's intent as frozen at create (ADR-0028)."
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_api_key_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By Api Key Id"
+          },
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Ended Reason"
+          },
+          "environment": {
+            "$ref": "#/components/schemas/EnvironmentDescriptor",
+            "description": "The environment as frozen at create (name + kind snapshot)."
+          },
+          "environment_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Id"
+          },
+          "environment_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Revision"
+          },
+          "environment_version_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Version Id"
+          },
+          "environment_version_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Environment Version Label"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "participant": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SessionParticipantRef"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The session's actor: persona reference plus the display name frozen at create. Replaces the former flat `persona_id` field."
+          },
+          "settled_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Settled At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "assignment",
+          "environment",
+          "environment_id",
+          "environment_revision",
+          "environment_version_id",
+          "environment_version_label",
+          "participant",
+          "turn_count",
+          "max_turns",
+          "decision_mode",
+          "created_by_api_key_id",
+          "accrued_credits",
+          "created_at",
+          "updated_at",
+          "settled_at",
+          "ended_reason"
+        ],
+        "title": "SessionListItem",
+        "type": "object"
+      },
+      "SessionListResponse": {
+        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
+        "properties": {
+          "has_more": {
+            "description": "True when more sessions exist beyond this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionListItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the final page.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more",
+          "next_cursor"
+        ],
+        "title": "SessionListResponse",
+        "type": "object"
+      },
+      "SessionParticipantRef": {
+        "description": "The session's actor, as the list projection needs it.\n\n``name`` comes from the actor row's frozen ``person_snapshot`` (ADR-0028:\nsession surfaces read the snapshot, never the live person), so it stays\nreadable after the persona is edited or erased. ``persona_id`` is the live\npool reference and goes null on erasure (SET NULL, ADR-0011).",
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Display name frozen into the actor's person_snapshot at session create; null only if the snapshot carried none.",
+            "title": "Name"
+          },
+          "persona_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The persona this actor was minted from; null once that persona is deleted.",
+            "title": "Persona Id"
+          }
+        },
+        "required": [
+          "persona_id",
+          "name"
+        ],
+        "title": "SessionParticipantRef",
+        "type": "object"
+      },
+      "SessionResponse": {
+        "properties": {
+          "decision_mode": {
+            "$ref": "#/components/schemas/DecisionMode"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "max_turns": {
+            "title": "Max Turns",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus",
+            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "decision_mode",
+          "turn_count",
+          "max_turns"
+        ],
+        "title": "SessionResponse",
+        "type": "object"
+      },
+      "SessionStatus": {
+        "enum": [
+          "open",
+          "completed",
+          "gave_up",
+          "closed",
+          "max_turns",
+          "spend_cap_reached",
+          "balance_exhausted"
+        ],
+        "title": "SessionStatus",
+        "type": "string"
+      },
+      "SessionTurnView": {
+        "description": "One recorded turn in the session trace (GET). Observations are stored by\nreference only (kinds + sha256); the caller owns the frames (ADR-0021).",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "decision": {
+            "$ref": "#/components/schemas/TurnDecisionView"
+          },
+          "frame_age_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Frame Age Ms"
+          },
+          "input_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Input Tokens"
+          },
+          "latency_ms": {
+            "title": "Latency Ms",
+            "type": "integer"
+          },
+          "observation_kinds": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Observation Kinds",
+            "type": "array"
+          },
+          "output_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Output Tokens"
+          },
+          "turn_index": {
+            "title": "Turn Index",
+            "type": "integer"
+          },
+          "validation_retries": {
+            "title": "Validation Retries",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_index",
+          "decision",
+          "observation_kinds",
+          "latency_ms",
+          "validation_retries",
+          "input_tokens",
+          "output_tokens",
+          "frame_age_ms",
+          "created_at"
+        ],
+        "title": "SessionTurnView",
+        "type": "object"
+      },
+      "StoredEnvironmentConfig": {
+        "description": "The READ view of ``environments.config`` — tolerant of unknown keys.\n\nSame fields, ``extra=\"ignore\"`` instead of ``extra=\"forbid\"``. The write DTOs\nkeep ``forbid`` (a silently-ignored config key is a customer debugging a\ntarget that was never set), but the READ path must never reject a blob that\nis already on disk: a row written by a NEWER server carrying a config key\nthis one predates would otherwise raise, and because the list response parses\nthe whole collection, ONE such row would 500 the entire workspace listing,\nnot just its own entry.\n\nThis is the config-blob half of the same open-union contract ``kind`` already\nfollows: closed on write, open on read.",
+        "properties": {
+          "app_artifact": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "App Artifact"
+          },
+          "origins": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origins"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "title": "StoredEnvironmentConfig",
+        "type": "object"
+      },
       "TurnDecisionView": {
         "description": "The per-turn decision as the caller sees it: a superset of the persona's\nTurnDecision with the Mode B intent/resolver extensions.\n\n``action_name`` is null when there is nothing to execute (a Mode B no_match\nor none_needed). ``intent``/``resolution``/``unmet_expectation`` are all None\nin direct mode; the experiential payload (comment/sentiment/felt_intensity/\nstatus) is always the persona's, in either mode, and on a no_match/none_needed.",
         "properties": {
@@ -1101,7 +1851,7 @@
             "$ref": "#/components/schemas/TurnDecisionView"
           },
           "session_status": {
-            "$ref": "#/components/schemas/AgentSessionStatus",
+            "$ref": "#/components/schemas/SessionStatus",
             "description": "Session status after this turn. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
           },
           "turn_id": {
@@ -1129,9 +1879,70 @@
         "title": "TurnResponse",
         "type": "object"
       },
+      "UpdateAssignmentRequest": {
+        "additionalProperties": false,
+        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the NULLABLE fields — ``background`` and\n``steps`` — where it CLEARS the column, so \"omitted\" and \"explicitly null\"\nmust stay distinguishable: the router reads ``model_fields_set``. ``name``\nand ``goal`` are non-nullable; an explicit null there asserts nothing and\nleaves the stored value alone.\n\nAny applied write bumps ``revision`` (the audit counter); the content sha\nfrozen on each session is what keeps metadata-only bumps from splitting\nusage series.",
+        "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background"
+          },
+          "goal": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Goal"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/AssignmentStep"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          }
+        },
+        "title": "UpdateAssignmentRequest",
+        "type": "object"
+      },
       "UpdateEnvironmentRequest": {
         "additionalProperties": false,
-        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the three nullable fields (it clears them), so\n\"omitted\" and \"explicitly null\" must stay distinguishable — the router reads\n``model_fields_set`` rather than testing for None. ``kind`` is updatable but\nre-validates the config against the NEW kind, so a web→device switch that\nleaves only a ``url`` behind is a 422 rather than a broken row.",
+        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the NULLABLE fields — ``slug`` and\n``operating_notes`` — where it CLEARS the column, so \"omitted\" and\n\"explicitly null\" must stay distinguishable: the router reads\n``model_fields_set`` rather than testing for None. ``kind`` is updatable but\nre-validates the config against the NEW kind, so a web→device switch that\nleaves only a ``url`` behind is a 422 rather than a broken row.\n\n``example_actions`` is NOT NULL since Phase A, so null is not a way to clear\nit and is REJECTED rather than silently ignored — send ``[]``. ``name``,\n``kind`` and ``config`` are likewise non-nullable; an explicit null there\nasserts nothing and leaves the stored value alone.",
         "properties": {
           "config": {
             "anyOf": [
@@ -1143,7 +1954,7 @@
               }
             ]
           },
-          "declared_actions": {
+          "example_actions": {
             "anyOf": [
               {
                 "items": {
@@ -1156,7 +1967,8 @@
                 "type": "null"
               }
             ],
-            "title": "Declared Actions"
+            "description": "Replaces the stored example actions. NON-AUTHORITATIVE (never read at turn time). Send `[]` to clear; `null` is rejected.",
+            "title": "Example Actions"
           },
           "kind": {
             "anyOf": [
@@ -1207,6 +2019,64 @@
           }
         },
         "title": "UpdateEnvironmentRequest",
+        "type": "object"
+      },
+      "UpdateEnvironmentVersionRequest": {
+        "additionalProperties": false,
+        "description": "Partial update: an omitted field is left alone.\n\n``config`` and ``example_actions`` are FROZEN once any session references\nthis version (409 ``environment_version_config_frozen``); metadata stays\neditable for the life of the row. ``is_default`` is not here — see\n``set-default``.",
+        "properties": {
+          "config": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EnvironmentConfig"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "example_actions": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Example Actions"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          }
+        },
+        "title": "UpdateEnvironmentVersionRequest",
         "type": "object"
       },
       "ValidationError": {
@@ -1283,9 +2153,590 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/v1/assignments/{assignment_id}": {
+      "delete": {
+        "description": "Delete an assignment — an ARCHIVE under the hood (ADR-0028).\n\n``archived_at`` is stamped, the row stays readable by id, sessions bound to\nit keep resolving, and the name is freed for reuse. Idempotent. Refused\n(409) while a PUBLISHED listing references the assignment: the listing's\ntask set is a live, paid contract and archiving would silently shrink it.",
+        "operationId": "deleteAssignment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Assignment",
+        "tags": [
+          "assignments"
+        ]
+      },
+      "get": {
+        "description": "Fetch one assignment by id (archived rows stay readable).",
+        "operationId": "getAssignment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Assignment",
+        "tags": [
+          "assignments"
+        ]
+      },
+      "patch": {
+        "description": "Partially update an assignment; any applied write bumps ``revision``.\n\nSessions already opened against the old content are untouched — their goal\nand revision are frozen on the session row (ADR-0028).",
+        "operationId": "updateAssignment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "assignment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Assignment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssignmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Assignment",
+        "tags": [
+          "assignments"
+        ]
+      }
+    },
+    "/api/v1/environment-versions/{version_id}": {
+      "delete": {
+        "description": "Archive a variant.\n\nARCHIVE, not hard delete, for the reason the parent archives: sessions\nstamped with this version must keep resolving, and a comparison read over\nhistorical runs must keep working. The row stays readable by id, appears in\nthe list under ``include_archived=true``, refuses new sessions, loses the\ndefault pointer if it held it, and frees its label for reuse.\n\nIdempotent: archiving an already-archived version is another 204.",
+        "operationId": "deleteEnvironmentVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Delete Environment Version",
+        "tags": [
+          "environments"
+        ]
+      },
+      "get": {
+        "description": "One declared variant. Archived versions stay individually readable.",
+        "operationId": "getEnvironmentVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Environment Version",
+        "tags": [
+          "environments"
+        ]
+      },
+      "patch": {
+        "description": "Partially update a variant. Omitted fields are untouched.\n\nMETADATA (``label``, ``description``) is editable for the life of the row.\n``config`` and ``example_actions`` are FROZEN once any session has run\nagainst this version: editing them then would retroactively relabel stored\nruns, so the answer is a new version.",
+        "operationId": "updateEnvironmentVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEnvironmentVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "description": "`detail.error_kind` is `environment_version_config_frozen` when `config`/`example_actions` are edited after a session has used this version, `environment_version_label_taken` on a label collision, or `environment_version_archived` when the version has been archived.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Environment Version",
+        "tags": [
+          "environments"
+        ]
+      }
+    },
+    "/api/v1/environment-versions/{version_id}/set-default": {
+      "post": {
+        "description": "Point this environment's default at this variant.\n\nSessions that name the environment WITHOUT pinning a version resolve here\nfrom now on. Sessions already opened are untouched: the version they ran\nagainst is stamped on the row and nothing re-resolves it.\n\nIdempotent, and the outgoing default is cleared in the same transaction.",
+        "operationId": "setDefaultEnvironmentVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "version_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Version Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "description": "`detail.error_kind` is `environment_version_archived` — an archived version cannot become the default, since it refuses the very sessions the pointer would send it — or `environment_version_default_conflict` when a concurrent set-default won the race (retry after re-reading).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Set Default Environment Version",
+        "tags": [
+          "environments"
+        ]
+      }
+    },
     "/api/v1/environments/{environment_id}": {
       "delete": {
-        "description": "Delete an environment.\n\nA hard delete, not an archive: sessions that ran here keep their frozen\nname/kind snapshot and their ``environment_id`` is SET NULL, so nothing in the\ndecision trace is lost. Archive-vs-delete is therefore a UX question, not a\ndata-integrity one, and pre-launch the cheap answer wins (ADR-0026).",
+        "description": "Delete an environment.\n\nThe wire contract is unchanged (204, and the environment stops appearing in\nthe list), but since ADR-0024 Phase A this ARCHIVES under the hood rather\nthan hard-deleting: ``archived_at`` is stamped, the row stays readable by id,\nand a session's ``environment_id`` keeps resolving instead of being SET NULL.\nA decision trace therefore never points at a dangling reference, and usage\naggregated on ``(environment_id, revision)`` survives the delete.\n\nThis supersedes ADR-0026's pre-launch hard delete via that ADR's own\ndeference clause to the concept spec. The name and address are freed for\nreuse immediately (both unique indexes are partial on ``archived_at IS\nNULL``), so the UX the hard delete was chosen for is preserved.\n\nIdempotent: deleting an already-archived environment is another 204.",
         "operationId": "deleteEnvironment",
         "parameters": [
           {
@@ -1585,6 +3036,194 @@
         ]
       }
     },
+    "/api/v1/environments/{environment_id}/versions": {
+      "get": {
+        "description": "Every declared variant of this environment, oldest first.\n\nAn environment with no versions returns an EMPTY list, which is the normal\nresting state — versions are never auto-minted (ADR-0027), so zero here\nmeans \"nobody has authored a variant\", not \"something is missing\".",
+        "operationId": "listEnvironmentVersions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "environment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Environment Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Environment Versions",
+        "tags": [
+          "environments"
+        ]
+      },
+      "post": {
+        "description": "Author a declared variant of this environment.\n\n``version`` is assigned server-side as max+1; the caller names the variant\nwith ``label``. The new version is NOT made default — a fresh variant must\nnever silently redirect the traffic of callers who pin nothing.",
+        "operationId": "createEnvironmentVersion",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "environment_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Environment Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEnvironmentVersionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "description": "`detail.error_kind` is `environment_version_label_taken` when the label collides with another LIVE version of this environment (`detail.existing_version_id` carries it), or `environment_archived` when the environment itself is archived.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Environment Version",
+        "tags": [
+          "environments"
+        ]
+      }
+    },
     "/api/v1/sessions/{session_id}": {
       "delete": {
         "description": "Close an open session (idempotent no-op on an already-closed one).",
@@ -1606,7 +3245,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentSessionResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             },
@@ -1729,7 +3368,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentSessionDetailResponse"
+                  "$ref": "#/components/schemas/SessionDetailResponse"
                 }
               }
             },
@@ -1948,9 +3587,214 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspace_id}/assignments": {
+      "get": {
+        "description": "List the workspace family's assignments, oldest first.\n\nFamily-scoped (ADR-0028): a benchmark reference product lists — and\ncollides names with — its parent's registry rather than a private one.",
+        "operationId": "listAssignments",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include archived assignments. Off by default: archived rows stay readable by id but are hidden from the working list.",
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include archived assignments. Off by default: archived rows stay readable by id but are hidden from the working list.",
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Assignments",
+        "tags": [
+          "assignments"
+        ]
+      },
+      "post": {
+        "description": "Register an assignment: a named intent sessions can bind by id.\n\nRegistration is OPT-IN by design (ADR-0028's row rule): a row earns its\nplace when runs must be compared across a boundary their container cannot\ndraw — never because the same words were typed twice.",
+        "operationId": "createAssignment",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAssignmentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentResponse"
+                }
+              }
+            },
+            "description": "`get_or_create` was set and a live assignment with this name already exists: the existing row, returned as is (nothing on the request is applied to it).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssignmentResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Missing or invalid bearer token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "description": "An assignment with this name already exists in the workspace family (names are unique per family, case-insensitive).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Assignment",
+        "tags": [
+          "assignments"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspace_id}/environments": {
       "get": {
-        "description": "Every environment registered in this workspace, oldest first.",
+        "description": "Every LIVE environment registered in this workspace, oldest first.\n\nArchived environments are excluded unless ``include_archived=true``; they stay\nindividually readable by id either way.",
         "operationId": "listEnvironments",
         "parameters": [
           {
@@ -1961,6 +3805,16 @@
               "format": "uuid",
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Include Archived",
+              "type": "boolean"
             }
           }
         ],
@@ -2069,6 +3923,21 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentResponse"
+                }
+              }
+            },
+            "description": "`get_or_create` was set and a live environment with this name and kind already exists: the existing row, returned as is (nothing on the request is applied to it).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -2187,7 +4056,7 @@
               "anyOf": [
                 {
                   "items": {
-                    "$ref": "#/components/schemas/AgentSessionStatus"
+                    "$ref": "#/components/schemas/SessionStatus"
                   },
                   "type": "array"
                 },
@@ -2216,6 +4085,44 @@
               ],
               "description": "Filter to sessions opened by this API key.",
               "title": "Api Key Id"
+            }
+          },
+          {
+            "description": "Filter to sessions run in this registered environment. Matches on the environment's id, so a renamed environment still returns its older sessions; sessions opened with an inline environment descriptor have no id and are never matched, and sessions whose environment was since deleted no longer match (their reference is cleared; the frozen snapshot stays on the session).",
+            "in": "query",
+            "name": "environment_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to sessions run in this registered environment. Matches on the environment's id, so a renamed environment still returns its older sessions; sessions opened with an inline environment descriptor have no id and are never matched, and sessions whose environment was since deleted no longer match (their reference is cleared; the frozen snapshot stays on the session).",
+              "title": "Environment Id"
+            }
+          },
+          {
+            "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
+            "in": "query",
+            "name": "assignment_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
+              "title": "Assignment Id"
             }
           },
           {
@@ -2292,7 +4199,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentSessionListResponse"
+                  "$ref": "#/components/schemas/SessionListResponse"
                 }
               }
             },
@@ -2367,7 +4274,7 @@
         ]
       },
       "post": {
-        "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.",
+        "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.\n\nThe ASSIGNMENT (the session's intent, ADR-0028) is a required union of\nexactly one shape: ``{\"goal\": ...}`` describes it inline, ``{\"id\": ...}``\nbinds a registered assignment — its goal and revision are FROZEN onto the\nsession at create, so later registry edits never touch it. An unreachable\nor nonexistent assignment id is a 404; an ARCHIVED one is a 409\n``assignment_archived``.\n\nThe environment comes in one of two forms (exactly one, enforced by the\nrequest validator): a registered ``environment_id``, or an inline\n``environment`` descriptor. A registered id is resolved within this workspace\nand its name, kind and revision are SNAPSHOT onto the session (ADR-0024) — an\nunreachable or nonexistent id is a 404, an ARCHIVED one is a 409\n``environment_archived``, since the id resolves but the environment is retired.",
         "operationId": "createSession",
         "parameters": [
           {
@@ -2401,7 +4308,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateAgentSessionRequest"
+                "$ref": "#/components/schemas/CreateSessionRequest"
               }
             }
           },
@@ -2412,7 +4319,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentSessionResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             },
@@ -2427,7 +4334,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/AgentSessionResponse"
+                  "$ref": "#/components/schemas/SessionResponse"
                 }
               }
             },
@@ -2476,7 +4383,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`), persona (`persona_id`), or environment (`environment_id`) was not found or is not reachable by this principal.",
+            "description": "The workspace (`workspace_id`), persona (`persona_id`), environment (`environment_id`), or assignment (`assignment.id`) was not found or is not reachable by this principal.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2491,7 +4398,7 @@
                 }
               }
             },
-            "description": "The Idempotency-Key was reused with a different request body (`detail.error_kind = 'idempotency_conflict'`).",
+            "description": "The create was refused; `detail.error_kind` says why: `idempotency_conflict` (the Idempotency-Key was reused with a different request body), `environment_archived` (the environment resolves but is retired), or `assignment_archived` (the assignment resolves but is retired — register a new assignment, or pass the goal inline).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
