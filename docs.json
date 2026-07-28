@@ -182,7 +182,8 @@
               "api/concepts/sessions-and-turns",
               "api/concepts/observations",
               "api/concepts/decide-only-loop",
-              "api/concepts/intent-and-resolution"
+              "api/concepts/intent-and-resolution",
+              "api/concepts/people"
             ]
           },
           {
@@ -190,7 +191,8 @@
             "pages": [
               "api/guides/session-loop",
               "api/guides/environment-authoring",
-              "api/guides/scoring-outcomes"
+              "api/guides/scoring-outcomes",
+              "api/guides/people-search"
             ]
           },
           {
@@ -222,7 +224,12 @@
               "GET /api/v1/workspaces/{workspace_id}/tasks",
               "GET /api/v1/tasks/{task_id}",
               "PATCH /api/v1/tasks/{task_id}",
-              "DELETE /api/v1/tasks/{task_id}"
+              "DELETE /api/v1/tasks/{task_id}",
+              "GET /api/v1/workspaces/{workspace_id}/people",
+              "POST /api/v1/workspaces/{workspace_id}/people/search",
+              "GET /api/v1/workspaces/{workspace_id}/people/{person_id}",
+              "GET /api/v1/workspaces/{workspace_id}/people/counts",
+              "GET /api/v1/workspaces/{workspace_id}/people/schema"
             ]
           },
           {

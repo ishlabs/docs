@@ -1,0 +1,159 @@
+---
+title: "Search people"
+description: "Build a rule tree over person attributes: the grammar, the boolean semantics, and the limits."
+mode: "how-to"
+---
+
+`POST /v1/workspaces/{workspace_id}/people/search` finds people by their attributes. It searches the same pool [`GET .../people`](/api/reference/people/list-people) serves, and returns the same paginated envelope, so you can swap one for the other without changing how you read the response.
+
+## Start from the schema
+
+[`GET .../people/schema`](/api/reference/people/get-people-schema) is the authoritative vocabulary. Every attribute it lists with a `filter` block is filterable; one without is not; one it does not list at all is refused. Copy `source` and `key` out of that block rather than guessing them, because they are not always the attribute's own name:
+
+```json
+{
+  "name": "interests",
+  "label": "Interests",
+  "type": "string_list",
+  "filter": { "source": "qualification", "key": "tag", "operators": ["eq", "in"] },
+  "writability": { "readable": true, "read_only": true }
+}
+```
+
+Filtering on interests means `"key": "tag"`, not `"key": "interests"`.
+
+## The grammar
+
+A rule is a single node. A node is either a leaf or a group, never both.
+
+A **leaf** tests one attribute:
+
+```json
+{
+  "field": { "source": "demographic", "key": "country" },
+  "operator": "eq",
+  "value": "Sweden"
+}
+```
+
+A **group** combines nodes:
+
+```json
+{ "op": "and", "conditions": [ ... ] }
+```
+
+`op` is `and`, `or`, or `not`. Groups nest, so a group can hold leaves, other groups, or a mix.
+
+## Boolean semantics, exactly
+
+A group's `op` applies to its own `conditions` and to nothing else.
+
+- **`and`** matches a person satisfying **every** condition in that group.
+- **`or`** matches a person satisfying **at least one**.
+- **`not`** takes **exactly one** condition and matches people who do not satisfy it.
+
+A nested group is evaluated on its own first, and its result becomes one input to its parent's operator. There is no operator precedence to remember and nothing is ever combined implicitly: two conditions are joined by the `op` of the group holding them, and by nothing else.
+
+## A worked example
+
+"Nurses in Sweden, plus teachers in Norway" is two `and` groups joined by an `or`:
+
+```json
+{
+  "rule": {
+    "op": "or",
+    "conditions": [
+      {
+        "op": "and",
+        "conditions": [
+          { "field": { "source": "demographic", "key": "occupation" }, "operator": "eq", "value": "nurse" },
+          { "field": { "source": "demographic", "key": "country" },    "operator": "eq", "value": "Sweden" }
+        ]
+      },
+      {
+        "op": "and",
+        "conditions": [
+          { "field": { "source": "demographic", "key": "occupation" }, "operator": "eq", "value": "teacher" },
+          { "field": { "source": "demographic", "key": "country" },    "operator": "eq", "value": "Norway" }
+        ]
+      }
+    ]
+  },
+  "pagination": { "limit": 25 }
+}
+```
+
+<Warning>
+  The country is repeated inside both groups on purpose. `or` does not distribute over anything, so a country condition placed beside the two groups rather than inside them would be a third input to the `or` and would widen the result rather than narrow it. A Swedish teacher matches neither arm of the rule above.
+</Warning>
+
+## Operators
+
+Which operators are valid depends on the attribute's `type`, and the schema's `filter.operators` is the exact list per attribute.
+
+| Type | Operators |
+|---|---|
+| `string` | `eq`, `neq`, `in`, `not_in`, `contains`, `starts_with`, `is_null`, `is_not_null` |
+| `enum` | `eq`, `neq`, `in`, `not_in`, `is_null`, `is_not_null` |
+| `number` | `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `between`, `is_null`, `is_not_null` |
+| `string_list` (interests) | `eq`, `in` |
+
+`in` and `not_in` take an array. `between` takes a two-element array of bounds, both inclusive. String comparisons are case-insensitive.
+
+### Testing whether an attribute is set
+
+`is_not_null` matches people who have a value for an attribute; `is_null` matches people who do not. Use these rather than comparing against an empty string. An attribute nobody filled in holds no value at all, and it satisfies no ordinary comparison, not even a negated one: `{"operator": "neq", "value": "nurse"}` does **not** match a person with no occupation on file.
+
+The same applies to `age`, which is computed from a date of birth. A person with no birth date matches no age filter in either direction.
+
+### Rolling up interests
+
+Interests are a tree. Filtering on a parent node also matches everyone tagged at any node beneath it, so you do not have to enumerate a subtree to select a broad interest.
+
+### Filtering into the accessibility profile
+
+The accessibility profile is a nested object, so its filter key is a dotted path, compared against a **string** value with `eq` or `neq`:
+
+```json
+{
+  "field": { "source": "demographic", "key": "accessibility_profile.visual.uses_screen_reader" },
+  "operator": "eq",
+  "value": "true"
+}
+```
+
+To select everyone with any declared need at all, filter on `accessibility_profile__has_any` instead.
+
+## Limits
+
+A rule may:
+
+- nest groups at most **2** levels deep,
+- hold at most **15** conditions in any one group,
+- and **25** conditions in total.
+
+Past any of these the request is refused with `422` and `detail.error_kind` `search_rule_too_complex`, naming the offending count alongside the limit. The usual fix is `in`, which costs one condition instead of one per value:
+
+```json
+{ "field": { "source": "demographic", "key": "country" }, "operator": "in", "value": ["Sweden", "Norway", "Denmark"] }
+```
+
+## When a rule is refused
+
+Both refusals are a `422` carrying an `error_kind`, and they want different fixes.
+
+| Kind | Means | Fix |
+|---|---|---|
+| [`search_rule_too_complex`](/api/errors#search_rule_too_complex) | Past one of the caps above | Simplify; the detail names the count and the limit |
+| [`search_rule_invalid`](/api/errors#search_rule_invalid) | Malformed tree, or an attribute, source or operator this API does not publish | Check it against the schema; the detail names the offender |
+
+A malformed request **body** (rather than a bad rule) is the ordinary validation `422` with the field-level envelope instead. See [errors](/api/errors) for both shapes.
+
+## Saved segments
+
+Segments live in the ish app and are not exposed on this API. A segment **is** a rule, so to use one, send its rule as the `rule` on this request. That is how the ish app applies them too.
+
+## Related
+
+- [People](/api/concepts/people)
+- [Errors](/api/errors)

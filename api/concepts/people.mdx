@@ -1,0 +1,69 @@
+---
+title: "People"
+description: "The pool of simulated people you can open a session for, and how ownership decides what you reach."
+mode: "explanation"
+---
+
+Every session runs as one **person**. A person is a simulated individual with a background, demographics, and interests: enough for the model to answer as them rather than as a generic user. Before you can open a session you need a `person_id`, and this is the surface that gives you one.
+
+## Two kinds of person
+
+The people you reach fall into exactly two sets, and every person object says which it belongs to through its `owner` field.
+
+| `owner` | Where it comes from | Can you run a session for it? | Can you edit it? |
+|---|---|---|---|
+| `self` | Your workspace built it, in the app or by generating people | Yes | In the app |
+| `platform` | The shared ish library, curated by ish | Yes | No |
+
+A `self` person also carries `workspace_id`. A `platform` person carries `null` there, because it belongs to no workspace rather than to yours.
+
+Together the two sets are the pool. Ask for `GET /v1/workspaces/{workspace_id}/people` with no `owner` filter and you get both, which is deliberate: **that union is exactly the set a session create accepts.** Anything this endpoint lists, you can open a session for, and anything it leaves out is refused there too. Both surfaces apply the same three rules: the person is yours or from the library, and is simulated rather than real. If you want one half of the pool, pass `owner=self` or `owner=platform`.
+
+<Note>
+  The app also lets workspaces publish a person for other workspaces to discover. Those are **not** on this API. You could list them but not run them, and an endpoint that hands you ids you cannot use is worse than one that does not.
+</Note>
+
+## What a person carries
+
+The identity the model is given, and nothing about how ish came to hold the record:
+
+- **`name`** and **`bio`**. The bio is free text and does most of the work; it is the bulk of what the model is told.
+- **Demographics**: `date_of_birth`, `gender`, `country`, `city`, `occupation` and its canonical `occupation_code`, `education_level`, `household`, `locale_type`, `income_level`, `employment_status`. The enumerated ones are open unions, so tolerate a value you do not recognize.
+- **`interests`**: IAB taxonomy node ids.
+- **`accessibility_profile`**: declared accessibility needs, as a nested object. Only non-default keys are present.
+- **`avatar_url`**, when one exists.
+
+Fetch [`GET /v1/workspaces/{workspace_id}/people/schema`](/api/reference/people/get-people-schema) for the machine-readable version: every attribute with its type, its allowed values, and whether you can filter on it. It is the same for every workspace and changes only when ish adds an attribute, so fetch it once and cache it.
+
+### What a person does not carry
+
+Real people also participate in ish, under consent, and they are governed by an access rule no API key takes part in. **`type` is always `ai` on this API**, and no credential you can mint reaches a real person's record, their files, or anything they agreed to.
+
+For simulated people, the record holds moderation history, publishing attribution, and workspace-defined custom fields. None of it is on this API. If you are diffing against what the ish app shows you, that is the gap, and it is intentional.
+
+## Finding the right person
+
+Four endpoints, in the order you usually want them:
+
+1. [`GET .../people/counts`](/api/reference/people/get-people-counts) tells you how big the pool is, split by owner. Worth one call before you build a filter: it is the difference between "my rule is too narrow" and "this workspace has four people".
+2. [`GET .../people`](/api/reference/people/list-people) lists the pool, newest first, keyset-paginated. It takes a `search` for a name substring, and nothing else.
+3. [`POST .../people/search`](/api/reference/people/search-people) takes a rule tree over the attributes. See [search grammar](/api/guides/people-search) for the grammar and a worked example.
+4. [`GET .../people/{person_id}`](/api/reference/people/get-person) re-reads one person you already have an id for.
+
+All of them need the `people:read` scope, which is **not** in the mint default. Ask for it explicitly when you mint or rotate a key.
+
+<Note>
+  Every one of these names a workspace in the path, including the single-person read, where sessions, environments, and tasks are read at a flat `/v1/{noun}/{id}`. That is because the pool spans two owners: a library person belongs to no workspace of their own, so naming the workspace you are asking as is what lets the same library person be readable through any workspace you belong to.
+</Note>
+
+## Pagination
+
+The list and the search share the session list's envelope: `items`, `has_more`, and an opaque `next_cursor`. Page forward by passing the previous `next_cursor` as `after` (a query parameter on the list, `pagination.after` in the search body) and stop when `has_more` is false. Never build your own cursor or reuse one across different filters.
+
+Rows are ordered newest first. Because paging is keyset rather than offset, people being added while you page will not make a row appear twice or vanish.
+
+## Related
+
+- [Search grammar](/api/guides/people-search)
+- [Sessions and turns](/api/concepts/sessions-and-turns)
+- [Authentication](/api/authentication)

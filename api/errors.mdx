@@ -98,7 +98,7 @@ The `session_id` in the path.
 
 ### person_not_found {#person_not_found}
 
-The `person_id` on a session create.
+The `person_id` on a session create, or in the path on a person read. A person your workspace neither owns nor can reach in the platform library answers this rather than a `403`, so a guessed id cannot be used to test which ids are real.
 
 ### environment_not_found {#environment_not_found}
 
@@ -169,6 +169,22 @@ The task resolves but is retired. Register a new task, or pass the instructions 
 ### task_in_published_listing {#task_in_published_listing}
 
 A published listing references this task, so it cannot be retired. `detail.listing_id` names the listing. Unpublish or edit the listing first.
+
+## 422 Unprocessable Entity
+
+Most 422s come from the request-validation layer and use the `ValidationError` envelope described above, with no `error_kind`. The two below are different: they are raised by the handler, carry the `Error` envelope, and name a kind. Both come from [people search](/api/guides/people-search), where the rule tree is something you author and we plan.
+
+### search_rule_invalid {#search_rule_invalid}
+
+The rule is malformed, or it names an attribute, source, or operator this API does not publish. `detail` names the offender: `source` and `key` for an unknown attribute, or the compiler's message for an operator that does not fit the attribute's type.
+
+Check the rule against [`GET .../people/schema`](/api/reference/people/get-people-schema), which is the authoritative vocabulary: an attribute is filterable only if the schema gives it a `filter` block, and only with the operators that block lists.
+
+### search_rule_too_complex {#search_rule_too_complex}
+
+The rule is well-formed but past a size cap: more than 2 levels of nested groups, more than 15 conditions in one group, or more than 25 in total. `detail` carries the offending count alongside the limit, so you do not have to bisect your own filter.
+
+Combining values with `in` costs one condition instead of one per value, and is usually the whole fix.
 
 ## 429 Too Many Requests
 

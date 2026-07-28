@@ -975,6 +975,173 @@
         "title": "PacingContract",
         "type": "string"
       },
+      "PersonAttribute": {
+        "description": "One attribute of a person: what it holds, how to read it, how to filter it.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "filter": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PersonAttributeFilter"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How to reference this attribute in a rule; null when it is not filterable."
+          },
+          "label": {
+            "description": "Human-readable name, for building a filter UI.",
+            "title": "Label",
+            "type": "string"
+          },
+          "name": {
+            "description": "The attribute's canonical name. When `writability.readable` is true this is also its key on a person object.",
+            "title": "Name",
+            "type": "string"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/PersonAttributeOption"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The value set, for `enum` attributes; null for every other type. An open union: new options may be added, so tolerate a value you do not recognize.",
+            "title": "Options"
+          },
+          "type": {
+            "description": "The kind of value the attribute holds. This is what decides which operators are valid.",
+            "enum": [
+              "string",
+              "enum",
+              "number",
+              "date",
+              "boolean",
+              "string_list",
+              "object"
+            ],
+            "title": "Type",
+            "type": "string"
+          },
+          "writability": {
+            "$ref": "#/components/schemas/PersonAttributeWritability"
+          }
+        },
+        "required": [
+          "name",
+          "label",
+          "type",
+          "writability"
+        ],
+        "title": "PersonAttribute",
+        "type": "object"
+      },
+      "PersonAttributeFilter": {
+        "description": "How to reference an attribute inside a search rule.\n\nPresent only on filterable attributes; null otherwise. Copy `source` and\n`key` verbatim into a rule leaf's `field` object.",
+        "properties": {
+          "key": {
+            "description": "The rule leaf's `field.key`. Usually equal to the attribute's `name`, but not always: interests filter as `qualification`/`tag`.",
+            "title": "Key",
+            "type": "string"
+          },
+          "operators": {
+            "description": "Every operator valid for this attribute. Using one that is not listed is a 422 `search_rule_invalid`, never a silent no-match.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Operators",
+            "type": "array"
+          },
+          "source": {
+            "enum": [
+              "demographic",
+              "qualification"
+            ],
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "key",
+          "operators"
+        ],
+        "title": "PersonAttributeFilter",
+        "type": "object"
+      },
+      "PersonAttributeOption": {
+        "description": "One allowed value of an enumerated attribute.",
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "label"
+        ],
+        "title": "PersonAttributeOption",
+        "type": "object"
+      },
+      "PersonAttributeWritability": {
+        "description": "What you may do with an attribute's value.\n\nA separate block, rather than flags scattered across the attribute,\nbecause these three answers change independently: an attribute can be\nserved but not filterable (`bio`), filterable but not served (`age`, which\nis derived from `date_of_birth`), or served and filterable but never\nsettable.",
+        "properties": {
+          "read_only": {
+            "description": "True when the value cannot be set through this API. Every attribute reports true today: the people surface is read-only at this version. This block is where writability is announced when that changes, so branch on it rather than on the API version.",
+            "title": "Read Only",
+            "type": "boolean"
+          },
+          "readable": {
+            "description": "Whether the attribute appears on a person object.",
+            "title": "Readable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "readable",
+          "read_only"
+        ],
+        "title": "PersonAttributeWritability",
+        "type": "object"
+      },
+      "PersonSchemaResponse": {
+        "description": "The person attribute vocabulary this workspace can read and filter on.\n\nThis is the authoritative list: a rule naming an attribute that is not here\nis refused rather than quietly matching nothing. Fetch it once and cache\nit. It changes when ish adds an attribute or an enum value, not per\nrequest, and it is the same for every workspace.",
+        "properties": {
+          "attributes": {
+            "items": {
+              "$ref": "#/components/schemas/PersonAttribute"
+            },
+            "title": "Attributes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "attributes"
+        ],
+        "title": "PersonSchemaResponse",
+        "type": "object"
+      },
       "PersonSnapshot": {
         "additionalProperties": true,
         "description": "The person as they were when the session was created, frozen onto the session.\n\nThis, not the live person, is what the session was run against: it stays readable and unchanged after the person is edited or deleted, which is what makes an old trace still mean something. `id` is the person's id at create time.\n\nAdditional keys may be present and more may be added over time; treat anything not listed here as unspecified rather than failing on it.",
@@ -1179,6 +1346,375 @@
           "snapshotted_at"
         ],
         "title": "PersonSnapshot",
+        "type": "object"
+      },
+      "PublicPersonCountsResponse": {
+        "description": "How large the pool is, split by owner.\n\nThe feasibility seed: before building a filter you want to know whether the\nworkspace has 4 people or 4000, and how much of that is the shared library.\n`total` is exactly `self + platform` (the two sets are disjoint), and\nall three are exact counts, not estimates.",
+        "properties": {
+          "platform": {
+            "description": "People published in the shared ish library.",
+            "title": "Platform",
+            "type": "integer"
+          },
+          "self": {
+            "description": "People this workspace owns.",
+            "title": "Self",
+            "type": "integer"
+          },
+          "total": {
+            "description": "People reachable with this credential.",
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "total",
+          "self",
+          "platform"
+        ],
+        "title": "PublicPersonCountsResponse",
+        "type": "object"
+      },
+      "PublicPersonListResponse": {
+        "description": "A keyset-paginated page of people.\n\nOrdered `created_at DESC, id DESC`, the same order and the same envelope\nas the session list, so one pagination helper in an SDK drives both.",
+        "properties": {
+          "has_more": {
+            "description": "True when more people exist beyond this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PublicPersonResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the final page.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more",
+          "next_cursor"
+        ],
+        "title": "PublicPersonListResponse",
+        "type": "object"
+      },
+      "PublicPersonResponse": {
+        "description": "One person, as an external integrator sees them.\n\nThe field list is CLOSED and hand-maintained. It carries who the person is\n(identity + demographics + interests) and nothing about how ish came to\nhold that row: no moderation verdict, no publisher, no viewer-specific\nstate, no internal config pointer, no custom fields.",
+        "properties": {
+          "accessibility_profile": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Declared accessibility needs, as a nested object of boolean and enum flags. Only non-default keys are present. An open union: new keys appear over time.",
+            "title": "Accessibility Profile"
+          },
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Publicly fetchable avatar image, when one exists.",
+            "title": "Avatar Url"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-text background in the person's own register. This is the bulk of what the model is told about them when a session runs.",
+            "title": "Bio"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EducationLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employment_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmploymentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "household": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Household"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "income_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomeLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interests": {
+            "description": "IAB taxonomy node ids this person is tagged with. Filterable via the `qualification` rule source, where a parent node also matches everyone tagged at a node beneath it.",
+            "items": {
+              "type": "string"
+            },
+            "title": "Interests",
+            "type": "array"
+          },
+          "locale_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "description": "The person's display name.",
+            "title": "Name",
+            "type": "string"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-text job title, as written on the person.",
+            "title": "Occupation"
+          },
+          "occupation_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Canonical ESCO/ISCO code beside the free-text `occupation`. Codes are hierarchical, so a `starts_with` filter on a group prefix selects a whole occupational family.",
+            "title": "Occupation Code"
+          },
+          "owner": {
+            "description": "`self` for a person your workspace owns; `platform` for one published in the shared ish library. Both are usable in a session; only `self` rows are yours to edit.",
+            "enum": [
+              "self",
+              "platform"
+            ],
+            "title": "Owner",
+            "type": "string"
+          },
+          "type": {
+            "const": "ai",
+            "default": "ai",
+            "description": "Always `ai` on this API. ish also models real people who have consented to participate, and they are never readable here or through any credential you can mint. Treat this as an open union and tolerate a value you do not recognize.",
+            "title": "Type",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The owning workspace, present only when `owner` is `self`. A `platform` person belongs to no workspace, so this is null rather than naming one.",
+            "title": "Workspace Id"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "owner",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PublicPersonResponse",
+        "type": "object"
+      },
+      "PublicPersonSearchPagination": {
+        "additionalProperties": false,
+        "description": "Keyset pagination, in the body because the query is.",
+        "properties": {
+          "after": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque cursor from a prior page's `next_cursor`.",
+            "title": "After"
+          },
+          "limit": {
+            "default": 25,
+            "maximum": 100,
+            "minimum": 1,
+            "title": "Limit",
+            "type": "integer"
+          }
+        },
+        "title": "PublicPersonSearchPagination",
+        "type": "object"
+      },
+      "PublicPersonSearchRequest": {
+        "additionalProperties": false,
+        "description": "A capped rule-tree query over the workspace's reachable people.\n\nUnknown keys are rejected rather than ignored: a typo in a filter that\nsilently widened the result set would be indistinguishable from a match.",
+        "properties": {
+          "owner": {
+            "anyOf": [
+              {
+                "enum": [
+                  "self",
+                  "platform"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Restrict to one owner. Omitted returns both, which is the set you can open a session for.",
+            "title": "Owner"
+          },
+          "pagination": {
+            "$ref": "#/components/schemas/PublicPersonSearchPagination"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A boolean tree of filters. See the endpoint description for the grammar, the caps, and a worked example.",
+            "title": "Rule"
+          },
+          "search": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Case-insensitive substring match on the person's name.",
+            "title": "Search"
+          }
+        },
+        "title": "PublicPersonSearchRequest",
         "type": "object"
       },
       "Sentiment": {
@@ -2447,7 +2983,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments), and `tasks:read` and `tasks:write` (manage the workspace's registered tasks). A key is minted with `sessions:run`, `sessions:read`, and `tasks:read` by default; every other scope must be requested. An ish user access token also works on the same header for personal scripts.",
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments), `tasks:read` and `tasks:write` (manage the workspace's registered tasks), and `people:read` (list and search the people the workspace can run a session for). A key is minted with `sessions:run`, `sessions:read`, and `tasks:read` by default; every other scope must be requested, `people:read` included. An ish user access token also works on the same header for personal scripts.",
         "scheme": "bearer",
         "type": "http"
       }
@@ -2458,13 +2994,13 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, and `tasks:read` / `tasks:write` for the task registry. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives. Two kinds are available to you:   the ones your workspace owns, and the ones published in the shared ish   library. Both are listed and searchable under `/v1/workspaces/{workspace_id}/people`, and each carries an `owner` saying which it is.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, `tasks:read` / `tasks:write` for the task registry, and `people:read` to list and search the people you can run a session for. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope, and for `people:read`, explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.1.0"
+    "version": "1.2.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5043,6 +5579,724 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspace_id}/people": {
+      "get": {
+        "description": "List the people you can open a session for, newest first.\n\nTwo kinds of person are reachable: the ones your workspace owns, and the\nones published in the shared ish library. Both are usable in a session, and\neach row's `owner` says which it is. People that other workspaces have\npublished are deliberately NOT listed: you could not open a session for\nthem, and listing what you cannot use is worse than not listing it.\n\nKeyset-paginated: page forward with `after` set to the previous response's\n`next_cursor`, and stop when `has_more` is false. For anything beyond a name\nmatch, use the search endpoint.",
+        "operationId": "listPeople",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Restrict to one owner: `self` for people this workspace owns, `platform` for the shared ish library. Omit it to get both, which is exactly the set you can open a session for.",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^(self|platform)$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Restrict to one owner: `self` for people this workspace owns, `platform` for the shared ish library. Omit it to get both, which is exactly the set you can open a session for.",
+              "title": "Owner"
+            }
+          },
+          {
+            "description": "Case-insensitive substring match on the person's name.",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Case-insensitive substring match on the person's name.",
+              "title": "Search"
+            }
+          },
+          {
+            "description": "Opaque keyset cursor from a prior page's `next_cursor`.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque keyset cursor from a prior page's `next_cursor`.",
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List People",
+        "tags": [
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/counts": {
+      "get": {
+        "description": "How many people this credential can reach, split by owner.\n\nCheaper than paging the list to find out, and the number you want before\nbuilding a filter: it tells you whether a rule that matches 3 people is a\nprecise audience or a nearly-empty workspace. Exact counts, not estimates.",
+        "operationId": "getPeopleCounts",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonCountsResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get People Counts",
+        "tags": [
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/schema": {
+      "get": {
+        "description": "Every attribute a person can carry: its type, its values, how to filter it.\n\nThis is the authoritative vocabulary for the search endpoint. An attribute\nlisted here with a `filter` block can be used in a rule; one without cannot,\nand one absent entirely is refused rather than silently matching nothing.\n\nCache it. It is the same for every workspace and changes only when ish adds\nan attribute or an enum value, both of which are additive.\n\nEvery attribute currently reports `writability.read_only: true` because this\nAPI reads and searches people, it does not create or edit them. That block\nis where writability will be announced, so branch on it rather than on a\nversion number.",
+        "operationId": "getPeopleSchema",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonSchemaResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get People Schema",
+        "tags": [
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/search": {
+      "post": {
+        "description": "Find people by their attributes, using a boolean rule tree.\n\nSearches the same pool the list endpoint serves (your workspace's people\nplus the platform library), and returns the same paginated envelope.\n\n## The rule tree\n\nA rule is a single node. A node is either a **leaf** or a **group**, never\nboth:\n\n- A **leaf** tests one attribute: `{\"field\": {\"source\": ..., \"key\": ...},\n  \"operator\": ..., \"value\": ...}`. Copy `source` and `key` from the\n  attribute's `filter` block in `GET .../people/schema`; that endpoint is\n  the authoritative vocabulary, and an attribute or operator it does not\n  list is refused with a `422` rather than matching nothing.\n- A **group** combines nodes: `{\"op\": \"and\" | \"or\" | \"not\", \"conditions\":\n  [...]}`.\n\n## Boolean semantics, exactly\n\nA group's `op` applies to its OWN `conditions` and to nothing else. `and`\nmatches a person satisfying **every** condition in that group; `or` matches\na person satisfying **at least one**; `not` takes **exactly one** condition\nand matches people who do not satisfy it. Groups nest, so a group inside\nanother group is evaluated on its own first and its result is then one\ninput to the parent's operator. There is no precedence to remember and no\nimplicit combination anywhere: two conditions are only ever joined by the\n`op` of the group holding them.\n\n## A worked example\n\n\"Nurses in Sweden, plus teachers in Norway\" is two AND-groups joined by an\nOR. Note that the country is repeated in both groups: the outer `or` does\nnot distribute over anything, so a condition placed outside the groups\nwould not apply to either.\n\n```json\n{\n  \"rule\": {\n    \"op\": \"or\",\n    \"conditions\": [\n      {\"op\": \"and\", \"conditions\": [\n        {\"field\": {\"source\": \"demographic\", \"key\": \"occupation\"},\n         \"operator\": \"eq\", \"value\": \"nurse\"},\n        {\"field\": {\"source\": \"demographic\", \"key\": \"country\"},\n         \"operator\": \"eq\", \"value\": \"Sweden\"}\n      ]},\n      {\"op\": \"and\", \"conditions\": [\n        {\"field\": {\"source\": \"demographic\", \"key\": \"occupation\"},\n         \"operator\": \"eq\", \"value\": \"teacher\"},\n        {\"field\": {\"source\": \"demographic\", \"key\": \"country\"},\n         \"operator\": \"eq\", \"value\": \"Norway\"}\n      ]}\n    ]\n  },\n  \"pagination\": {\"limit\": 25}\n}\n```\n\n## Testing whether an attribute is set\n\n`is_not_null` matches people who have a value for an attribute, and\n`is_null` matches people who do not. Reach for these rather than comparing\nagainst an empty string: an attribute nobody filled in holds no value at\nall, and it satisfies no ordinary comparison, not even a negated one.\n\n## Limits, and how a rule is refused\n\nA rule may nest groups at most **2** levels deep, hold at most **15**\nconditions in any one group, and **25** in total.\n\nBoth refusals are a `422` carrying an `error_kind`, and they have different\nfixes:\n\n- `search_rule_too_complex`: past one of those caps. The detail names the\n  offending count and the limit. Combining values with `in` costs one\n  condition instead of one per value, and is the usual fix.\n- `search_rule_invalid`: the tree is malformed, or it names an attribute,\n  source or operator this API does not publish. The detail names the\n  offender, and `GET .../people/schema` is the vocabulary it was checked\n  against.\n\nA malformed request BODY (rather than a bad rule) is the ordinary\nvalidation `422` with the field-level envelope, which is why this\noperation's `422` documents either shape.\n\n## Saved segments\n\nSegments live in the ish app and are not exposed here. A segment IS a rule,\nso the way to use one is to send its rule as the `rule` on this request:\nthat is how the ish console itself applies them.",
+        "operationId": "searchPeople",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPersonSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Search People",
+        "tags": [
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/{person_id}": {
+      "get": {
+        "description": "Fetch one person by id.\n\nThe read names a workspace because the pool does. Alongside the people your\nworkspace owns, you can read the ones published in the shared ish library,\nand a library person belongs to no workspace of their own. Naming the\nworkspace you are asking as is what lets the same library person be readable\nthrough any workspace you belong to, so this read is workspace-scoped where\na session, an environment or a task is not.\n\nReachability is the same rule the list uses, so a person this workspace can\nneither own nor run answers `404` with `error_kind` `person_not_found`,\nidentical to an id that does not exist. That is deliberate: a\ndistinguishable answer would let anyone test which ids are real.",
+        "operationId": "getPerson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or person (`workspace_id`, `person_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `person_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Person",
+        "tags": [
+          "people"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspace_id}/sessions": {
       "get": {
         "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered `created_at DESC, id DESC`. Page forward with `after` set to the\nprior response's `next_cursor`; `has_more` signals another page. Each row\nis a summary (status, instructions, environment, person, turn counts, key\nattribution, accrued credits, timestamps). The per-turn decision trace lives\non the detail GET.",
@@ -5477,7 +6731,7 @@
                 }
               }
             },
-            "description": "The workspace, person, environment, or task (`workspace_id`, `person_id`, `environment_id`, `task.id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`, `person_not_found`, `environment_not_found` or `task_not_found`.",
+            "description": "The workspace, person, environment, or task (`workspace_id`, `person_id`, `environment_id`, `task.id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`, `person_not_found`, `environment_not_found` or `task_not_found`. A `person_id` that names a real person who participates in ish under consent also answers `person_not_found`: this lane runs simulated people only, and the answer is deliberately identical to the one a nonexistent id earns.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -5923,6 +7177,10 @@
     {
       "description": "Register the intent a session works toward, so runs stay comparable across environments and over time. A session can also describe its instructions inline and skip the registry entirely.",
       "name": "tasks"
+    },
+    {
+      "description": "Find the person a session should run as. Read and search the pool you can draw on: the people your workspace owns, plus the ones published in the shared ish library. Read-only at this version.",
+      "name": "people"
     }
   ]
 }

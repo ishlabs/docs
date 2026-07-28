@@ -8,6 +8,29 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-07-28 (spec 1.2.0)
+
+Mostly additive. One existing operation changes what it refuses, and only for a `person_id` no integration should have been sending.
+
+**Fixed**
+
+- **A session can no longer be opened for a real person.** `POST /v1/workspaces/{workspace_id}/sessions` now answers `404` `person_not_found` when `person_id` names a real person who participates in ish under consent, rather than opening the session. This lane has always been documented as simulated people only, but the check tested ownership and library membership without testing which kind of person the record was, so some real-person records satisfied it. The answer is `404`, identical to an id that does not exist, rather than the `403` `person_out_of_scope` used for another workspace's persona: that `403` confirms a person exists and says they are not yours, which is the wrong thing to say about a human being.
+
+  If this changes an answer you were getting, the `person_id` was reaching a record it should never have reached. Every simulated person is unaffected, and [`GET .../people`](/api/reference/people/list-people) lists exactly what a session create accepts.
+
+**Additive**
+
+- **You can read the people you run sessions for.** Five new operations under a new `people:read` scope: `listPeople`, `searchPeople`, `getPerson`, `getPeopleCounts`, and `getPeopleSchema`, all under `/v1/workspaces/{workspace_id}/people`. Until now a `person_id` had to come out of the ish app and be pasted into your code; an integration can now find its own participants. See [people](/api/concepts/people).
+- **`people:read` is not in the mint default.** A person record carries demographics and a written background, so the scope is granted deliberately rather than by default. Existing keys gain nothing: scopes are fixed at mint, so mint a new key, or rotate, to pick it up.
+- **Ownership is an `owner` alias, not a visibility enum.** Every person carries `owner`: `self` for one your workspace owns, `platform` for one from the shared ish library. Both are runnable, and the two together are exactly what a session create accepts, which is why the unfiltered list returns the union. That equality holds in both directions as of the fix above: the two surfaces now apply the same rules, so a person the list omits is a person a session create refuses. `workspace_id` is present only on `self` rows. People that other workspaces have published are deliberately absent: they are discoverable in the app but not runnable through the API, and listing ids you cannot use would be worse than omitting them.
+- **Search takes the same rule tree the ish app builds.** `POST .../people/search` accepts a boolean tree of attribute filters, capped at 2 levels of nesting, 15 conditions per group, and 25 in total. Saved segments are not exposed as objects, because a segment is a rule: send its rule. See [search grammar](/api/guides/people-search) for the semantics and a worked example.
+- **`GET .../people/schema` publishes the attribute vocabulary.** Every attribute with its type, its allowed values, whether it is filterable and under which key, and a `writability` block. It is authoritative: a rule naming an attribute the schema does not publish is refused rather than quietly matching nothing. Cache it, since it is the same for every workspace.
+- **Two new error kinds, both `422`:** [`search_rule_invalid`](/api/errors#search_rule_invalid) and [`search_rule_too_complex`](/api/errors#search_rule_too_complex). They are the first handler-raised `422`s to carry an `error_kind`, so a `422` is no longer safe to treat as "malformed body" without reading the envelope.
+
+**What a person does not carry**
+
+Worth stating plainly if you are comparing against what the ish app shows. A person on this API carries identity, demographics, interests, and an accessibility profile. It carries no moderation history, no publishing attribution, no workspace-defined custom fields, and no files. `type` is always `ai`: real people who participate in ish under consent are not reachable with any key you can mint.
+
 ## 2026-07-28 (spec 1.1.0)
 
 A breaking pre-release revision that renames the intent noun. Everything below this entry shipped under spec `1.0.0`; from here on each entry names the `info.version` of the OpenAPI spec it shipped in, so you can correlate a spec diff with the entry that explains it.
