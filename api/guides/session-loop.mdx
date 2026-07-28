@@ -15,7 +15,7 @@ Each turn hands you a decision and a session status. Act on them **in this order
 3. **Otherwise (`open`), take the next turn.** If you executed an action, capture the new frame and submit at `turn_index + 1`. If `action_name` was null (an intent `no_match` or `none_needed`), execute nothing, the world is unchanged, and submit the next turn anyway. The outcome feeds back to the participant.
 
 <Warning>
-  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the **same** response: a non-null `action_name` and a terminal `session_status` together. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action. The TV never powers off; the order never places. `session_status` describes the participant's decision state, never your obligation to execute a returned action.
+  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the **same** response: a non-null `action_name` and a terminal `session_status` together. Checking "is the session over?" first and skipping the action silently fails any task whose last step is an action. The TV never powers off; the order never places. `session_status` describes the participant's decision state, never your obligation to execute a returned action.
 </Warning>
 
 The participant may also **split** the two: the action on a `continue` turn, then `done` with a null `action_name` on the next turn. Both bundled and split are valid, and the ordering above handles both. Execute a non-null action, then check the status.
@@ -61,7 +61,7 @@ The model behind the page is in [sessions and turns](/api/concepts/sessions-and-
 
 The create call takes an optional `Idempotency-Key` header. The same key with the same body returns the existing session (`200`, not `201`); the same key with a different body is a `409` with `error_kind: idempotency_conflict`.
 
-Every create on the API takes the header on the same terms, so a retried registry write is as safe as a retried session: sessions, environments, environment versions, and assignments. Each create looks its key up in its own scope, the workspace for sessions, environments, and assignments, and the parent environment for a version, so the same string on two different creates never collides.
+Every create on the API takes the header on the same terms, so a retried registry write is as safe as a retried session: sessions, environments, environment versions, and tasks. Each create looks its key up in its own scope, the workspace for sessions, environments, and tasks, and the parent environment for a version, so the same string on two different creates never collides.
 
 Turns have a related safety net. An exact-duplicate replay of your **final** turn, the same `turn_index`, the same `observation`, the same `valid_actions`, returns the stored decision **even after the session has ended**. Replay is checked before the "is the session open?" guard, so a lost response to the last turn is always safe to retry. A *different* body at that index is a `turn_index_mismatch`.
 
@@ -75,7 +75,7 @@ These are the errors the session loop itself produces. Branch on `detail.error_k
 | `402` `credits_exhausted` / `plan_allowance_exhausted` / `spend_cap_reached` | The turn could not be paid for and was not applied | Terminal. The three kinds have three different remedies; see [billing and limits](#billing-and-limits). |
 | `403` `insufficient_scope` | The key lacks the scope this call needs; `detail.required_scope` names it | Use a key carrying that scope. |
 | `403` `person_out_of_scope` | The person is not workspace-owned or platform-library | Use an in-scope `person_id`. |
-| `404` | Workspace, session, person, environment, or assignment not found or unreachable by your token | Check the ids and that your token's workspace owns them. The kind names which one. |
+| `404` | Workspace, session, person, environment, or task not found or unreachable by your token | Check the ids and that your token's workspace owns them. The kind names which one. |
 | `409` `turn_index_mismatch` | Wrong turn index | Resubmit with `turn_index` set to the `expected_turn_index` in the body. |
 | `409` `session_not_open` | You posted a turn after the session closed or terminated | The session is terminal; start a new one. |
 | `409` `idempotency_conflict` | Reused an `Idempotency-Key` with a different body | Use a fresh key, or send the identical body to replay. |

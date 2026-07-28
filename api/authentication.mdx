@@ -25,7 +25,7 @@ A key looks like `ish_sk_live_...`. **It is shown once, at creation.** Copy it t
 
 ## Scopes
 
-A key carries any combination of four scopes. Grant only what the integration needs.
+A key carries any combination of six scopes. Grant only what the integration needs.
 
 | Scope | Grants |
 |---|---|
@@ -33,8 +33,12 @@ A key carries any combination of four scopes. Grant only what the integration ne
 | `sessions:read` | Read a session, list sessions, and read a decision trace |
 | `environments:read` | Read the workspace's registered environments |
 | `environments:write` | Register, update, and delete environments |
+| `tasks:read` | Read the workspace's registered tasks |
+| `tasks:write` | Register, update, and delete tasks |
 
-A new key is minted with the two `sessions:*` scopes. The `environments:*` pair is not granted by default; ask for it when the integration manages the registry rather than just running against it.
+A new key is minted with `sessions:run`, `sessions:read`, and `tasks:read`. The task read is a default because a session can bind a registered task by id, so a key that runs sessions but cannot resolve the task it names would be a broken starting point.
+
+No `:write` scope is granted by default. Ask for `environments:write` or `tasks:write` when the integration manages a registry rather than just running against it.
 
 A key without the scope an operation requires is refused with `403` and `detail.error_kind = "insufficient_scope"`, which names the `required_scope`. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
 

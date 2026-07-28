@@ -8,6 +8,47 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-07-28 (spec 1.1.0)
+
+A breaking pre-release revision that renames the intent noun. Everything below this entry shipped under spec `1.0.0`; from here on each entry names the `info.version` of the OpenAPI spec it shipped in, so you can correlate a spec diff with the entry that explains it.
+
+**Breaking**
+
+- **The intent primitive is a `task`, not an `assignment`.** `assignment` now names only the act of assigning a task to someone, which is not something the API exposes, so the word has left the public surface entirely.
+
+  | Was | Now |
+  |---|---|
+  | `POST/GET /v1/workspaces/{workspace_id}/assignments` | `.../tasks` |
+  | `GET/PATCH/DELETE /v1/assignments/{assignment_id}` | `/v1/tasks/{task_id}` |
+  | `assignment: {goal}` or `assignment: {id}` on session create | `task: {instructions}` or `task: {id}` |
+  | `assignment` object on a session read | `task`, with `instructions` in place of `goal` |
+  | `goal` on the registry (create, update, read) | `instructions` |
+  | `assignment_id` filter on `listSessions` | `task_id` |
+  | `assignment_name_taken`, `assignment_archived`, `assignment_not_found`, `assignment_in_published_listing` | `task_name_taken`, `task_archived`, `task_not_found`, `task_in_published_listing` |
+
+- **`source_assignment_id` is gone from the task response.** It was a lineage pointer nothing ever wrote, so it served `null` on every row for every caller. Removed rather than kept as a permanent null, because a field you can never receive a value in is one you should not write a branch for.
+
+**Additive**
+
+- **API keys now reach the task registry.** All five task operations previously refused keys outright with a `403` `api_key_not_permitted` and could only be called with a user access token. They now take the same scope pair every other registry uses: `tasks:read` for list and read, `tasks:write` for register, update, and delete. An under-scoped key gets `403` `insufficient_scope` with `detail.required_scope`.
+- **`tasks:read` joins the mint default.** A newly minted key carries `sessions:run`, `sessions:read`, and `tasks:read`, so a key that runs sessions can also resolve a task it binds by id. **Keys minted before this date are not changed.** Scopes are fixed at mint, so an existing key gains nothing: mint a new key, or rotate, to pick up the default. No `:write` scope is granted by default.
+- **Session list rows carry `participant.type`.** It distinguishes a simulated participant from a real one. Present on `listSessions` rows; absent on older rows, which carry no type.
+
+**Changed wording, same behavior**
+
+- The `409` refused when you retire a task an active recruitment listing still references now says so in those terms. `detail.error_kind` stays `task_in_published_listing` and `detail.listing_id` still names the listing.
+- Task name uniqueness is described as per workspace, which is what it means for an API caller. The rule itself did not change.
+- `background` and `steps` on a task are documented as accepted and stored but not yet consumed by API sessions. They always behaved this way; only the description was unclear.
+- No documented operation returns `api_key_not_permitted` any more. The kind stays in the catalog because it still applies elsewhere in the product.
+
+**What to change in your client**
+
+1. Repoint the four registry paths from `/assignments` to `/tasks`.
+2. Rename the session-create `assignment` block to `task`, and `goal` to `instructions` inside it. A leftover `assignment` or a top-level `goal` is a `422` naming the stray key, never a silent partial accept.
+3. Read `task` (with `task.instructions`) where you read `assignment` (with `assignment.goal`) on session responses.
+4. Switch any `assignment_id` filter on `listSessions` to `task_id`, and branch on the four renamed `task_*` error kinds.
+5. Drop `source_assignment_id` from your task model.
+
 ## 2026-07-28
 
 A breaking pre-release revision. It renames the public actor noun, renames one environment field, moves the close endpoint, and widens what create and close return. If you integrated before this date, three edits are required.

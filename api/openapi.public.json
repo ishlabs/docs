@@ -9,363 +9,6 @@
       }
     },
     "schemas": {
-      "AssignmentDescriptor": {
-        "additionalProperties": false,
-        "description": "An assignment described inline on the session that uses it.\n\nGoal only, by design: on this lane your code executes the actions, so verification steps in the create body would hand the answer key to the process being measured. Register an assignment to attach steps.",
-        "properties": {
-          "goal": {
-            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph.",
-            "maxLength": 2000,
-            "minLength": 1,
-            "title": "Goal",
-            "type": "string"
-          }
-        },
-        "required": [
-          "goal"
-        ],
-        "title": "AssignmentDescriptor",
-        "type": "object"
-      },
-      "AssignmentListResponse": {
-        "description": "Every assignment in the workspace family, oldest first.\n\nDeliberately unpaginated, matching environments: a registered assignment is\na hand-authored definition (a handful per workspace), not a stream.",
-        "properties": {
-          "has_more": {
-            "default": false,
-            "description": "Always false today: this list is not paginated and returns the whole collection. Present so pagination can land without a wire break.",
-            "title": "Has More",
-            "type": "boolean"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/AssignmentResponse"
-            },
-            "title": "Items",
-            "type": "array"
-          },
-          "next_cursor": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Always null today (see `has_more`). Will carry the opaque keyset cursor for the next page if this list becomes paginated.",
-            "title": "Next Cursor"
-          }
-        },
-        "required": [
-          "items"
-        ],
-        "title": "AssignmentListResponse",
-        "type": "object"
-      },
-      "AssignmentRef": {
-        "additionalProperties": false,
-        "description": "A registered assignment in this workspace, bound by id.",
-        "properties": {
-          "id": {
-            "description": "A registered assignment. Its goal is frozen onto the session at create; later edits to the registry row never touch this session.",
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id"
-        ],
-        "title": "AssignmentRef",
-        "type": "object"
-      },
-      "AssignmentResponse": {
-        "description": "A registered assignment as the caller sees it.",
-        "properties": {
-          "archived_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Set when the assignment is archived (DELETE). An archived assignment stays readable by id so existing sessions keep resolving, is hidden from the default list, refuses new sessions (409), and frees its name for reuse.",
-            "title": "Archived At"
-          },
-          "background": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Background the person is treated as already knowing, or null. Stored and fingerprinted; not yet rendered into session prompts.",
-            "title": "Background"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "goal": {
-            "title": "Goal",
-            "type": "string"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "revision": {
-            "description": "Increments on every write to this assignment. Sessions freeze the revision they bound, so runs are comparable within a revision of the content.",
-            "title": "Revision",
-            "type": "integer"
-          },
-          "source_assignment_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Lineage: the assignment this one was copied from, if any.",
-            "title": "Source Assignment Id"
-          },
-          "steps": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AssignmentStepView"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The actions a run is checked against afterwards, or null when the assignment has none. Steps never reach the person doing the run, and on the sessions lane they are inert until run verification ships.",
-            "title": "Steps"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
-          },
-          "workspace_id": {
-            "format": "uuid",
-            "title": "Workspace Id",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "workspace_id",
-          "name",
-          "goal",
-          "background",
-          "steps",
-          "revision",
-          "source_assignment_id",
-          "archived_at",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "AssignmentResponse",
-        "type": "object"
-      },
-      "AssignmentSnapshot": {
-        "description": "The session's intent as frozen at create.\n\n`goal` is always present (the snapshot). `id`/`name`/`revision` are\nnull for a session opened with an inline descriptor; `name` reads the\nLIVE registry row (display only) while `goal` and `revision` stay\nfrozen, so a rename shows through but content never drifts.",
-        "properties": {
-          "goal": {
-            "title": "Goal",
-            "type": "string"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "revision": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The registry row's revision at bind time. Two runs of one assignment are comparable within a revision of its content.",
-            "title": "Revision"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "revision",
-          "goal"
-        ],
-        "title": "AssignmentSnapshot",
-        "type": "object"
-      },
-      "AssignmentStep": {
-        "description": "One atomic action, for verifying after the session what the person actually accomplished.\n\n`name` is required (a short verb phrase); `description` is optional nuance. `id` is the step's permanent identity: send back an id you already hold and it is kept verbatim, or omit it and one is derived from the name. Responses always carry it.",
-        "properties": {
-          "description": {
-            "anyOf": [
-              {
-                "maxLength": 500,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "id": {
-            "anyOf": [
-              {
-                "maxLength": 64,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "name": {
-            "maxLength": 80,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "title": "AssignmentStep",
-        "type": "object"
-      },
-      "AssignmentStepView": {
-        "description": "A stored step as the caller sees it (id always present).",
-        "properties": {
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "id": {
-            "title": "Id",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          }
-        },
-        "required": [
-          "id",
-          "name"
-        ],
-        "title": "AssignmentStepView",
-        "type": "object"
-      },
-      "CreateAssignmentRequest": {
-        "additionalProperties": false,
-        "properties": {
-          "background": {
-            "anyOf": [
-              {
-                "maxLength": 8000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Background the person is treated as already knowing. Optional, and NOT YET RENDERED on the sessions lane: it is stored and fingerprinted, but a session prompt currently carries the goal only.",
-            "title": "Background"
-          },
-          "get_or_create": {
-            "default": false,
-            "description": "Idempotent register for CI: when a LIVE assignment with this name (case-insensitive, family-scoped) already exists, return it with 200 instead of 409. The existing row is returned AS IS: nothing on this request is applied to it.",
-            "title": "Get Or Create",
-            "type": "boolean"
-          },
-          "goal": {
-            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph, exactly as a session's inline goal is.",
-            "maxLength": 2000,
-            "minLength": 1,
-            "title": "Goal",
-            "type": "string"
-          },
-          "name": {
-            "maxLength": 120,
-            "minLength": 1,
-            "title": "Name",
-            "type": "string"
-          },
-          "steps": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AssignmentStep"
-                },
-                "maxItems": 50,
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The atomic actions a run should be checked against afterwards. NEVER shown to the person doing the run. Step ids are permanent identity: an id you supply is kept verbatim, a missing one is minted server-side.",
-            "title": "Steps"
-          }
-        },
-        "required": [
-          "name",
-          "goal"
-        ],
-        "title": "CreateAssignmentRequest",
-        "type": "object"
-      },
       "CreateEnvironmentRequest": {
         "additionalProperties": false,
         "properties": {
@@ -501,18 +144,6 @@
       "CreateSessionRequest": {
         "additionalProperties": false,
         "properties": {
-          "assignment": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/AssignmentRef"
-              },
-              {
-                "$ref": "#/components/schemas/AssignmentDescriptor"
-              }
-            ],
-            "description": "The session's intent: `{goal}` describes it inline, `{id}` binds a registered assignment (its goal is frozen onto the session). Supply exactly one shape.",
-            "title": "Assignment"
-          },
           "decision_mode": {
             "$ref": "#/components/schemas/DecisionMode",
             "default": "intent"
@@ -602,14 +233,85 @@
               }
             ],
             "title": "Resolver Guidance"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskRef"
+              },
+              {
+                "$ref": "#/components/schemas/TaskDescriptor"
+              }
+            ],
+            "description": "The session's intent: `{instructions}` describes it inline, `{id}` binds a registered task (its instructions are frozen onto the session). Supply exactly one shape.",
+            "title": "Task"
           }
         },
         "required": [
           "person_id",
-          "assignment",
+          "task",
           "pacing"
         ],
         "title": "CreateSessionRequest",
+        "type": "object"
+      },
+      "CreateTaskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Background the person is treated as already knowing. Accepted and stored; not yet consumed by API sessions, which currently render the instructions only.",
+            "title": "Background"
+          },
+          "get_or_create": {
+            "default": false,
+            "description": "Idempotent register for CI: when a live task with this name (case-insensitive, per workspace) already exists, return it with 200 instead of 409. The existing task is returned as is: nothing on this request is applied to it.",
+            "title": "Get Or Create",
+            "type": "boolean"
+          },
+          "instructions": {
+            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph, exactly as a session's inline instructions are.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Instructions",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TaskStep"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The atomic actions a run should be checked against afterwards. Never shown to the person doing the run. Step ids are permanent identity: an id you supply is kept verbatim, a missing one is minted server-side. Accepted and stored; not yet consumed by API sessions.",
+            "title": "Steps"
+          }
+        },
+        "required": [
+          "name",
+          "instructions"
+        ],
+        "title": "CreateTaskRequest",
         "type": "object"
       },
       "DecisionMode": {
@@ -1505,10 +1207,6 @@
             "title": "Accrued Credits",
             "type": "integer"
           },
-          "assignment": {
-            "$ref": "#/components/schemas/AssignmentSnapshot",
-            "description": "The session's intent, frozen when it was created. A later edit to a registered assignment never changes it."
-          },
           "created_at": {
             "format": "date-time",
             "title": "Created At",
@@ -1617,6 +1315,10 @@
             "$ref": "#/components/schemas/SessionStatus",
             "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
           },
+          "task": {
+            "$ref": "#/components/schemas/TaskSnapshot",
+            "description": "The session's intent, frozen when it was created. A later edit to a registered task never changes it."
+          },
           "turn_count": {
             "title": "Turn Count",
             "type": "integer"
@@ -1630,7 +1332,7 @@
         "required": [
           "id",
           "status",
-          "assignment",
+          "task",
           "environment",
           "environment_id",
           "environment_revision",
@@ -2031,6 +1733,290 @@
         "title": "StoredEnvironmentConfig",
         "type": "object"
       },
+      "TaskDescriptor": {
+        "additionalProperties": false,
+        "description": "A task described inline on the session that uses it.\n\nInstructions only, by design: on this lane your code executes the actions, so verification steps in the create body would hand the answer key to the process being measured. Register a task to attach steps.",
+        "properties": {
+          "instructions": {
+            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph.",
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Instructions",
+            "type": "string"
+          }
+        },
+        "required": [
+          "instructions"
+        ],
+        "title": "TaskDescriptor",
+        "type": "object"
+      },
+      "TaskListResponse": {
+        "description": "Every task registered in the workspace, oldest first.\n\nDeliberately unpaginated: a registered task is a hand-authored definition\n(a handful per workspace), not a stream.",
+        "properties": {
+          "has_more": {
+            "default": false,
+            "description": "Always false today: this list is not paginated and returns the whole collection. Present so pagination can land without a wire break.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TaskResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null today (see `has_more`). Will carry the opaque keyset cursor for the next page if this list becomes paginated.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TaskListResponse",
+        "type": "object"
+      },
+      "TaskRef": {
+        "additionalProperties": false,
+        "description": "A registered task in this workspace, bound by id.",
+        "properties": {
+          "id": {
+            "description": "A registered task. Its instructions are frozen onto the session at create; later edits to the registry row never touch this session.",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "TaskRef",
+        "type": "object"
+      },
+      "TaskResponse": {
+        "description": "A registered task as the caller sees it.",
+        "properties": {
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set when the task is archived (DELETE). An archived task stays readable by id so existing sessions keep resolving, is hidden from the default list, refuses new sessions (409), and frees its name for reuse.",
+            "title": "Archived At"
+          },
+          "background": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Background the person is treated as already knowing, or null. Accepted and stored; not yet consumed by API sessions, which currently render the instructions only.",
+            "title": "Background"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "instructions": {
+            "title": "Instructions",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "revision": {
+            "description": "Increments on every write to this task. Sessions freeze the revision they bound, so runs are comparable within a revision of the content.",
+            "title": "Revision",
+            "type": "integer"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TaskStepView"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The actions a run is checked against afterwards, or null when the task has none. Steps are never shown to the person doing the run. Accepted and stored; not yet consumed by API sessions.",
+            "title": "Steps"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "name",
+          "instructions",
+          "background",
+          "steps",
+          "revision",
+          "archived_at",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "TaskResponse",
+        "type": "object"
+      },
+      "TaskSnapshot": {
+        "description": "The session's intent as frozen at create.\n\n`instructions` is always present (the snapshot). `id`/`name`/\n`revision` are null for a session opened with an inline descriptor;\n`name` reads the LIVE registry row (display only) while `instructions`\nand `revision` stay frozen, so a rename shows through but content never\ndrifts.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "instructions": {
+            "title": "Instructions",
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The registry row's revision at bind time. Two runs of one task are comparable within a revision of its content.",
+            "title": "Revision"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "revision",
+          "instructions"
+        ],
+        "title": "TaskSnapshot",
+        "type": "object"
+      },
+      "TaskStep": {
+        "description": "One atomic action, for verifying after the session what the person actually accomplished.\n\n`name` is required (a short verb phrase); `description` is optional nuance. `id` is the step's permanent identity: send back an id you already hold and it is kept verbatim, or omit it and one is derived from the name. Responses always carry it.",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "TaskStep",
+        "type": "object"
+      },
+      "TaskStepView": {
+        "description": "A stored step as the caller sees it (id always present).",
+        "properties": {
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "TaskStepView",
+        "type": "object"
+      },
       "TurnDecisionView": {
         "description": "What the person decided this turn, and how it felt.\n\n`action_name` names the action to execute, and is null when there is nothing to run: the person found no action that fits, or judged that none was needed. `comment`, `sentiment` and `felt_intensity` are the experiential half and are always present, including on a turn with no action. `status` says whether they intend to keep going.\n\n`intent`, `resolution` and `unmet_expectation` are populated only when the session runs in `intent` decision mode; they are null in `direct` mode.",
         "properties": {
@@ -2197,67 +2183,6 @@
         "title": "TurnResponse",
         "type": "object"
       },
-      "UpdateAssignmentRequest": {
-        "additionalProperties": false,
-        "description": "A partial update: an omitted field is left alone.\n\n`null` is a real value on the nullable fields (`background`, `steps`) where it CLEARS them, so omitting a field and sending it as null mean different things. `name` and `goal` cannot be cleared; a null there leaves the stored value alone.\n\nAny applied write bumps `revision`. Sessions already opened against the old content keep their frozen copy.",
-        "properties": {
-          "background": {
-            "anyOf": [
-              {
-                "maxLength": 8000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Background"
-          },
-          "goal": {
-            "anyOf": [
-              {
-                "maxLength": 2000,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Goal"
-          },
-          "name": {
-            "anyOf": [
-              {
-                "maxLength": 120,
-                "minLength": 1,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "steps": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/AssignmentStep"
-                },
-                "maxItems": 50,
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Steps"
-          }
-        },
-        "title": "UpdateAssignmentRequest",
-        "type": "object"
-      },
       "UpdateEnvironmentRequest": {
         "additionalProperties": false,
         "description": "A partial update: an omitted field is left alone.\n\n`null` is a real value on the nullable fields (`slug`, `operating_notes`) where it CLEARS them, so omitting a field and sending it as null mean different things. `kind` can be changed, but the config is re-validated against the NEW kind, so a switch that leaves the wrong keys behind is a 422 rather than a broken environment.\n\n`example_actions` cannot be cleared with null; send `[]` instead. `name`, `kind` and `config` are likewise non-nullable.",
@@ -2408,6 +2333,67 @@
         "title": "UpdateEnvironmentVersionRequest",
         "type": "object"
       },
+      "UpdateTaskRequest": {
+        "additionalProperties": false,
+        "description": "A partial update: an omitted field is left alone.\n\n`null` is a real value on the nullable fields (`background`, `steps`) where it CLEARS them, so omitting a field and sending it as null mean different things. `name` and `instructions` cannot be cleared; a null there leaves the stored value alone.\n\nAny applied write bumps `revision`. Sessions already opened against the old content keep their frozen copy.",
+        "properties": {
+          "background": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Background"
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "steps": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/TaskStep"
+                },
+                "maxItems": 50,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Steps"
+          }
+        },
+        "title": "UpdateTaskRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "description": "Request body / parameter validation failure (HTTP 422). A field-level envelope so callers can pinpoint the offending field, value, and allowed values without parsing prose.",
         "properties": {
@@ -2461,7 +2447,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments). A key is minted with the two `sessions:*` scopes by default; the `environments:*` pair must be requested. An ish user access token also works on the same header for personal scripts.",
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments), and `tasks:read` and `tasks:write` (manage the workspace's registered tasks). A key is minted with `sessions:run`, `sessions:read`, and `tasks:read` by default; every other scope must be requested. An ish user access token also works on the same header for personal scripts.",
         "scheme": "bearer",
         "type": "http"
       }
@@ -2472,423 +2458,16 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one goal in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), and `environments:read` / `environments:write` for the environment registry. Keys are minted with the two `sessions:*` scopes; ask for `environments:*` explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\nThe **assignments** endpoints are the exception: they do not admit API keys at all yet, under any scope, and answer `403 api_key_not_permitted` to one. Call them with a user access token, or describe the goal inline on the session and skip the registry. Assignment key scopes ship with the next scope rollout.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, and `tasks:read` / `tasks:write` for the task registry. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.0.0"
+    "version": "1.1.0"
   },
   "openapi": "3.1.0",
   "paths": {
-    "/api/v1/assignments/{assignment_id}": {
-      "delete": {
-        "description": "Retire an assignment.\n\nIt stops appearing in the list but stays readable by id, sessions bound to it keep resolving, and its name is freed for reuse. Idempotent. Refused with a 409 while a published listing references it.",
-        "operationId": "deleteAssignment",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "assignment_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Assignment Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "A published listing references this assignment (`detail.error_kind = 'assignment_in_published_listing'`, with `detail.listing_id`). Unpublish or edit the listing first.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ValidationError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Delete Assignment",
-        "tags": [
-          "assignments"
-        ]
-      },
-      "get": {
-        "description": "Fetch one assignment by id (archived rows stay readable).",
-        "operationId": "getAssignment",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "assignment_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Assignment Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentResponse"
-                }
-              }
-            },
-            "description": "Successful Response",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ValidationError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Get Assignment",
-        "tags": [
-          "assignments"
-        ]
-      },
-      "patch": {
-        "description": "Partially update an assignment. Any applied write bumps `revision`.\n\nSessions already opened against the old content are untouched: their goal and revision are frozen on the session.",
-        "operationId": "updateAssignment",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "assignment_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Assignment Id",
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAssignmentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentResponse"
-                }
-              }
-            },
-            "description": "Successful Response",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "409": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "`detail.error_kind` is `assignment_name_taken` when the new name collides with another live assignment, or `assignment_archived` when the assignment is retired. Retired assignments stay readable but are closed to writes.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ValidationError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Update Assignment",
-        "tags": [
-          "assignments"
-        ]
-      }
-    },
     "/api/v1/environment-versions/{version_id}": {
       "delete": {
         "description": "Archive a variant.\n\nARCHIVE, not hard delete, for the reason the parent archives: sessions\nstamped with this version must keep resolving, and a comparison read over\nhistorical runs must keep working. The row stays readable by id, appears in\nthe list under `include_archived=true`, refuses new sessions, loses the\ndefault pointer if it held it, and frees its label for reuse.\n\nIdempotent: archiving an already-archived version is another 204.",
@@ -4196,12 +3775,6 @@
                     "summary": "An open session after one turn",
                     "value": {
                       "accrued_credits": 1,
-                      "assignment": {
-                        "goal": "Find the refund policy and start a return.",
-                        "id": null,
-                        "name": null,
-                        "revision": null
-                      },
                       "created_at": "2026-07-28T09:14:02.117000Z",
                       "created_by_api_key_id": "5e8f3a21-64c7-4e0b-9a3d-77dd88ee99ff",
                       "decision_mode": "intent",
@@ -4232,6 +3805,12 @@
                       },
                       "reasoning_effort": "low",
                       "status": "open",
+                      "task": {
+                        "id": null,
+                        "instructions": "Find the refund policy and start a return.",
+                        "name": null,
+                        "revision": null
+                      },
                       "turn_count": 1,
                       "turns": [
                         {
@@ -4718,43 +4297,24 @@
         ]
       }
     },
-    "/api/v1/workspaces/{workspace_id}/assignments": {
-      "get": {
-        "description": "List the workspace's registered assignments, oldest first.",
-        "operationId": "listAssignments",
+    "/api/v1/tasks/{task_id}": {
+      "delete": {
+        "description": "Retire a task.\n\nIt stops appearing in the list but stays readable by id, sessions bound to it keep resolving, and its name is freed for reuse. Idempotent. Refused with a 409 while a published listing references it.",
+        "operationId": "deleteTask",
         "parameters": [
           {
             "in": "path",
-            "name": "workspace_id",
+            "name": "task_id",
             "required": true,
             "schema": {
               "format": "uuid",
-              "title": "Workspace Id",
+              "title": "Task Id",
               "type": "string"
-            }
-          },
-          {
-            "description": "Include archived assignments. Off by default: archived rows stay readable by id but are hidden from the working list.",
-            "in": "query",
-            "name": "include_archived",
-            "required": false,
-            "schema": {
-              "default": false,
-              "description": "Include archived assignments. Off by default: archived rows stay readable by id but are hidden from the working list.",
-              "title": "Include Archived",
-              "type": "boolean"
             }
           }
         ],
         "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentListResponse"
-                }
-              }
-            },
+          "204": {
             "description": "Successful Response",
             "headers": {
               "X-Request-Id": {
@@ -4785,7 +4345,7 @@
                 }
               }
             },
-            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "description": "The API key lacks the `tasks:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'tasks:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4800,190 +4360,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ValidationError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "429": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "List Assignments",
-        "tags": [
-          "assignments"
-        ]
-      },
-      "post": {
-        "description": "Register an assignment: a named intent a session can bind by id.\n\nRegistering is optional. Do it when runs have to stay comparable across a boundary the session itself cannot draw, such as the same task across two environments or across a month of builds. A one-off goal belongs inline on the session.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original assignment as a 200, and the same key with a different body is a 409.\n\n`get_or_create` is the older, coarser flag and still works. Note what it does NOT do: on a name match it returns the existing assignment untouched and ignores every other field you sent, so a request whose goal has drifted succeeds while changing nothing. Prefer `Idempotency-Key` for retries and PATCH to reconcile content.",
-        "operationId": "createAssignment",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "workspace_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Workspace Id",
-              "type": "string"
-            }
-          },
-          {
-            "in": "header",
-            "name": "Idempotency-Key",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Idempotency-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "examples": {
-                "default": {
-                  "summary": "Register an assignment with verification steps",
-                  "value": {
-                    "background": "You ordered a jacket last week. It arrived in the wrong size.",
-                    "goal": "Find the refund policy and start a return.",
-                    "name": "Return a delivered order",
-                    "steps": [
-                      {
-                        "name": "Open order history"
-                      },
-                      {
-                        "name": "Start a return on the jacket"
-                      }
-                    ]
-                  }
-                }
-              },
-              "schema": {
-                "$ref": "#/components/schemas/CreateAssignmentRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentResponse"
-                }
-              }
-            },
-            "description": "The existing assignment, RETURNED AS IS: nothing on this request was applied to it. Two paths reach here: an `Idempotency-Key` replay (same key, same body), or `get_or_create` with a live assignment already holding this name.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AssignmentResponse"
-                }
-              }
-            },
-            "description": "Successful Response",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "403": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "description": "The task was not found, or is not reachable with this credential. `detail.error_kind` is `task_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4998,7 +4375,7 @@
                 }
               }
             },
-            "description": "`detail.error_kind` is `assignment_name_taken` (an assignment with this name already exists in the workspace family; names are unique per family, case-insensitive) or `idempotency_conflict` (the `Idempotency-Key` was reused with a different request body).",
+            "description": "An active recruitment listing references this task (`detail.error_kind = 'task_in_published_listing'`, with `detail.listing_id`). Close the listing, or remove the task from it, then retry.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -5048,9 +4425,282 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Create Assignment",
+        "summary": "Delete Task",
         "tags": [
-          "assignments"
+          "tasks"
+        ]
+      },
+      "get": {
+        "description": "Fetch one task by id (archived rows stay readable).",
+        "operationId": "getTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `tasks:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'tasks:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The task was not found, or is not reachable with this credential. `detail.error_kind` is `task_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Task",
+        "tags": [
+          "tasks"
+        ]
+      },
+      "patch": {
+        "description": "Partially update a task. Any applied write bumps `revision`.\n\nSessions already opened against the old content are untouched: their instructions and revision are frozen on the session.",
+        "operationId": "updateTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Task Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `tasks:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'tasks:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The task was not found, or is not reachable with this credential. `detail.error_kind` is `task_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `task_name_taken` when the new name collides with another live task, or `task_archived` when the task is retired. Retired tasks stay readable but are closed to writes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Task",
+        "tags": [
+          "tasks"
         ]
       }
     },
@@ -5395,7 +5045,7 @@
     },
     "/api/v1/workspaces/{workspace_id}/sessions": {
       "get": {
-        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered `created_at DESC, id DESC`. Page forward with `after` set to the\nprior response's `next_cursor`; `has_more` signals another page. Each row\nis a summary (status, goal, environment, person, turn counts, key\nattribution, accrued credits, timestamps). The per-turn decision trace lives\non the detail GET.",
+        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered `created_at DESC, id DESC`. Page forward with `after` set to the\nprior response's `next_cursor`; `has_more` signals another page. Each row\nis a summary (status, instructions, environment, person, turn counts, key\nattribution, accrued credits, timestamps). The per-turn decision trace lives\non the detail GET.",
         "operationId": "listSessions",
         "parameters": [
           {
@@ -5487,9 +5137,9 @@
             }
           },
           {
-            "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
+            "description": "Filter to sessions bound to this registered task. Matches on the task's id: a renamed task still returns its older sessions, inline-instruction sessions are never matched, and an archived task's sessions keep matching (archive clears nothing; the frozen instructions stays on each session).",
             "in": "query",
-            "name": "assignment_id",
+            "name": "task_id",
             "required": false,
             "schema": {
               "anyOf": [
@@ -5501,12 +5151,12 @@
                   "type": "null"
                 }
               ],
-              "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
-              "title": "Assignment Id"
+              "description": "Filter to sessions bound to this registered task. Matches on the task's id: a renamed task still returns its older sessions, inline-instruction sessions are never matched, and an archived task's sessions keep matching (archive clears nothing; the frozen instructions stays on each session).",
+              "title": "Task Id"
             }
           },
           {
-            "description": "Free-text filter: matches a session id by PREFIX or the frozen goal by case-insensitive substring. One term, no ranking.",
+            "description": "Free-text filter: matches a session id by PREFIX or the frozen instructions by case-insensitive substring. One term, no ranking.",
             "in": "query",
             "name": "search",
             "required": false,
@@ -5520,7 +5170,7 @@
                   "type": "null"
                 }
               ],
-              "description": "Free-text filter: matches a session id by PREFIX or the frozen goal by case-insensitive substring. One term, no ranking.",
+              "description": "Free-text filter: matches a session id by PREFIX or the frozen instructions by case-insensitive substring. One term, no ranking.",
               "title": "Search"
             }
           },
@@ -5703,7 +5353,7 @@
         ]
       },
       "post": {
-        "description": "Open a session: one of your people, working toward one goal, inside your environment.\n\nThe ASSIGNMENT is required and is exactly one of two shapes: `{\"goal\": \"...\"}` describes the intent inline, or `{\"id\": \"...\"}` binds an assignment you registered. A bound assignment's goal is frozen onto the session, so later edits to the registry never change a run that already happened. An id that does not resolve is a 404; one that resolves but is retired is a 409.\n\nThe ENVIRONMENT is also exactly one of two shapes: `environment_id` names one you registered, or `environment` describes an ad-hoc one inline. A registered environment's name, kind and configuration are snapshot onto the session for the same reason.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original session as a 200, and the same key with a different body is a 409.",
+        "description": "Open a session: one of your people, working toward one task, inside your environment.\n\nThe TASK is required and is exactly one of two shapes: `{\"instructions\": \"...\"}` describes the intent inline, or `{\"id\": \"...\"}` binds a task you registered. A bound task's instructions are frozen onto the session, so later edits to the registry never change a run that already happened. An id that does not resolve is a 404; one that resolves but is retired is a 409.\n\nThe ENVIRONMENT is also exactly one of two shapes: `environment_id` names one you registered, or `environment` describes an ad-hoc one inline. A registered environment's name, kind and configuration are snapshot onto the session for the same reason.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original session as a 200, and the same key with a different body is a 409.",
         "operationId": "createSession",
         "parameters": [
           {
@@ -5740,14 +5390,14 @@
                 "default": {
                   "summary": "Open a session against a registered environment",
                   "value": {
-                    "assignment": {
-                      "goal": "Find the refund policy and start a return."
-                    },
                     "environment_id": "3c2a1f80-7e64-4b19-8d55-11aa22bb33cc",
                     "max_turns": 20,
                     "pacing": "pause_on_decide",
                     "person_id": "9f1c7b52-0d3a-4a1e-9c4f-2b8e5a6d1234",
-                    "reasoning_effort": "low"
+                    "reasoning_effort": "low",
+                    "task": {
+                      "instructions": "Find the refund policy and start a return."
+                    }
                   }
                 }
               },
@@ -5827,7 +5477,7 @@
                 }
               }
             },
-            "description": "The workspace, person, environment, or assignment (`workspace_id`, `person_id`, `environment_id`, `assignment.id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`, `person_not_found`, `environment_not_found` or `assignment_not_found`.",
+            "description": "The workspace, person, environment, or task (`workspace_id`, `person_id`, `environment_id`, `task.id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`, `person_not_found`, `environment_not_found` or `task_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -5842,7 +5492,7 @@
                 }
               }
             },
-            "description": "The create was refused and no session was opened BY THIS REQUEST. `detail.error_kind` says which: `idempotency_conflict` (the Idempotency-Key was reused with a different request body; a key maps to one create request), `environment_archived` (the environment resolves but is retired and cannot accept new sessions; register a new environment, or pass an inline environment descriptor), or `assignment_archived` (the assignment resolves but is retired; register a new assignment, or pass the goal inline). An environment or assignment that does not exist, or belongs to another tenant, is a 404 instead.",
+            "description": "The create was refused and no session was opened BY THIS REQUEST. `detail.error_kind` says which: `idempotency_conflict` (the Idempotency-Key was reused with a different request body; a key maps to one create request), `environment_archived` (the environment resolves but is retired and cannot accept new sessions; register a new environment, or pass an inline environment descriptor), or `task_archived` (the task resolves but is retired; register a new task, or pass the instructions inline). An environment or task that does not exist, or belongs to another tenant, is a 404 instead.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -5912,6 +5562,342 @@
           "sessions"
         ]
       }
+    },
+    "/api/v1/workspaces/{workspace_id}/tasks": {
+      "get": {
+        "description": "List the workspace's registered tasks, oldest first.",
+        "operationId": "listTasks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include archived tasks. Off by default: archived rows stay readable by id but are hidden from the working list.",
+            "in": "query",
+            "name": "include_archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include archived tasks. Off by default: archived rows stay readable by id but are hidden from the working list.",
+              "title": "Include Archived",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `tasks:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'tasks:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List Tasks",
+        "tags": [
+          "tasks"
+        ]
+      },
+      "post": {
+        "description": "Register a task: a named intent a session can bind by id.\n\nRegistering is optional. Do it when runs have to stay comparable across a boundary the session itself cannot draw, such as the same task across two environments or across a month of builds. A one-off task belongs inline on the session.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original task as a 200, and the same key with a different body is a 409.\n\n`get_or_create` is the older, coarser flag and still works. Note what it does NOT do: on a name match it returns the existing task untouched and ignores every other field you sent, so a request whose instructions have drifted succeeds while changing nothing. Prefer `Idempotency-Key` for retries and PATCH to reconcile content.",
+        "operationId": "createTask",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Register a task with verification steps",
+                  "value": {
+                    "background": "You ordered a jacket last week. It arrived in the wrong size.",
+                    "instructions": "Find the refund policy and start a return.",
+                    "name": "Return a delivered order",
+                    "steps": [
+                      {
+                        "name": "Open order history"
+                      },
+                      {
+                        "name": "Start a return on the jacket"
+                      }
+                    ]
+                  }
+                }
+              },
+              "schema": {
+                "$ref": "#/components/schemas/CreateTaskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "The existing task, RETURNED AS IS: nothing on this request was applied to it. Two paths reach here: an `Idempotency-Key` replay (same key, same body), or `get_or_create` with a live task already holding this name.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `tasks:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'tasks:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `task_name_taken` (a task with this name already exists in the workspace; names are unique per workspace, case-insensitive) or `idempotency_conflict` (the `Idempotency-Key` was reused with a different request body).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Task",
+        "tags": [
+          "tasks"
+        ]
+      }
     }
   },
   "security": [
@@ -5935,8 +5921,8 @@
       "name": "environments"
     },
     {
-      "description": "Register the intent a session works toward, so runs stay comparable across environments and over time. A session can also describe its goal inline and skip the registry entirely.",
-      "name": "assignments"
+      "description": "Register the intent a session works toward, so runs stay comparable across environments and over time. A session can also describe its instructions inline and skip the registry entirely.",
+      "name": "tasks"
     }
   ]
 }

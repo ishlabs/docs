@@ -23,13 +23,13 @@ export PERSON_ID="..."                     # the person to run (UUID)
 
 ## Step 2: create a session
 
-A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the person, an assignment, the environment, and a pacing contract.
+A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the person, a task, the environment, and a pacing contract.
 
-A "session" here is one participant working toward one goal in your environment, turn by turn. It is not a study session, and it has nothing to do with a browser session.
+A "session" here is one participant working toward one task in your environment, turn by turn. It is not a study session, and it has nothing to do with a browser session.
 
 The environment is your own product surface, the thing you are testing: a site, an app, a device, a world. It comes one of two ways and you supply **exactly one**: an inline `environment` descriptor, as below, or an `environment_id` naming an environment you registered once (which then supplies the default operating notes and action vocabulary for every session that uses it). Start inline; register one when you find yourself repeating it.
 
-The assignment works the same way: `assignment` is a required object with exactly one shape. `{"goal": ...}` describes the intent inline; `{"id": ...}` binds an assignment you registered, freezing its goal and revision onto the session so later edits to the registered assignment never change what this session ran against.
+The task works the same way: `task` is a required object with exactly one shape. `{"instructions": ...}` describes the intent inline; `{"id": ...}` binds a task you registered, freezing its instructions and revision onto the session so later edits to the registered task never change what this session ran against.
 
 ```bash
 curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
@@ -37,7 +37,7 @@ curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
   -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
 {
   "person_id": "$PERSON_ID",
-  "assignment": { "goal": "Turn the TV on and find something you would actually watch." },
+  "task": { "instructions": "Turn the TV on and find something you would actually watch." },
   "environment": { "name": "tv_remote", "kind": "device" },
   "pacing": "frame_on_demand",
   "max_turns": 20,
@@ -55,11 +55,11 @@ The response is a `201` carrying the full session, the same object a later read 
   "person_id": "c3d4...uuid",
   "person_snapshot": { "id": "c3d4...uuid", "name": "Dana Whitfield", "occupation": "Nurse practitioner" },
   "status": "open",
-  "assignment": {
+  "task": {
     "id": null,
     "name": null,
     "revision": null,
-    "goal": "Turn the TV on and find something you would actually watch."
+    "instructions": "Turn the TV on and find something you would actually watch."
   },
   "environment": { "name": "tv_remote", "kind": "device" },
   "environment_id": null,
@@ -84,7 +84,7 @@ The response is a `201` carrying the full session, the same object a later read 
 Four fields are worth reading now:
 
 - `decision_mode` echoes your workspace's resolved default. Because you can omit it on create, this is how you discover the mode you are in. Plan for `intent`.
-- `assignment` is the frozen intent. An inline goal leaves `id`, `name`, and `revision` null; binding a registered assignment fills all four and pins the revision.
+- `task` is the frozen intent. Inline instructions leave `id`, `name`, and `revision` null; binding a registered task fills all four and pins the revision.
 - The four `environment_*` fields are null here because this session described its environment inline. Pass an `environment_id` instead and they record which registered environment, revision, and declared version the session was pinned to.
 - `person_snapshot` is the person as they were at create, frozen so a trace you read months later renders the participant who actually ran. It carries identity, demographics, and any custom fields; the sample above is abridged.
 
@@ -166,7 +166,7 @@ Act on it in this order:
 </Steps>
 
 <Warning>
-  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the same response. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action: the TV never powers off, the order never places. Always read `action_name` and execute it before you stop. Full detail in [run the session loop](/api/guides/session-loop#the-loop-order).
+  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the same response. Checking "is the session over?" first and skipping the action silently fails any task whose last step is an action: the TV never powers off, the order never places. Always read `action_name` and execute it before you stop. Full detail in [run the session loop](/api/guides/session-loop#the-loop-order).
 </Warning>
 
 ## Step 5: close the session

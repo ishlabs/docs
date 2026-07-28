@@ -4,13 +4,13 @@ description: "The server-side session model, the decision trace, pacing, and how
 mode: "explanation"
 ---
 
-A session is the unit of work in the ish API: one participant, one goal, inside one environment, over a series of turns. State lives on the server as a session row plus one row per turn. You send only the per-turn delta and never re-transmit history. The session *is* the decision trace.
+A session is the unit of work in the ish API: one participant, one task, inside one environment, over a series of turns. State lives on the server as a session row plus one row per turn. You send only the per-turn delta and never re-transmit history. The session *is* the decision trace.
 
 ## The shape of a session
 
 A session moves through three phases:
 
-1. **Create.** You name the person, the assignment, the environment, and a pacing contract. The server opens the session and returns the whole session object, including everything it froze at open.
+1. **Create.** You name the person, the task, the environment, and a pacing contract. The server opens the session and returns the whole session object, including everything it froze at open.
 2. **Turns.** Each turn you send what the participant perceives plus the actions available, and read back the participant's decision. The server records every turn.
 3. **Close.** The participant ends it, you close it, or the server truncates it at a turn budget. `POST /v1/sessions/{id}/close` returns the final session.
 

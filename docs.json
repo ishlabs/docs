@@ -218,11 +218,11 @@
               "PATCH /api/v1/environment-versions/{version_id}",
               "DELETE /api/v1/environment-versions/{version_id}",
               "POST /api/v1/environment-versions/{version_id}/set-default",
-              "POST /api/v1/workspaces/{workspace_id}/assignments",
-              "GET /api/v1/workspaces/{workspace_id}/assignments",
-              "GET /api/v1/assignments/{assignment_id}",
-              "PATCH /api/v1/assignments/{assignment_id}",
-              "DELETE /api/v1/assignments/{assignment_id}"
+              "POST /api/v1/workspaces/{workspace_id}/tasks",
+              "GET /api/v1/workspaces/{workspace_id}/tasks",
+              "GET /api/v1/tasks/{task_id}",
+              "PATCH /api/v1/tasks/{task_id}",
+              "DELETE /api/v1/tasks/{task_id}"
             ]
           },
           {

@@ -4,13 +4,13 @@ description: "The participant's words are perception, not a verdict. Judge task 
 mode: "how-to"
 ---
 
-The participant tells you how a moment felt: a `comment`, a `sentiment`, a `status`. That is their **perception**, not a judgment of whether the task actually succeeded. A participant can be confidently wrong, exactly as a real person can. If you score success off their words, you will record passes on failed goals.
+The participant tells you how a moment felt: a `comment`, a `sentiment`, a `status`. That is their **perception**, not a judgment of whether the task actually succeeded. A participant can be confidently wrong, exactly as a real person can. If you score success off their words, you will record passes on failed tasks.
 
 ## The participant can be confidently wrong
 
 In a real run where a volume control had been secretly reversed, the participant declared "Volume 10 is perfect!" and finished with a `completed` status, while the frame plainly read **VOL 12**. Scoring off `session_status` and `sentiment` would have logged a clean pass on a broken control.
 
-This is not a defect in the participant; it is the point. The participant is the **experience layer**: did the interface feel confusing, where did they hesitate, what did they misread. A real person would have made the same mistake in front of the same reversed control. What the participant cannot be is the **verdict layer**, the source of truth on whether the goal was met.
+This is not a defect in the participant; it is the point. The participant is the **experience layer**: did the interface feel confusing, where did they hesitate, what did they misread. A real person would have made the same mistake in front of the same reversed control. What the participant cannot be is the **verdict layer**, the source of truth on whether the task was met.
 
 ## Score from your own state
 
@@ -28,7 +28,7 @@ If your web adapter exposes a `state()` method (see [author your environment](/a
 
 ## In intent mode, no_match is its own signal
 
-A `no_match` resolution is not a failure to score against your state; it is a finding in its own right. The participant reached for something your environment does not offer, and `unmet_expectation` names the gap. Read those alongside your state assertions: your state tells you whether the goal was met, and the `no_match` stream tells you where the participant expected an affordance that was not there. See [intent and resolution](/api/concepts/intent-and-resolution#the-finding-channel).
+A `no_match` resolution is not a failure to score against your state; it is a finding in its own right. The participant reached for something your environment does not offer, and `unmet_expectation` names the gap. Read those alongside your state assertions: your state tells you whether the task was met, and the `no_match` stream tells you where the participant expected an affordance that was not there. See [intent and resolution](/api/concepts/intent-and-resolution#the-finding-channel).
 
 ## Related
 

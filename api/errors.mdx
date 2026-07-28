@@ -74,7 +74,7 @@ The workspace's own per-period spend cap was reached. Raise the cap, or wait for
 
 ### insufficient_scope {#insufficient_scope}
 
-The API key lacks the scope this operation requires. `detail.required_scope` names it. Mint a key with the scope, or ask for it if the key manages environments.
+The API key lacks the scope this operation requires. `detail.required_scope` names it. Mint a key with the scope, or ask for it if the key manages a registry rather than just running against it. The `:write` scopes on environments and tasks are never granted by default.
 
 ### api_key_not_permitted {#api_key_not_permitted}
 
@@ -108,9 +108,9 @@ The `environment_id`, on a session create or an environment operation.
 
 The `version_id`, or the `environment_version` label a session tried to pin.
 
-### assignment_not_found {#assignment_not_found}
+### task_not_found {#task_not_found}
 
-The `assignment.id` a session tried to bind, or the `assignment_id` in the path.
+The `task.id` a session tried to bind, or the `task_id` in the path.
 
 ## 409 Conflict
 
@@ -158,17 +158,17 @@ A concurrent write to this version won the race. Re-read and retry.
 
 A concurrent `set-default` won the race. Re-read the environment and retry.
 
-### assignment_name_taken {#assignment_name_taken}
+### task_name_taken {#task_name_taken}
 
-An assignment with this name already exists in the workspace family. Names are unique per family, case-insensitive.
+A task with this name already exists in the workspace family. Names are unique per family, case-insensitive.
 
-### assignment_archived {#assignment_archived}
+### task_archived {#task_archived}
 
-The assignment resolves but is retired. Register a new assignment, or pass the goal inline on the session.
+The task resolves but is retired. Register a new task, or pass the instructions inline on the session.
 
-### assignment_in_published_listing {#assignment_in_published_listing}
+### task_in_published_listing {#task_in_published_listing}
 
-A published listing references this assignment, so it cannot be retired. `detail.listing_id` names the listing. Unpublish or edit the listing first.
+A published listing references this task, so it cannot be retired. `detail.listing_id` names the listing. Unpublish or edit the listing first.
 
 ## 429 Too Many Requests
 
