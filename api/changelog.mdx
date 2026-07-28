@@ -1,0 +1,52 @@
+---
+title: "Changelog"
+description: "Every change to the ish API wire, newest first, with what each one asks you to change."
+mode: "reference"
+---
+
+Every change to the API's wire contract, newest first. Entries are append-only: an entry is never edited after the fact, so what you read here is what shipped on that date.
+
+`/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
+
+## 2026-07-28
+
+A breaking pre-release revision. It renames the public actor noun, renames one environment field, moves the close endpoint, and widens what create and close return. If you integrated before this date, three edits are required.
+
+**Breaking**
+
+| Change | Was | Now |
+|---|---|---|
+| The actor field on create | `persona_id` | `person_id` |
+| The actor field on a session read | `persona_id` | `person_id`, and `participant.person_id` on a list row |
+| The environment descriptor's platform field | `{ "name": ..., "platform": ... }` | `{ "name": ..., "kind": ... }` |
+| Closing a session | `DELETE /v1/sessions/{session_id}` | `POST /v1/sessions/{session_id}/close` |
+
+The old `DELETE /v1/sessions/{session_id}` is gone rather than deprecated, and a request to it is a `405`. The new close takes no request body and requires the same `sessions:run` scope.
+
+**Additive**
+
+- **Create and close return the full session.** Both used to return a five-field stub (`id`, `status`, `decision_mode`, `turn_count`, `max_turns`). They now return the same 23-field object a read returns, including the frozen `assignment`, the frozen `environment` and its four `environment_*` pointers, `person_snapshot`, `accrued_credits`, `ended_reason`, `ended_at`, and the timestamps. Nothing was removed, so a client reading only the original five fields keeps working.
+- **`listSessions` gained two filters**: `environment_version_id` pins the list to sessions run against one declared environment version, and `search` matches a session id by prefix or the frozen goal case-insensitively. The existing `status`, `api_key_id`, `environment_id`, `assignment_id`, `created_from`, and `created_to` filters are unchanged.
+- **`Idempotency-Key` now covers every create.** It was accepted on create-session only; it is now accepted on create-environment, create-environment-version, and create-assignment on the same terms. A retry with the same key and body replays the existing row; the same key with a different body is a `409` `idempotency_conflict`.
+- **Observation retention is now a session and environment setting.** `observation_retention` (`none`, `30d`, `90d`, or `indefinite`) can be set on an environment as its default and overridden per session on create. It is served back on the session. An environment described inline with no override resolves to `none`.
+- **Turns can carry the frame back.** A turn in the trace now carries `observation_url`, a short-lived signed URL for the retained frame, plus `observation_width` and `observation_height`. `observation_url` is null when nothing was retained, which is what a `none` session always reports. Read the URL, do not store it.
+- **List rows carry `ended_at`.** `ended_at` moved onto the shared session base, so a `listSessions` row now serves it alongside `settled_at` without a second read.
+- **Every error kind is now documented and stable.** Responses across all four surfaces carry a machine-readable `detail.error_kind`, and the full catalog of 33 public kinds is published at [errors](/api/errors). Branch on the kind rather than the status: several kinds share a status and want different remedies.
+- **The registry list envelopes reserve pagination.** The environment, environment-version, and assignment lists now carry `has_more` and `next_cursor` alongside `items`. Both are inert today (`false` and `null`) because those lists return the whole collection, and they are present so pagination can land later without a wire break. Read them rather than assuming a single page.
+
+**What to change in your client**
+
+1. Rename `persona_id` to `person_id` in your create body, and read `person_id` (or `participant.person_id` on list rows) where you read `persona_id`.
+2. Rename `platform` to `kind` in any inline `environment` descriptor.
+3. Change your close call from `DELETE /v1/sessions/{id}` to `POST /v1/sessions/{id}/close`.
+
+## 2026-07-27
+
+A breaking pre-release revision to how a session carries its intent.
+
+**Breaking**
+
+- Session create bodies carry the intent as a required `assignment` object with exactly one shape: `{"goal": ...}` describes it inline, or `{"id": ...}` binds a registered assignment and freezes its goal and revision onto the session.
+- A top-level `goal` field is rejected with a `422`.
+- Session reads return an `assignment` object in place of the flat `goal`.
+- `Idempotency-Key` values stored before this revision no longer replay. A retried old-shape body is a `422`, and reusing an old key with a new-shape body is a `409` `idempotency_conflict`. Mint fresh keys after migrating.

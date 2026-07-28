@@ -201,17 +201,33 @@
             },
             "pages": [
               "api/reference/introduction",
+              "api/errors",
               "POST /api/v1/workspaces/{workspace_id}/sessions",
               "GET /api/v1/workspaces/{workspace_id}/sessions",
               "POST /api/v1/sessions/{session_id}/turns",
               "GET /api/v1/sessions/{session_id}",
-              "DELETE /api/v1/sessions/{session_id}",
+              "POST /api/v1/sessions/{session_id}/close",
               "POST /api/v1/workspaces/{workspace_id}/environments",
               "GET /api/v1/workspaces/{workspace_id}/environments",
               "GET /api/v1/environments/{environment_id}",
               "PATCH /api/v1/environments/{environment_id}",
-              "DELETE /api/v1/environments/{environment_id}"
+              "DELETE /api/v1/environments/{environment_id}",
+              "POST /api/v1/environments/{environment_id}/versions",
+              "GET /api/v1/environments/{environment_id}/versions",
+              "GET /api/v1/environment-versions/{version_id}",
+              "PATCH /api/v1/environment-versions/{version_id}",
+              "DELETE /api/v1/environment-versions/{version_id}",
+              "POST /api/v1/environment-versions/{version_id}/set-default",
+              "POST /api/v1/workspaces/{workspace_id}/assignments",
+              "GET /api/v1/workspaces/{workspace_id}/assignments",
+              "GET /api/v1/assignments/{assignment_id}",
+              "PATCH /api/v1/assignments/{assignment_id}",
+              "DELETE /api/v1/assignments/{assignment_id}"
             ]
+          },
+          {
+            "group": "Versioning and changes",
+            "pages": ["api/versioning", "api/changelog"]
           }
         ]
       },

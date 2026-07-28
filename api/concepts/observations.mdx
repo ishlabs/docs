@@ -1,25 +1,25 @@
 ---
 title: "Observations"
-description: "Why the persona perceives only human-sensory renders, and why action labels must not leak hidden state."
+description: "Why the participant perceives only human-sensory renders, and why action labels must not leak hidden state."
 mode: "explanation"
 ---
 
-Each turn you send an **observation**: what the persona perceives right now. The API restricts observations to human-sensory renders, the things a person sitting in front of your environment would take in through their eyes and ears. This restriction is the load-bearing choice that keeps the product honest.
+Each turn you send an **observation**: what the participant perceives right now. The API restricts observations to human-sensory renders, the things a person sitting in front of your environment would take in through their eyes and ears. This restriction is the load-bearing choice that keeps the product honest.
 
 ## Human-sensory only
 
 An observation is a list of blocks, and only two kinds exist today:
 
-- `image`: a rendered frame, a screenshot of what the persona sees. Available now.
+- `image`: a rendered frame, a screenshot of what the participant sees. Available now.
 - `error`: free text carrying execution feedback, "your last action did not take effect". That is itself something a person would perceive: a bump, a blocked door, an error toast.
 
 Audio is reserved for a later version as a rendered sense, not a transcript. Every future observation kind must clear the same bar: would a human perceive this.
 
 ## Why not structured state
 
-Feeding the persona structured state (a scene graph, game-state JSON, a chess FEN, a DOM or accessibility-tree dump) is the easier engineering path, and it is precisely the path ish does not take.
+Feeding the participant structured state (a scene graph, game-state JSON, a chess FEN, a DOM or accessibility-tree dump) is the easier engineering path, and it is precisely the path ish does not take.
 
-ish answers one question: **how would this particular human behave here.** That answer is only valid if the persona perceives what a human perceives, with the same ambiguity, occlusion, and room to misread. A persona handed the true state is no longer simulating a human; it is a solver wearing a persona's name, and its behavior stops predicting a real person's.
+ish answers one question: **how would this particular human behave here.** That answer is only valid if the participant perceives what a human perceives, with the same ambiguity, occlusion, and room to misread. A participant handed the true state is no longer simulating a human; they become a solver wearing a person's name, and their behavior stops predicting a real person's.
 
 So structured state is **rejected, not discouraged.** A block of `type: "state"`, a scene graph, a FEN string, or a DOM dump is a `422` at the boundary, refused loudly on the first turn so you learn the contract immediately instead of silently degrading the result. There is no `state` block to opt into.
 
@@ -30,9 +30,9 @@ There is a second way state can sneak in: through the **action labels** you decl
 Consider two classic leaks:
 
 - The chess move `Nxe5+` as an action name smuggles in the piece (a knight), the captured square, and that the move gives check. A player reads none of that off a label; they read it off the board.
-- An adventure-game hotspot named `rusty key` tells the persona the object's identity and narrative role before it has even looked.
+- An adventure-game hotspot named `rusty key` tells the participant the object's identity and narrative role before they have even looked.
 
-Declare actions by visible affordance instead: a bare target and a generic verb (`move`, `click`, a from-and-to square pair). The persona reads the *meaning* off the pixels. Option names that are printed on the screen are fine in an enum, because they are already visible; what a control *does* must stay discoverable from the frame. The practical rules are in [author your environment](/api/guides/environment-authoring).
+Declare actions by visible affordance instead: a bare target and a generic verb (`move`, `click`, a from-and-to square pair). The participant reads the *meaning* off the pixels. Option names that are printed on the screen are fine in an enum, because they are already visible; what a control *does* must stay discoverable from the frame. The practical rules are in [author your environment](/api/guides/environment-authoring).
 
 ## What this asks of your environment
 

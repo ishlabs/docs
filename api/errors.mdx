@@ -1,0 +1,210 @@
+---
+title: "Errors"
+description: "Every error kind the API returns, what each one means, and what to do about it."
+mode: "reference"
+---
+
+Every error carries a machine-readable `error_kind`. Branch on the kind, never on the status: several kinds share a status and want different remedies, and new kinds can be added within a status you already handle.
+
+## The two envelopes
+
+Parse defensively. Two shapes exist and they differ.
+
+A **request-shape failure** (HTTP 422 from the validation layer) uses the `ValidationError` envelope, with an `errors` array of field locations so you can pinpoint the offending field:
+
+```json
+{
+  "error": "Validation error",
+  "error_code": "validation_error",
+  "status": 422,
+  "retryable": false,
+  "detail": "Validation error",
+  "errors": [ { "loc": ["body", "observation", 0, "type"], "msg": "...", "type": "..." } ]
+}
+```
+
+**Everything else** uses the `Error` envelope, where `detail` is either a string or a structured object carrying `error_kind`:
+
+```json
+{
+  "detail": {
+    "error_kind": "turn_index_mismatch",
+    "expected_turn_index": 4
+  },
+  "request_id": "b1c2d3e4...",
+  "docs_url": "https://docs.ishlabs.io/api/errors#turn_index_mismatch"
+}
+```
+
+Some kinds carry extra keys on `detail` alongside `error_kind`. Those are named per kind below. Whenever `detail` carries a registered `error_kind`, the body also carries `docs_url`: a direct link to that kind's entry on this page.
+
+## Correlation
+
+Every response carries an `X-Request-Id` header, and error bodies echo it as `request_id`. Quote it in any support request or bug report.
+
+## Open union
+
+`error_kind` is an open union. New kinds may be added inside a status you already handle, so treat an unrecognized kind as the generic case for its status rather than failing on it.
+
+## 401 Unauthorized
+
+### invalid_api_key {#invalid_api_key}
+
+The bearer token is missing, malformed, unknown, or revoked. One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.
+
+Check the `Authorization` header. If the key was revoked, mint a replacement in **Settings**, then **Developers**.
+
+## 402 Payment Required
+
+All three refuse the turn without applying it, and the session becomes terminal. Branch on the kind, because the first two share a terminal status of `balance_exhausted`.
+
+### credits_exhausted {#credits_exhausted}
+
+No spendable credits are left. Top up.
+
+### plan_allowance_exhausted {#plan_allowance_exhausted}
+
+The plan's allowance for this period is spent. It refreshes on the date in the message, or top up to continue now.
+
+### spend_cap_reached {#spend_cap_reached}
+
+The workspace's own per-period spend cap was reached. Raise the cap, or wait for the period to roll over. The session's terminal status is `spend_cap_reached`.
+
+## 403 Forbidden
+
+### insufficient_scope {#insufficient_scope}
+
+The API key lacks the scope this operation requires. `detail.required_scope` names it. Mint a key with the scope, or ask for it if the key manages environments.
+
+### api_key_not_permitted {#api_key_not_permitted}
+
+This operation does not admit API keys at all, and no scope grants it. Call it with an ish user access token.
+
+### person_out_of_scope {#person_out_of_scope}
+
+A session can only be opened for a person the workspace owns or one published in the platform library. Real-person "me" profiles are out of scope by policy. Use an in-scope `person_id`.
+
+## 404 Not Found
+
+Each of these means the same thing: the record was not found, or it is not reachable with this credential. The two are deliberately indistinguishable, so a wrong id and someone else's id look identical. Check the id, and check that your token's workspace owns it.
+
+### workspace_not_found {#workspace_not_found}
+
+The `workspace_id` in the path.
+
+### session_not_found {#session_not_found}
+
+The `session_id` in the path.
+
+### person_not_found {#person_not_found}
+
+The `person_id` on a session create.
+
+### environment_not_found {#environment_not_found}
+
+The `environment_id`, on a session create or an environment operation.
+
+### environment_version_not_found {#environment_version_not_found}
+
+The `version_id`, or the `environment_version` label a session tried to pin.
+
+### assignment_not_found {#assignment_not_found}
+
+The `assignment.id` a session tried to bind, or the `assignment_id` in the path.
+
+## 409 Conflict
+
+### idempotency_conflict {#idempotency_conflict}
+
+The `Idempotency-Key` was reused with a different request body. A key maps to exactly one create request. Use a fresh key, or resend the identical body to replay the original.
+
+### session_not_open {#session_not_open}
+
+You posted a turn to a session that has already ended. The session is terminal; open a new one.
+
+### turn_index_mismatch {#turn_index_mismatch}
+
+The `turn_index` you sent does not match the session's current turn. `detail.expected_turn_index` carries the index the server expected. Resubmit at that index.
+
+### environment_name_taken {#environment_name_taken}
+
+An environment with this name already exists in the workspace. Names are unique per workspace, case-insensitive. With `get_or_create`, only a name held by a different `kind` conflicts.
+
+### environment_address_taken {#environment_address_taken}
+
+Another environment in the workspace already claims this address.
+
+### environment_archived {#environment_archived}
+
+The environment resolves but is retired, so it cannot accept new sessions or new versions. Register a new environment, or describe one inline on the session.
+
+### environment_version_label_taken {#environment_version_label_taken}
+
+The label collides with another live version of this environment. `detail.existing_version_id` carries the holder.
+
+### environment_version_archived {#environment_version_archived}
+
+The version is archived. An archived version cannot be pinned by a new session, and cannot become the default, since it would refuse the very sessions the pointer sent it.
+
+### environment_version_config_frozen {#environment_version_config_frozen}
+
+`config` and `example_actions` are frozen once any session references this version, so a PATCH that carries either is refused. Metadata stays editable for the life of the row. Send only the fields you actually changed: a PATCH that echoes an unchanged `config` back is refused the same way as one that edits it.
+
+### environment_version_conflict {#environment_version_conflict}
+
+A concurrent write to this version won the race. Re-read and retry.
+
+### environment_version_default_conflict {#environment_version_default_conflict}
+
+A concurrent `set-default` won the race. Re-read the environment and retry.
+
+### assignment_name_taken {#assignment_name_taken}
+
+An assignment with this name already exists in the workspace family. Names are unique per family, case-insensitive.
+
+### assignment_archived {#assignment_archived}
+
+The assignment resolves but is retired. Register a new assignment, or pass the goal inline on the session.
+
+### assignment_in_published_listing {#assignment_in_published_listing}
+
+A published listing references this assignment, so it cannot be retired. `detail.listing_id` names the listing. Unpublish or edit the listing first.
+
+## 429 Too Many Requests
+
+Both are transient and both carry `Retry-After`. They reset on different clocks.
+
+### rate_limited {#rate_limited}
+
+A rate limit upstream of your request was exceeded. On this surface that is the API key's own request rate limit, which resets within the minute; the same kind is used elsewhere on the platform when an upstream provider limits us, which is why the remedy is expressed as "retry later" rather than "slow down". Honor `Retry-After`, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.
+
+### session_quota_exceeded {#session_quota_exceeded}
+
+The API key's daily session-create quota is used up. It resets on a day boundary. Existing sessions are unaffected, so a loop already running keeps running; only new creates are refused. API keys only, not user tokens.
+
+## 500 Internal Server Error
+
+None of these is a state to handle. Quote `request_id` and the kind in a bug report.
+
+### session_actor_missing {#session_actor_missing}
+
+### payer_unresolved {#payer_unresolved}
+
+### environment_unresolved {#environment_unresolved}
+
+## 502 Bad Gateway
+
+### decision_invalid {#decision_invalid}
+
+The participant produced an invalid choice twice, and no turn was recorded. Retriable: resubmit the **same** `turn_index` with a fresh frame.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Run the session loop" icon="repeat" href="/api/guides/session-loop">
+    Where each error lands in the loop, and how to recover without losing the turn.
+  </Card>
+  <Card title="Authentication" icon="key" href="/api/authentication">
+    Scopes, rotation, and what a key can reach.
+  </Card>
+</Columns>

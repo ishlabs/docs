@@ -11,10 +11,10 @@
     "schemas": {
       "AssignmentDescriptor": {
         "additionalProperties": false,
-        "description": "An ad-hoc assignment, described inline on the session that uses it.\n\nGoal-only BY DESIGN (ADR-0028 invariant 1): on this lane the caller drives\nthe actor, so steps in the create body would hand the grader's answer key\nto the process executing the actions. Register an assignment to attach\nsteps.",
+        "description": "An assignment described inline on the session that uses it.\n\nGoal only, by design: on this lane your code executes the actions, so verification steps in the create body would hand the answer key to the process being measured. Register an assignment to attach steps.",
         "properties": {
           "goal": {
-            "description": "What the participant is trying to do, in their own terms. Rendered into the persona prompt as the situation paragraph.",
+            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph.",
             "maxLength": 2000,
             "minLength": 1,
             "title": "Goal",
@@ -30,12 +30,30 @@
       "AssignmentListResponse": {
         "description": "Every assignment in the workspace family, oldest first.\n\nDeliberately unpaginated, matching environments: a registered assignment is\na hand-authored definition (a handful per workspace), not a stream.",
         "properties": {
+          "has_more": {
+            "default": false,
+            "description": "Always false today: this list is not paginated and returns the whole collection. Present so pagination can land without a wire break.",
+            "title": "Has More",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/AssignmentResponse"
             },
             "title": "Items",
             "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null today (see `has_more`). Will carry the opaque keyset cursor for the next page if this list becomes paginated.",
+            "title": "Next Cursor"
           }
         },
         "required": [
@@ -86,7 +104,7 @@
                 "type": "null"
               }
             ],
-            "description": "Persona-facing background, or null. Stored and fingerprinted; not yet rendered into session prompts (parity ships with study adoption).",
+            "description": "Background the person is treated as already knowing, or null. Stored and fingerprinted; not yet rendered into session prompts.",
             "title": "Background"
           },
           "created_at": {
@@ -137,7 +155,7 @@
                 "type": "null"
               }
             ],
-            "description": "Grader-only answer key, or null when the assignment has none. Steps never reach the acting persona; on the sessions lane they are inert until run verification ships (documented, never silently ignored).",
+            "description": "The actions a run is checked against afterwards, or null when the assignment has none. Steps never reach the person doing the run, and on the sessions lane they are inert until run verification ships.",
             "title": "Steps"
           },
           "updated_at": {
@@ -168,7 +186,7 @@
         "type": "object"
       },
       "AssignmentSnapshot": {
-        "description": "The session's intent as frozen at create.\n\n``goal`` is always present (the snapshot). ``id``/``name``/``revision`` are\nnull for a session opened with an inline descriptor; ``name`` reads the\nLIVE registry row (display only) while ``goal`` and ``revision`` stay\nfrozen, so a rename shows through but content never drifts.",
+        "description": "The session's intent as frozen at create.\n\n`goal` is always present (the snapshot). `id`/`name`/`revision` are\nnull for a session opened with an inline descriptor; `name` reads the\nLIVE registry row (display only) while `goal` and `revision` stay\nfrozen, so a rename shows through but content never drifts.",
         "properties": {
           "goal": {
             "title": "Goal",
@@ -220,7 +238,7 @@
         "type": "object"
       },
       "AssignmentStep": {
-        "description": "Author-supplied atomic action for post-session verification.\n\nAuthors provide ``name`` (required, short verb-phrase) and optionally a\nlonger ``description`` for nuance. ``id`` is the step's PERMANENT\nidentity: a client that has one (from a prior read, or client-minted at\nauthoring) sends it back and the server keeps it verbatim; the server\nmints one (slugified from name) only when it is absent. It is therefore\noptional on request inputs but always populated on response payloads —\nthe JSONB column on ``Assignment.steps`` carries the id back through\n``from_attributes``. Use ``AssignmentStepResolved`` where an id MUST be\npresent (verifier paths, step_completion joins).",
+        "description": "One atomic action, for verifying after the session what the person actually accomplished.\n\n`name` is required (a short verb phrase); `description` is optional nuance. `id` is the step's permanent identity: send back an id you already hold and it is kept verbatim, or omit it and one is derived from the name. Responses always carry it.",
         "properties": {
           "description": {
             "anyOf": [
@@ -302,17 +320,17 @@
                 "type": "null"
               }
             ],
-            "description": "Persona-facing background for the situation (context the participant 'knows' going in). Optional. NOT YET RENDERED on the sessions lane: it is stored and content-fingerprinted, but the session prompt currently carries the goal only — prompt parity ships with study adoption.",
+            "description": "Background the person is treated as already knowing. Optional, and NOT YET RENDERED on the sessions lane: it is stored and fingerprinted, but a session prompt currently carries the goal only.",
             "title": "Background"
           },
           "get_or_create": {
             "default": false,
-            "description": "Idempotent register for CI: when a LIVE assignment with this name (case-insensitive, family-scoped) already exists, return it with 200 instead of 409. The existing row is returned AS IS — nothing on this request is applied to it.",
+            "description": "Idempotent register for CI: when a LIVE assignment with this name (case-insensitive, family-scoped) already exists, return it with 200 instead of 409. The existing row is returned AS IS: nothing on this request is applied to it.",
             "title": "Get Or Create",
             "type": "boolean"
           },
           "goal": {
-            "description": "The persona-facing intent: what the participant is trying to do, in their own terms. Rendered into the persona prompt as the situation paragraph — identical treatment to a session's inline goal.",
+            "description": "What the person is trying to do, in their own terms. Rendered into their prompt as the situation paragraph, exactly as a session's inline goal is.",
             "maxLength": 2000,
             "minLength": 1,
             "title": "Goal",
@@ -337,7 +355,7 @@
                 "type": "null"
               }
             ],
-            "description": "Grader-only answer key: the atomic actions a run should be graded against. NEVER shown to the acting persona. Step ids are permanent identity — provided ids are kept verbatim, missing ids are minted server-side.",
+            "description": "The atomic actions a run should be checked against afterwards. NEVER shown to the person doing the run. Step ids are permanent identity: an id you supply is kept verbatim, a missing one is minted server-side.",
             "title": "Steps"
           }
         },
@@ -355,7 +373,7 @@
             "$ref": "#/components/schemas/EnvironmentConfig"
           },
           "example_actions": {
-            "description": "Example action vocabulary for this environment (same shape as a turn's `valid_actions`). NON-AUTHORITATIVE: documentation and SDK scaffolding only, never read at turn time — every turn declares its own `valid_actions`, which is the only authoritative source.",
+            "description": "Example action vocabulary for this environment (same shape as a turn's `valid_actions`). NON-AUTHORITATIVE: documentation and SDK scaffolding only, never read at turn time. Every turn declares its own `valid_actions`, which is the only authoritative source.",
             "items": {
               "additionalProperties": true,
               "type": "object"
@@ -365,7 +383,7 @@
           },
           "get_or_create": {
             "default": false,
-            "description": "Idempotent register for CI: when a LIVE environment with this name (case-insensitive) and the SAME kind already exists, return it with 200 instead of 409. The existing row is returned AS IS — config, notes and example_actions on this request are ignored, never silently applied, and the address-dedupe check is not evaluated on this path (nothing is written). A name held by a different kind still conflicts (409).",
+            "description": "Idempotent register for CI: when a LIVE environment with this name (case-insensitive) and the SAME kind already exists, return it with 200 instead of 409. The existing row is returned AS IS: config, notes and example_actions on this request are ignored, never silently applied, and the address-dedupe check is not evaluated on this path (nothing is written). A name held by a different kind still conflicts (409).",
             "title": "Get Or Create",
             "type": "boolean"
           },
@@ -379,6 +397,17 @@
             "title": "Name",
             "type": "string"
           },
+          "observation_retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationRetention"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How long sessions on this environment keep their observation frames: `none` (discard after each turn), `30d`, `90d`, or `indefinite`. Omit for the default (`30d`). A session may override this at open; the resolved value is fixed for that session's life."
+          },
           "operating_notes": {
             "anyOf": [
               {
@@ -389,7 +418,7 @@
                 "type": "null"
               }
             ],
-            "description": "Operating manual for the RESOLVER only, never shown to the persona. Becomes the default `resolver_guidance` for sessions opened against this environment; a session may pass its own, which wins.",
+            "description": "Operating manual for the RESOLVER only, never shown to the person. Becomes the default `resolver_guidance` for sessions opened against this environment; a session may pass its own, which wins.",
             "title": "Operating Notes"
           },
           "slug": {
@@ -414,7 +443,7 @@
       },
       "CreateEnvironmentVersionRequest": {
         "additionalProperties": false,
-        "description": "Author a new variant of an environment.\n\n``version`` is absent by design: it is server-assigned as max+1. No surveyed\nplatform lets the user author the immutable version identifier (ADR-0027's\nsurvey), and users get NAMED things over auto counters — which is what\n``label`` is.\n\n``is_default`` is absent too: the default pointer moves only through the\ndedicated ``set-default`` endpoint, so clear-then-set lives in exactly one\nplace. Authoring a variant therefore never silently redirects traffic.",
+        "description": "Author a new declared version of an environment.\n\n`version` is assigned by the server as the next integer; you name the variant with `label`. `is_default` is absent on purpose: the default pointer moves only through the set-default operation, so authoring a variant never silently redirects the traffic of callers who pin nothing.",
         "properties": {
           "config": {
             "anyOf": [
@@ -528,22 +557,37 @@
           },
           "max_turns": {
             "default": 50,
-            "maximum": 200.0,
-            "minimum": 1.0,
+            "maximum": 200,
+            "minimum": 1,
             "title": "Max Turns",
             "type": "integer"
+          },
+          "observation_retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationRetention"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How long this session's observation frames are retained: `none` (discard after the turn), `30d`, `90d`, or `indefinite`. Omit to inherit the registered environment's setting; an inline environment descriptor defaults to `none`. Resolved once at open and fixed for the session's lifetime. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
           },
           "pacing": {
             "$ref": "#/components/schemas/PacingContract"
           },
-          "persona_id": {
+          "person_id": {
             "format": "uuid",
-            "title": "Persona Id",
+            "title": "Person Id",
             "type": "string"
           },
           "reasoning_effort": {
             "default": "low",
-            "pattern": "^(low|medium|high)$",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
             "title": "Reasoning Effort",
             "type": "string"
           },
@@ -561,7 +605,7 @@
           }
         },
         "required": [
-          "persona_id",
+          "person_id",
           "assignment",
           "pacing"
         ],
@@ -613,9 +657,36 @@
         "title": "DeclaredAction",
         "type": "object"
       },
+      "EducationLevel": {
+        "enum": [
+          "less_than_secondary",
+          "secondary",
+          "some_post_secondary",
+          "vocational_or_associate",
+          "bachelor",
+          "graduate"
+        ],
+        "title": "EducationLevel",
+        "type": "string"
+      },
+      "EmploymentStatus": {
+        "enum": [
+          "employed_full_time",
+          "employed_part_time",
+          "self_employed",
+          "unemployed_seeking",
+          "student",
+          "homemaker",
+          "retired",
+          "unable_to_work",
+          "other"
+        ],
+        "title": "EmploymentStatus",
+        "type": "string"
+      },
       "EnvironmentConfig": {
         "additionalProperties": false,
-        "description": "The per-kind payload stored in ``environments.config``.\n\nEvery field is optional at the type level and REQUIRED-BY-KIND at the\nvalidator level, the same shape ``InteractiveIterationDetails`` uses for its\nplatform↔field coupling. ``extra=\"forbid\"``: a silently-ignored config key is\na customer debugging a target that was never set.",
+        "description": "The per-kind configuration of an environment.\n\nEvery field is optional at the type level and required by KIND at validation time: a `web` environment needs `url`, and so on. Unknown keys are REJECTED on write, so a typo surfaces as a 422 instead of a target that was silently never set.",
         "properties": {
           "app_artifact": {
             "anyOf": [
@@ -662,31 +733,31 @@
         "type": "object"
       },
       "EnvironmentDescriptor": {
-        "description": "An ad-hoc environment, described inline on the session that uses it.\n\nAlso the shape of the FROZEN SNAPSHOT a session carries after it was opened\nagainst a REGISTERED environment (``environment_id``), which is why the field\nis still named ``platform``: it holds the environment's ``kind``, and renaming a\nlive public field to match the newer internal vocabulary would break clients\nfor no behavioural gain.",
+        "description": "An ad-hoc environment, described inline on the session that uses it.\n\nAlso the shape of the FROZEN SNAPSHOT a session carries after it was opened\nagainst a REGISTERED environment (`environment_id`), so `kind` means the\nsame thing on both paths and on the environments surface: one noun for one\nconcept, rather than a wire that says `platform` where the registry says\n`kind`.",
         "properties": {
+          "kind": {
+            "description": "The kind of surface (e.g. `web`, `device`, `world`). Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "maxLength": 40,
+            "minLength": 1,
+            "title": "Kind",
+            "type": "string"
+          },
           "name": {
             "maxLength": 120,
             "minLength": 1,
             "title": "Name",
             "type": "string"
-          },
-          "platform": {
-            "description": "The kind of surface (e.g. `web`, `device`, `world`). Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
-            "maxLength": 40,
-            "minLength": 1,
-            "title": "Platform",
-            "type": "string"
           }
         },
         "required": [
           "name",
-          "platform"
+          "kind"
         ],
         "title": "EnvironmentDescriptor",
         "type": "object"
       },
       "EnvironmentKind": {
-        "description": "What KIND of surface a registered environment is (ADR-0026).\n\nDeliberately NOT called \"platform\": four incompatible platform vocabularies\nalready exist (``InteractiveIterationDetails.platform`` =\nbrowser/android/ios/figma/code, ``FrameSourceType``, ``DEVICE_PLATFORMS``,\nand the session lane's own free string) and they share no member. ``kind`` is\nthe one closed vocabulary the environment object owns; the lane-local ones\nare mapped at their boundaries, never merged.\n\nThe member set is the session lane's MEASURED usage (dev ``sessions``\nholds exactly ``web``, ``device``, ``world``; the old ``EnvironmentDescriptor``\ndocstring's \"game\" is ``world``). It is GROWABLE and stored as a VARCHAR, not\na Postgres enum: adding a kind must not need an ``ALTER TYPE ADD VALUE``\n(which also forces a new staging boundary in\n``scripts/test_db/upgrade_stages.sh``). Same posture as ``ApiKeyScope``.\n\nClosed on the WRITE path (the request DTO parses through this enum), OPEN on\nthe READ path (responses type ``kind`` as ``str``): a row written by a newer\nserver carrying an unknown kind must still read back rather than fail\nvalidation. That asymmetry IS the open-union contract the public DTOs\ndocument via ``_OPEN_UNION_NOTE``.",
+        "description": "What kind of surface a registered environment is.\n\nDeliberately not called `platform`: `kind` is the one vocabulary the environment object owns, and it stays stable no matter what the thing you are testing calls itself.\n\nClosed on write (an unknown kind is a 422) and OPEN on read: new kinds are added over time, so a client must tolerate a value it does not recognize rather than failing on it.",
         "enum": [
           "web",
           "device",
@@ -696,14 +767,32 @@
         "type": "string"
       },
       "EnvironmentListResponse": {
-        "description": "Every environment in the workspace, oldest first.\n\nDeliberately unpaginated: an environment is a hand-registered config object\n(the measured ceiling is a handful per workspace, not a stream), so a cursor\nwould be ceremony. If that stops being true this grows the same keyset shape\nthe session list uses.",
+        "description": "Every environment in the workspace, oldest first.\n\nDeliberately unpaginated: an environment is a hand-registered config object\n(the measured ceiling is a handful per workspace, not a stream), so a cursor\nwould be ceremony. If that stops being true this grows the same keyset shape\nthe session list uses, which is what the envelope fields below reserve room\nfor.",
         "properties": {
+          "has_more": {
+            "default": false,
+            "description": "Always false today: this list is not paginated and returns the whole collection. Present so pagination can land without a wire break.",
+            "title": "Has More",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/EnvironmentResponse"
             },
             "title": "Items",
             "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null today (see `has_more`). Will carry the opaque keyset cursor for the next page if this list becomes paginated.",
+            "title": "Next Cursor"
           }
         },
         "required": [
@@ -724,7 +813,7 @@
                 "type": "null"
               }
             ],
-            "description": "Normalized target identity derived from `config` (scheme, host and path only). A duplicate-registration guard, NOT the environment's identity — sessions always reference the id.",
+            "description": "Normalized target identity derived from `config` (scheme, host and path only). A duplicate-registration guard, NOT the environment's identity, since sessions always reference the id.",
             "title": "Address"
           },
           "archived_at": {
@@ -775,6 +864,11 @@
             "title": "Name",
             "type": "string"
           },
+          "observation_retention": {
+            "description": "How long sessions on this environment keep their observation frames: `none`, `30d`, `90d`, or `indefinite`. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+            "title": "Observation Retention",
+            "type": "string"
+          },
           "operating_notes": {
             "anyOf": [
               {
@@ -821,6 +915,7 @@
           "slug",
           "config",
           "operating_notes",
+          "observation_retention",
           "example_actions",
           "hosting",
           "address",
@@ -833,14 +928,32 @@
         "type": "object"
       },
       "EnvironmentVersionListResponse": {
-        "description": "Every version of one environment, oldest first by ``version``.\n\nUnpaginated for the same reason the environments list is: variants are\nhand-authored config objects, a handful per environment.",
+        "description": "Every version of one environment, oldest first by `version`.\n\nUnpaginated for the same reason the environments list is: variants are\nhand-authored config objects, a handful per environment.",
         "properties": {
+          "has_more": {
+            "default": false,
+            "description": "Always false today: this list is not paginated and returns the whole collection. Present so pagination can land without a wire break.",
+            "title": "Has More",
+            "type": "boolean"
+          },
           "items": {
             "items": {
               "$ref": "#/components/schemas/EnvironmentVersionResponse"
             },
             "title": "Items",
             "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null today (see `has_more`). Will carry the opaque keyset cursor for the next page if this list becomes paginated.",
+            "title": "Next Cursor"
           }
         },
         "required": [
@@ -936,7 +1049,7 @@
             "type": "string"
           },
           "version": {
-            "description": "Monotonic per environment, server-assigned, never reused — even after the variant is archived.",
+            "description": "Monotonic per environment, server-assigned, and never reused, even after the variant is archived.",
             "title": "Version",
             "type": "integer"
           }
@@ -974,6 +1087,11 @@
             "description": "A human-readable message, OR a structured object carrying a machine-readable `error_kind` (e.g. `idempotency_conflict`, `turn_index_mismatch`, `decision_invalid`).",
             "title": "Detail"
           },
+          "docs_url": {
+            "description": "Link to this error's entry in the error catalog. Present whenever `detail` carries a registered `error_kind`; absent on unclassified errors.",
+            "title": "Docs Url",
+            "type": "string"
+          },
           "request_id": {
             "description": "Correlation id; identical to the `X-Request-Id` response header. Quote it in support requests.",
             "title": "Request Id",
@@ -988,7 +1106,7 @@
         "type": "object"
       },
       "FeltIntensity": {
-        "description": "How strongly the persona feels the labelled emotion (LLM-emitted).\n\nOrdinal magnitude knob consumed by ``app/sentiment/affect.py``:\n``moderate`` reproduces the legacy calibration; ``mild``/``strong`` vary\nthe radius of (valence, arousal) WITHOUT flipping the valence sign.",
+        "description": "How strongly the person feels the labelled sentiment: `mild`, `moderate` or `strong`. An ordinal magnitude, reported alongside `sentiment` on every decision.\n\nOpen union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
         "enum": [
           "mild",
           "moderate",
@@ -1056,9 +1174,64 @@
         "title": "FieldError",
         "type": "object"
       },
+      "Gender": {
+        "description": "Gender options for people.",
+        "enum": [
+          "male",
+          "female",
+          "non-binary",
+          "prefer_not_to_say"
+        ],
+        "title": "Gender",
+        "type": "string"
+      },
+      "Household": {
+        "enum": [
+          "single",
+          "couple_no_kids",
+          "couple_with_kids",
+          "single_parent",
+          "shared_housing",
+          "adult_with_parents",
+          "multi_generational"
+        ],
+        "title": "Household",
+        "type": "string"
+      },
+      "IncomeLevel": {
+        "enum": [
+          "lower",
+          "lower_middle",
+          "middle",
+          "upper_middle",
+          "upper",
+          "prefer_not_to_say"
+        ],
+        "title": "IncomeLevel",
+        "type": "string"
+      },
+      "IterationType": {
+        "description": "Iteration execution type.",
+        "enum": [
+          "ai",
+          "human"
+        ],
+        "title": "IterationType",
+        "type": "string"
+      },
+      "LocaleType": {
+        "enum": [
+          "urban",
+          "suburban",
+          "small_town",
+          "rural"
+        ],
+        "title": "LocaleType",
+        "type": "string"
+      },
       "ObservationBlock": {
         "additionalProperties": false,
-        "description": "One human-sensory block. `state` is deliberately absent (ADR-0020).",
+        "description": "One block of what the person perceives this turn.\n\n`image` carries the rendered frame; `error` carries feedback from executing the previous action. Exactly one `image` block is required per turn. New block types may be added, so tolerate a `type` you do not recognize.",
         "properties": {
           "data": {
             "title": "Data",
@@ -1080,6 +1253,17 @@
         "title": "ObservationBlock",
         "type": "object"
       },
+      "ObservationRetention": {
+        "description": "How long a session's observation frames are kept: `none` (discarded after the turn), `30d`, `90d`, or `indefinite`.\n\nOne field rather than a flag beside a window, so the incoherent pair (off, 90 days) cannot be expressed. Resolved once when the session opens, from the session's own value or the registered environment's default, and fixed for that session's lifetime: editing the environment later never changes what an open session promised.\n\nOpen union: new windows may be added over time; clients must tolerate unknown values rather than failing on them.",
+        "enum": [
+          "none",
+          "30d",
+          "90d",
+          "indefinite"
+        ],
+        "title": "ObservationRetention",
+        "type": "string"
+      },
       "PacingContract": {
         "enum": [
           "pause_on_decide",
@@ -1089,8 +1273,214 @@
         "title": "PacingContract",
         "type": "string"
       },
+      "PersonSnapshot": {
+        "additionalProperties": true,
+        "description": "The person as they were when the session was created, frozen onto the session.\n\nThis, not the live person, is what the session was run against: it stays readable and unchanged after the person is edited or deleted, which is what makes an old trace still mean something. `id` is the person's id at create time.\n\nAdditional keys may be present and more may be added over time; treat anything not listed here as unspecified rather than failing on it.",
+        "properties": {
+          "avatar_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Avatar Url"
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Bio"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Country"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Date Of Birth"
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EducationLevel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "employment_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmploymentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "household": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Household"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "income_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomeLevel"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "languages": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Languages"
+          },
+          "locale_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocaleType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Occupation"
+          },
+          "snapshot_version": {
+            "default": "2",
+            "enum": [
+              "1",
+              "2"
+            ],
+            "title": "Snapshot Version",
+            "type": "string"
+          },
+          "snapshotted_at": {
+            "format": "date-time",
+            "title": "Snapshotted At",
+            "type": "string"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Timezone"
+          },
+          "type": {
+            "$ref": "#/components/schemas/IterationType"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "snapshotted_at"
+        ],
+        "title": "PersonSnapshot",
+        "type": "object"
+      },
       "Sentiment": {
-        "description": "Categorical user sentiment during interactive simulation steps.\n\nThe LLM emits only this label (plus an ordinal felt_intensity); the\nbackend derives the PAD coordinates valence + arousal + control from it\nvia ``app/sentiment/affect.py``. The labels span the valence x arousal\nquadrants (active/passive x positive/negative) so the agent can express\nthe full affective range, including disengagement / abandonment.",
+        "description": "How the person felt while making this turn's decision.\n\nThe labels span the positive/negative and active/passive range, so disengagement reads differently from frustration. Reported with an ordinal `felt_intensity`.\n\nVALUES ARE CAPITALISED exactly as listed (`Confident`, not `confident`); match on the literal string. Open union: new labels may be added over time; clients must tolerate an unknown label rather than failing on it.",
         "enum": [
           "Delighted",
           "Excited",
@@ -1107,8 +1497,8 @@
         "title": "Sentiment",
         "type": "string"
       },
-      "SessionDetailResponse": {
-        "description": "Full session state + ordered decision trace (GET).",
+      "SessionBase": {
+        "description": "Everything every session read carries, wherever the session is served.\n\nThe one place the shared fields are declared: the list row, the create/close\nbody and the detail read all extend this, so an SDK generator sees ONE\nSession family instead of three types that happen to overlap.",
         "properties": {
           "accrued_credits": {
             "description": "This session's spend in credits (0 if it had no billable turns).",
@@ -1117,7 +1507,7 @@
           },
           "assignment": {
             "$ref": "#/components/schemas/AssignmentSnapshot",
-            "description": "The session's intent as frozen at create (ADR-0028)."
+            "description": "The session's intent, frozen when it was created. A later edit to a registered assignment never changes it."
           },
           "created_at": {
             "format": "date-time",
@@ -1214,11 +1604,6 @@
             ],
             "title": "Environment Version Label"
           },
-          "has_more": {
-            "description": "True when more turns exist beyond this page (page with after_index).",
-            "title": "Has More",
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -1228,30 +1613,6 @@
             "title": "Max Turns",
             "type": "integer"
           },
-          "pacing": {
-            "$ref": "#/components/schemas/PacingContract"
-          },
-          "person_snapshot": {
-            "additionalProperties": true,
-            "title": "Person Snapshot",
-            "type": "object"
-          },
-          "persona_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Persona Id"
-          },
-          "reasoning_effort": {
-            "title": "Reasoning Effort",
-            "type": "string"
-          },
           "status": {
             "$ref": "#/components/schemas/SessionStatus",
             "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
@@ -1260,218 +1621,107 @@
             "title": "Turn Count",
             "type": "integer"
           },
-          "turns": {
-            "items": {
-              "$ref": "#/components/schemas/SessionTurnView"
-            },
-            "title": "Turns",
-            "type": "array"
-          },
           "updated_at": {
             "format": "date-time",
             "title": "Updated At",
-            "type": "string"
-          },
-          "workspace_id": {
-            "format": "uuid",
-            "title": "Workspace Id",
             "type": "string"
           }
         },
         "required": [
           "id",
-          "persona_id",
-          "workspace_id",
+          "status",
           "assignment",
           "environment",
           "environment_id",
           "environment_revision",
           "environment_version_id",
           "environment_version_label",
-          "pacing",
           "decision_mode",
-          "status",
-          "ended_reason",
-          "max_turns",
           "turn_count",
-          "reasoning_effort",
-          "person_snapshot",
+          "max_turns",
           "created_by_api_key_id",
           "accrued_credits",
+          "ended_reason",
           "created_at",
           "updated_at",
-          "ended_at",
-          "turns",
-          "has_more"
+          "ended_at"
         ],
-        "title": "SessionDetailResponse",
+        "title": "SessionBase",
         "type": "object"
+      },
+      "SessionDetailResponse": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SessionResponse"
+          },
+          {
+            "properties": {
+              "has_more": {
+                "description": "True when more turns exist beyond this page (page with after_index).",
+                "title": "Has More",
+                "type": "boolean"
+              },
+              "turns": {
+                "items": {
+                  "$ref": "#/components/schemas/SessionTurnView"
+                },
+                "title": "Turns",
+                "type": "array"
+              }
+            },
+            "required": [
+              "turns",
+              "has_more"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "Full session state + a page of the ordered decision trace (GET).\n\nExactly the create/close body plus the trace, so a caller never has to\nreconcile two differently-shaped views of one session.",
+        "title": "SessionDetailResponse"
       },
       "SessionListItem": {
-        "description": "One row in the workspace session list (GET .../sessions).\n\nA summary projection — NOT the full trace (the detail GET carries turns +\nperson_snapshot). ``accrued_credits`` is the SUM of the session's per-turn\n``credits`` snapshots (ADR-0025), computed in the list query (LEFT JOIN, no\nN+1); it is 0 for a session with no billable turns.",
-        "properties": {
-          "accrued_credits": {
-            "description": "This session's spend in credits (0 if it had no billable turns).",
-            "title": "Accrued Credits",
-            "type": "integer"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SessionBase"
           },
-          "assignment": {
-            "$ref": "#/components/schemas/AssignmentSnapshot",
-            "description": "The session's intent as frozen at create (ADR-0028)."
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "created_by_api_key_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
+          {
+            "properties": {
+              "participant": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionParticipantRef"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The session's actor: person reference plus the display name frozen at create."
               },
-              {
-                "type": "null"
+              "settled_at": {
+                "anyOf": [
+                  {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Settled At"
               }
+            },
+            "required": [
+              "participant",
+              "settled_at"
             ],
-            "title": "Created By Api Key Id"
-          },
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode"
-          },
-          "ended_reason": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Why the session ended, when that is finer than `status`: `credits_exhausted` or `plan_allowance_exhausted` (both end the session as `balance_exhausted`), or `spend_cap_reached`. Null for an ordinary ending. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
-            "title": "Ended Reason"
-          },
-          "environment": {
-            "$ref": "#/components/schemas/EnvironmentDescriptor",
-            "description": "The environment as frozen at create (name + kind snapshot)."
-          },
-          "environment_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Id"
-          },
-          "environment_revision": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Revision"
-          },
-          "environment_version_id": {
-            "anyOf": [
-              {
-                "format": "uuid",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Version Id"
-          },
-          "environment_version_label": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Environment Version Label"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "max_turns": {
-            "title": "Max Turns",
-            "type": "integer"
-          },
-          "participant": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/SessionParticipantRef"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "The session's actor: persona reference plus the display name frozen at create. Replaces the former flat `persona_id` field."
-          },
-          "settled_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Settled At"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SessionStatus",
-            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
-          },
-          "turn_count": {
-            "title": "Turn Count",
-            "type": "integer"
-          },
-          "updated_at": {
-            "format": "date-time",
-            "title": "Updated At",
-            "type": "string"
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "status",
-          "assignment",
-          "environment",
-          "environment_id",
-          "environment_revision",
-          "environment_version_id",
-          "environment_version_label",
-          "participant",
-          "turn_count",
-          "max_turns",
-          "decision_mode",
-          "created_by_api_key_id",
-          "accrued_credits",
-          "created_at",
-          "updated_at",
-          "settled_at",
-          "ended_reason"
         ],
-        "title": "SessionListItem",
-        "type": "object"
+        "description": "One row in a workspace's session list.\n\nA summary: the decision trace and the person snapshot live on the session read. `accrued_credits` is the total this session has spent, and is 0 for a session with no billable turns.",
+        "title": "SessionListItem"
       },
       "SessionListResponse": {
-        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered ``created_at DESC, id DESC``. ``next_cursor`` is an opaque token\n(base64 of the last row's keyset) — pass it back as ``after`` to fetch the\nnext page; it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
+        "description": "A keyset-paginated page of a workspace's sessions.\n\nOrdered `created_at DESC, id DESC`. `next_cursor` is an opaque token\n(base64 of the last row's keyset); pass it back as `after` to fetch the\nnext page, and it is null on the final page. Never an offset: rows keep\ninserting, so an offset would skip/duplicate across pages.",
         "properties": {
           "has_more": {
             "description": "True when more sessions exist beyond this page.",
@@ -1507,7 +1757,7 @@
         "type": "object"
       },
       "SessionParticipantRef": {
-        "description": "The session's actor, as the list projection needs it.\n\n``name`` comes from the actor row's frozen ``person_snapshot`` (ADR-0028:\nsession surfaces read the snapshot, never the live person), so it stays\nreadable after the persona is edited or erased. ``persona_id`` is the live\npool reference and goes null on erasure (SET NULL, ADR-0011).",
+        "description": "The person the session drove, as the list row needs it.\n\n`name` is the display name frozen when the session was created, so it stays readable after the person is edited or deleted. `person_id` is the live reference and goes null once that person is deleted.",
         "properties": {
           "name": {
             "anyOf": [
@@ -1521,7 +1771,7 @@
             "description": "Display name frozen into the actor's person_snapshot at session create; null only if the snapshot carried none.",
             "title": "Name"
           },
-          "persona_id": {
+          "person_id": {
             "anyOf": [
               {
                 "format": "uuid",
@@ -1531,49 +1781,71 @@
                 "type": "null"
               }
             ],
-            "description": "The persona this actor was minted from; null once that persona is deleted.",
-            "title": "Persona Id"
+            "description": "The person this actor was minted from; null once that person is deleted.",
+            "title": "Person Id"
           }
         },
         "required": [
-          "persona_id",
+          "person_id",
           "name"
         ],
         "title": "SessionParticipantRef",
         "type": "object"
       },
       "SessionResponse": {
-        "properties": {
-          "decision_mode": {
-            "$ref": "#/components/schemas/DecisionMode"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SessionBase"
           },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "max_turns": {
-            "title": "Max Turns",
-            "type": "integer"
-          },
-          "status": {
-            "$ref": "#/components/schemas/SessionStatus",
-            "description": "Session status. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them."
-          },
-          "turn_count": {
-            "title": "Turn Count",
-            "type": "integer"
+          {
+            "properties": {
+              "observation_retention": {
+                "description": "Retention window resolved at open: `none`, `30d`, `90d`, or `indefinite`. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+                "title": "Observation Retention",
+                "type": "string"
+              },
+              "pacing": {
+                "$ref": "#/components/schemas/PacingContract"
+              },
+              "person_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Person Id"
+              },
+              "person_snapshot": {
+                "$ref": "#/components/schemas/PersonSnapshot"
+              },
+              "reasoning_effort": {
+                "description": "Deliberation budget the session was opened with: `low`, `medium` or `high`. Open union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
+                "title": "Reasoning Effort",
+                "type": "string"
+              },
+              "workspace_id": {
+                "format": "uuid",
+                "title": "Workspace Id",
+                "type": "string"
+              }
+            },
+            "required": [
+              "person_id",
+              "workspace_id",
+              "pacing",
+              "observation_retention",
+              "reasoning_effort",
+              "person_snapshot"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "status",
-          "decision_mode",
-          "turn_count",
-          "max_turns"
         ],
-        "title": "SessionResponse",
-        "type": "object"
+        "description": "The full session, without its decision trace.\n\nWhat create and close return: a caller that opened a session holds the same\nobject a read would give it, so nothing has to be fetched twice to learn what\nwas actually frozen. The TRACE is deliberately absent: turns are a paged\nsubresource of the detail read, and a create has none yet.",
+        "title": "SessionResponse"
       },
       "SessionStatus": {
         "enum": [
@@ -1589,7 +1861,7 @@
         "type": "string"
       },
       "SessionTurnView": {
-        "description": "One recorded turn in the session trace (GET). Observations are stored by\nreference only (kinds + sha256); the caller owns the frames (ADR-0021).",
+        "description": "One recorded turn of the session's decision trace.\n\nThe observation is always recorded by reference (its block kinds and a sha256). Whether the FRAME itself survives is the session's retention window: when it does, `observation_url` carries a short-lived link to it.",
         "properties": {
           "created_at": {
             "format": "date-time",
@@ -1625,12 +1897,46 @@
             "title": "Latency Ms",
             "type": "integer"
           },
+          "observation_height": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observation Height"
+          },
           "observation_kinds": {
             "items": {
               "type": "string"
             },
             "title": "Observation Kinds",
             "type": "array"
+          },
+          "observation_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Short-lived signed URL for this turn's retained observation frame, or null when no frame was retained (see the session's `observation_retention`). Expires shortly after issue, so do not store it.",
+            "title": "Observation Url"
+          },
+          "observation_width": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observation Width"
           },
           "output_tokens": {
             "anyOf": [
@@ -1667,7 +1973,7 @@
         "type": "object"
       },
       "StoredEnvironmentConfig": {
-        "description": "The READ view of ``environments.config`` — tolerant of unknown keys.\n\nSame fields, ``extra=\"ignore\"`` instead of ``extra=\"forbid\"``. The write DTOs\nkeep ``forbid`` (a silently-ignored config key is a customer debugging a\ntarget that was never set), but the READ path must never reject a blob that\nis already on disk: a row written by a NEWER server carrying a config key\nthis one predates would otherwise raise, and because the list response parses\nthe whole collection, ONE such row would 500 the entire workspace listing,\nnot just its own entry.\n\nThis is the config-blob half of the same open-union contract ``kind`` already\nfollows: closed on write, open on read.",
+        "description": "The configuration of an environment as stored, tolerant of unknown keys.\n\nSame fields as the write shape, but a key this client does not know is IGNORED rather than rejected: reads must keep working across server versions, and because a list response parses the whole page, one unfamiliar key would otherwise fail an entire workspace listing rather than its own row. Closed on write, open on read.",
         "properties": {
           "app_artifact": {
             "anyOf": [
@@ -1714,7 +2020,7 @@
         "type": "object"
       },
       "TurnDecisionView": {
-        "description": "The per-turn decision as the caller sees it: a superset of the persona's\nTurnDecision with the Mode B intent/resolver extensions.\n\n``action_name`` is null when there is nothing to execute (a Mode B no_match\nor none_needed). ``intent``/``resolution``/``unmet_expectation`` are all None\nin direct mode; the experiential payload (comment/sentiment/felt_intensity/\nstatus) is always the persona's, in either mode, and on a no_match/none_needed.",
+        "description": "What the person decided this turn, and how it felt.\n\n`action_name` names the action to execute, and is null when there is nothing to run: the person found no action that fits, or judged that none was needed. `comment`, `sentiment` and `felt_intensity` are the experiential half and are always present, including on a turn with no action. `status` says whether they intend to keep going.\n\n`intent`, `resolution` and `unmet_expectation` are populated only when the session runs in `intent` decision mode; they are null in `direct` mode.",
         "properties": {
           "action_name": {
             "anyOf": [
@@ -1806,7 +2112,7 @@
           "frame_age_ms": {
             "anyOf": [
               {
-                "minimum": 0.0,
+                "minimum": 0,
                 "type": "integer"
               },
               {
@@ -1825,7 +2131,7 @@
             "type": "array"
           },
           "turn_index": {
-            "minimum": 0.0,
+            "minimum": 0,
             "title": "Turn Index",
             "type": "integer"
           },
@@ -1881,7 +2187,7 @@
       },
       "UpdateAssignmentRequest": {
         "additionalProperties": false,
-        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the NULLABLE fields — ``background`` and\n``steps`` — where it CLEARS the column, so \"omitted\" and \"explicitly null\"\nmust stay distinguishable: the router reads ``model_fields_set``. ``name``\nand ``goal`` are non-nullable; an explicit null there asserts nothing and\nleaves the stored value alone.\n\nAny applied write bumps ``revision`` (the audit counter); the content sha\nfrozen on each session is what keeps metadata-only bumps from splitting\nusage series.",
+        "description": "A partial update: an omitted field is left alone.\n\n`null` is a real value on the nullable fields (`background`, `steps`) where it CLEARS them, so omitting a field and sending it as null mean different things. `name` and `goal` cannot be cleared; a null there leaves the stored value alone.\n\nAny applied write bumps `revision`. Sessions already opened against the old content keep their frozen copy.",
         "properties": {
           "background": {
             "anyOf": [
@@ -1942,7 +2248,7 @@
       },
       "UpdateEnvironmentRequest": {
         "additionalProperties": false,
-        "description": "Partial update: an omitted field is left alone.\n\n``None`` is a real value for the NULLABLE fields — ``slug`` and\n``operating_notes`` — where it CLEARS the column, so \"omitted\" and\n\"explicitly null\" must stay distinguishable: the router reads\n``model_fields_set`` rather than testing for None. ``kind`` is updatable but\nre-validates the config against the NEW kind, so a web→device switch that\nleaves only a ``url`` behind is a 422 rather than a broken row.\n\n``example_actions`` is NOT NULL since Phase A, so null is not a way to clear\nit and is REJECTED rather than silently ignored — send ``[]``. ``name``,\n``kind`` and ``config`` are likewise non-nullable; an explicit null there\nasserts nothing and leaves the stored value alone.",
+        "description": "A partial update: an omitted field is left alone.\n\n`null` is a real value on the nullable fields (`slug`, `operating_notes`) where it CLEARS them, so omitting a field and sending it as null mean different things. `kind` can be changed, but the config is re-validated against the NEW kind, so a switch that leaves the wrong keys behind is a 422 rather than a broken environment.\n\n`example_actions` cannot be cleared with null; send `[]` instead. `name`, `kind` and `config` are likewise non-nullable.",
         "properties": {
           "config": {
             "anyOf": [
@@ -1993,6 +2299,17 @@
             ],
             "title": "Name"
           },
+          "observation_retention": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ObservationRetention"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replaces this environment's retention window: `none`, `30d`, `90d`, or `indefinite`. Omit to leave it unchanged. Applies to sessions opened after this write; already-open sessions and already-stored frames keep the window they were stamped with."
+          },
           "operating_notes": {
             "anyOf": [
               {
@@ -2023,7 +2340,7 @@
       },
       "UpdateEnvironmentVersionRequest": {
         "additionalProperties": false,
-        "description": "Partial update: an omitted field is left alone.\n\n``config`` and ``example_actions`` are FROZEN once any session references\nthis version (409 ``environment_version_config_frozen``); metadata stays\neditable for the life of the row. ``is_default`` is not here — see\n``set-default``.",
+        "description": "Partial update: an omitted field is left alone.\n\n`config` and `example_actions` are FROZEN once any session references\nthis version (409 `environment_version_config_frozen`); metadata stays\neditable for the life of the row. `is_default` is not here; the\n`set-default` operation moves it.",
         "properties": {
           "config": {
             "anyOf": [
@@ -2132,7 +2449,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and trace), `environments:read` and `environments:write` (manage the workspace's registered environments). A key is minted with the two `sessions:*` scopes by default; the `environments:*` pair must be requested. An ish user access token also works on the same header for personal scripts.",
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments). A key is minted with the two `sessions:*` scopes by default; the `environments:*` pair must be requested. An ish user access token also works on the same header for personal scripts.",
         "scheme": "bearer",
         "type": "http"
       }
@@ -2143,7 +2460,7 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your personas inside *your own* environment, submit what the persona perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and the persona decides one action per turn and tells you how it felt. Your code executes the chosen action and loops. The environment loop is decide-only; ish never locates or executes anything in your environment (see ADR-0020/0021).\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **persona**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the persona and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `persona_id`: the persona the session drives.\n- `environment_id`: a registered environment in that workspace — a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single persona working toward one goal in your environment, turn by turn.** It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), and `environments:read` / `environments:write` for the environment registry. Keys are minted with the two `sessions:*` scopes; ask for `environments:*` explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `persona has no renderable background`) as well   as 401 / 403 / 404 / 409 / 502. `detail` may be a structured object carrying a   machine-readable `error_kind` (e.g. `idempotency_conflict`,   `turn_index_mismatch`, `decision_invalid`).\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one goal in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), and `environments:read` / `environments:write` for the environment registry. Keys are minted with the two `sessions:*` scopes; ask for `environments:*` explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\nThe **assignments** endpoints are the exception: they do not admit API keys at all yet, under any scope, and answer `403 api_key_not_permitted` to one. Call them with a user access token, or describe the goal inline on the session and skip the registry. Assignment key scopes ship with the next scope rollout.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
@@ -2155,7 +2472,7 @@
   "paths": {
     "/api/v1/assignments/{assignment_id}": {
       "delete": {
-        "description": "Delete an assignment — an ARCHIVE under the hood (ADR-0028).\n\n``archived_at`` is stamped, the row stays readable by id, sessions bound to\nit keep resolving, and the name is freed for reuse. Idempotent. Refused\n(409) while a PUBLISHED listing references the assignment: the listing's\ntask set is a live, paid contract and archiving would silently shrink it.",
+        "description": "Retire an assignment.\n\nIt stops appearing in the list but stays readable by id, sessions bound to it keep resolving, and its name is freed for reuse. Idempotent. Refused with a 409 while a published listing references it.",
         "operationId": "deleteAssignment",
         "parameters": [
           {
@@ -2186,7 +2503,52 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "A published listing references this assignment (`detail.error_kind = 'assignment_in_published_listing'`, with `detail.listing_id`). Unpublish or edit the listing first.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2209,6 +2571,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2265,7 +2642,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2293,6 +2700,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -2306,7 +2728,7 @@
         ]
       },
       "patch": {
-        "description": "Partially update an assignment; any applied write bumps ``revision``.\n\nSessions already opened against the old content are untouched — their goal\nand revision are frozen on the session row (ADR-0028).",
+        "description": "Partially update an assignment. Any applied write bumps `revision`.\n\nSessions already opened against the old content are untouched: their goal and revision are frozen on the session.",
         "operationId": "updateAssignment",
         "parameters": [
           {
@@ -2354,7 +2776,52 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The assignment was not found, or is not reachable with this credential. `detail.error_kind` is `assignment_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `assignment_name_taken` when the new name collides with another live assignment, or `assignment_archived` when the assignment is retired. Retired assignments stay readable but are closed to writes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2382,6 +2849,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -2397,7 +2879,7 @@
     },
     "/api/v1/environment-versions/{version_id}": {
       "delete": {
-        "description": "Archive a variant.\n\nARCHIVE, not hard delete, for the reason the parent archives: sessions\nstamped with this version must keep resolving, and a comparison read over\nhistorical runs must keep working. The row stays readable by id, appears in\nthe list under ``include_archived=true``, refuses new sessions, loses the\ndefault pointer if it held it, and frees its label for reuse.\n\nIdempotent: archiving an already-archived version is another 204.",
+        "description": "Archive a variant.\n\nARCHIVE, not hard delete, for the reason the parent archives: sessions\nstamped with this version must keep resolving, and a comparison read over\nhistorical runs must keep working. The row stays readable by id, appears in\nthe list under `include_archived=true`, refuses new sessions, loses the\ndefault pointer if it held it, and frees its label for reuse.\n\nIdempotent: archiving an already-archived version is another 204.",
         "operationId": "deleteEnvironmentVersion",
         "parameters": [
           {
@@ -2428,7 +2910,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment version was not found, or is not reachable with this credential. `detail.error_kind` is `environment_version_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2451,6 +2963,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2507,7 +3034,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment version was not found, or is not reachable with this credential. `detail.error_kind` is `environment_version_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2535,6 +3092,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -2548,7 +3120,7 @@
         ]
       },
       "patch": {
-        "description": "Partially update a variant. Omitted fields are untouched.\n\nMETADATA (``label``, ``description``) is editable for the life of the row.\n``config`` and ``example_actions`` are FROZEN once any session has run\nagainst this version: editing them then would retroactively relabel stored\nruns, so the answer is a new version.",
+        "description": "Partially update a variant. Omitted fields are untouched.\n\nMETADATA (`label`, `description`) is editable for the life of the row.\n`config` and `example_actions` are FROZEN once any session has run\nagainst this version: editing them then would retroactively relabel stored\nruns, so the answer is a new version.",
         "operationId": "updateEnvironmentVersion",
         "parameters": [
           {
@@ -2596,7 +3168,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment version was not found, or is not reachable with this credential. `detail.error_kind` is `environment_version_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2604,6 +3206,13 @@
             }
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
             "description": "`detail.error_kind` is `environment_version_config_frozen` when `config`/`example_actions` are edited after a session has used this version, `environment_version_label_taken` on a label collision, or `environment_version_archived` when the version has been archived.",
             "headers": {
               "X-Request-Id": {
@@ -2627,6 +3236,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2685,7 +3309,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment version was not found, or is not reachable with this credential. `detail.error_kind` is `environment_version_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2693,7 +3347,14 @@
             }
           },
           "409": {
-            "description": "`detail.error_kind` is `environment_version_archived` — an archived version cannot become the default, since it refuses the very sessions the pointer would send it — or `environment_version_default_conflict` when a concurrent set-default won the race (retry after re-reading).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `environment_version_archived` (an archived version cannot become the default, since it refuses the very sessions the pointer would send it), or `environment_version_default_conflict` when a concurrent set-default won the race (retry after re-reading).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2721,6 +3382,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -2736,7 +3412,7 @@
     },
     "/api/v1/environments/{environment_id}": {
       "delete": {
-        "description": "Delete an environment.\n\nThe wire contract is unchanged (204, and the environment stops appearing in\nthe list), but since ADR-0024 Phase A this ARCHIVES under the hood rather\nthan hard-deleting: ``archived_at`` is stamped, the row stays readable by id,\nand a session's ``environment_id`` keeps resolving instead of being SET NULL.\nA decision trace therefore never points at a dangling reference, and usage\naggregated on ``(environment_id, revision)`` survives the delete.\n\nThis supersedes ADR-0026's pre-launch hard delete via that ADR's own\ndeference clause to the concept spec. The name and address are freed for\nreuse immediately (both unique indexes are partial on ``archived_at IS\nNULL``), so the UX the hard delete was chosen for is preserved.\n\nIdempotent: deleting an already-archived environment is another 204.",
+        "description": "Retire an environment.\n\nIt stops appearing in the list but stays readable by id, and every session that ran in it keeps resolving, so a decision trace never points at a dangling reference. Its name and address are freed for reuse immediately. Idempotent.",
         "operationId": "deleteEnvironment",
         "parameters": [
           {
@@ -2767,7 +3443,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2782,7 +3473,7 @@
                 }
               }
             },
-            "description": "The environment was not found or is not reachable by this principal.",
+            "description": "The environment was not found, or is not reachable with this credential. `detail.error_kind` is `environment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2805,6 +3496,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2861,7 +3567,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2876,7 +3597,7 @@
                 }
               }
             },
-            "description": "The environment was not found or is not reachable by this principal.",
+            "description": "The environment was not found, or is not reachable with this credential. `detail.error_kind` is `environment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2899,6 +3620,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2965,7 +3701,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2980,7 +3731,7 @@
                 }
               }
             },
-            "description": "The environment was not found or is not reachable by this principal.",
+            "description": "The environment was not found, or is not reachable with this credential. `detail.error_kind` is `environment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -2995,7 +3746,7 @@
                 }
               }
             },
-            "description": "The new name is already taken by another environment in the workspace (`detail.error_kind = 'environment_name_taken'`).",
+            "description": "`detail.error_kind` is `environment_name_taken` or `environment_address_taken` when the edit collides with another LIVE environment (`detail.existing_environment_id` carries it), or `environment_archived` when the environment has been deleted (archived environments are readable but closed to writes).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3023,6 +3774,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3038,7 +3804,7 @@
     },
     "/api/v1/environments/{environment_id}/versions": {
       "get": {
-        "description": "Every declared variant of this environment, oldest first.\n\nAn environment with no versions returns an EMPTY list, which is the normal\nresting state — versions are never auto-minted (ADR-0027), so zero here\nmeans \"nobody has authored a variant\", not \"something is missing\".",
+        "description": "Every declared version of this environment, oldest first.\n\nAn environment with no versions returns an empty list, which is the normal resting state: versions are never created automatically, so zero here means nobody has authored one.",
         "operationId": "listEnvironmentVersions",
         "parameters": [
           {
@@ -3086,7 +3852,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment was not found, or is not reachable with this credential. `detail.error_kind` is `environment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3114,6 +3910,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3127,7 +3938,7 @@
         ]
       },
       "post": {
-        "description": "Author a declared variant of this environment.\n\n``version`` is assigned server-side as max+1; the caller names the variant\nwith ``label``. The new version is NOT made default — a fresh variant must\nnever silently redirect the traffic of callers who pin nothing.",
+        "description": "Author a declared variant of this environment.\n\n`version` is assigned server-side as max+1; the caller names the variant\nwith `label`. The new version is NOT made default: a fresh variant must\nnever silently redirect the traffic of callers who pin nothing.\n\nThis is the CI operation of the lane (a deploy authors the variant it just\nbuilt), so it takes the standard `Idempotency-Key` header: a retried\npipeline step with the same key and body replays the original version (200\ninstead of 201) rather than minting `label-2`. The same key with a different\nbody is a 409 `idempotency_conflict`.",
         "operationId": "createEnvironmentVersion",
         "parameters": [
           {
@@ -3139,11 +3950,39 @@
               "title": "Environment Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Author a variant from a CI build",
+                  "value": {
+                    "config": {
+                      "url": "https://pr-4821.staging.example.com/checkout"
+                    },
+                    "description": "Checkout with the one-page layout behind the flag.",
+                    "label": "pr-4821"
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/CreateEnvironmentVersionRequest"
               }
@@ -3152,6 +3991,21 @@
           "required": true
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EnvironmentVersionResponse"
+                }
+              }
+            },
+            "description": "Idempotent replay: the version created by a prior request with this `Idempotency-Key` and body, returned as is.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
           "201": {
             "content": {
               "application/json": {
@@ -3175,7 +4029,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The environment was not found, or is not reachable with this credential. `detail.error_kind` is `environment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3183,7 +4067,14 @@
             }
           },
           "409": {
-            "description": "`detail.error_kind` is `environment_version_label_taken` when the label collides with another LIVE version of this environment (`detail.existing_version_id` carries it), or `environment_archived` when the environment itself is archived.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `environment_version_label_taken` when the label collides with another LIVE version of this environment (`detail.existing_version_id` carries it), `environment_archived` when the environment itself is archived, `idempotency_conflict` when the `Idempotency-Key` was reused with a different request body, or `environment_version_conflict` when a concurrent create took the next version number, which succeeds on a retry.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3206,6 +4097,21 @@
               }
             },
             "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3225,102 +4131,8 @@
       }
     },
     "/api/v1/sessions/{session_id}": {
-      "delete": {
-        "description": "Close an open session (idempotent no-op on an already-closed one).",
-        "operationId": "closeSession",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "session_id",
-            "required": true,
-            "schema": {
-              "format": "uuid",
-              "title": "Session Id",
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SessionResponse"
-                }
-              }
-            },
-            "description": "Successful Response",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "401": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "Missing or invalid bearer token.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "404": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            },
-            "description": "The session was not found or is not reachable by this principal.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          },
-          "422": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "oneOf": [
-                    {
-                      "$ref": "#/components/schemas/ValidationError"
-                    },
-                    {
-                      "$ref": "#/components/schemas/Error"
-                    }
-                  ]
-                }
-              }
-            },
-            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
-            "headers": {
-              "X-Request-Id": {
-                "$ref": "#/components/headers/XRequestId"
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "summary": "Close Session",
-        "tags": [
-          "sessions"
-        ]
-      },
       "get": {
-        "description": "The full session state + a cursor page of the decision trace.\n\n``after_index`` returns turns strictly after that turn_index; ``limit``\n(default 50, max 200) caps the page. ``has_more`` in the body signals\nwhether to page again.",
+        "description": "The full session state + a cursor page of the decision trace.\n\n`after_index` returns turns strictly after that turn_index; `limit`\n(default 50, max 200) caps the page. `has_more` in the body signals\nwhether to page again.",
         "operationId": "getSession",
         "parameters": [
           {
@@ -3367,6 +4179,75 @@
           "200": {
             "content": {
               "application/json": {
+                "examples": {
+                  "default": {
+                    "summary": "An open session after one turn",
+                    "value": {
+                      "accrued_credits": 1,
+                      "assignment": {
+                        "goal": "Find the refund policy and start a return.",
+                        "id": null,
+                        "name": null,
+                        "revision": null
+                      },
+                      "created_at": "2026-07-28T09:14:02.117000Z",
+                      "created_by_api_key_id": "5e8f3a21-64c7-4e0b-9a3d-77dd88ee99ff",
+                      "decision_mode": "intent",
+                      "ended_at": null,
+                      "ended_reason": null,
+                      "environment": {
+                        "kind": "web",
+                        "name": "Checkout (staging)"
+                      },
+                      "environment_id": "3c2a1f80-7e64-4b19-8d55-11aa22bb33cc",
+                      "environment_revision": 4,
+                      "environment_version_id": null,
+                      "environment_version_label": null,
+                      "has_more": false,
+                      "id": "7d1e4c09-53af-4d2b-9f60-8c7b6a5e4321",
+                      "max_turns": 20,
+                      "observation_retention": "30d",
+                      "pacing": "pause_on_decide",
+                      "person_id": "9f1c7b52-0d3a-4a1e-9c4f-2b8e5a6d1234",
+                      "person_snapshot": {
+                        "city": "Manchester",
+                        "country": "GB",
+                        "id": "9f1c7b52-0d3a-4a1e-9c4f-2b8e5a6d1234",
+                        "name": "Dana Whitfield",
+                        "occupation": "Paediatric nurse",
+                        "snapshotted_at": "2026-07-28T09:14:02.101000Z",
+                        "type": "ai"
+                      },
+                      "reasoning_effort": "low",
+                      "status": "open",
+                      "turn_count": 1,
+                      "turns": [
+                        {
+                          "created_at": "2026-07-28T09:14:19.402000Z",
+                          "decision": {
+                            "action_name": "continue_to_payment",
+                            "comment": "The total matches what was in my cart, so I am ready to pay.",
+                            "felt_intensity": "moderate",
+                            "sentiment": "Confident",
+                            "status": "continue"
+                          },
+                          "frame_age_ms": 312,
+                          "input_tokens": 1204,
+                          "latency_ms": 2841,
+                          "observation_kinds": [
+                            "image"
+                          ],
+                          "observation_url": null,
+                          "output_tokens": 96,
+                          "turn_index": 0,
+                          "validation_retries": 0
+                        }
+                      ],
+                      "updated_at": "2026-07-28T09:14:19.480000Z",
+                      "workspace_id": "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"
+                    }
+                  }
+                },
                 "schema": {
                   "$ref": "#/components/schemas/SessionDetailResponse"
                 }
@@ -3387,7 +4268,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `sessions:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'sessions:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3402,7 +4298,7 @@
                 }
               }
             },
-            "description": "The session was not found or is not reachable by this principal.",
+            "description": "The session was not found, or is not reachable with this credential. `detail.error_kind` is `session_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3430,6 +4326,36 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "An unexpected server-side failure. `detail.error_kind` is `session_actor_missing`. Not a state to handle: quote `request_id` and the kind in a bug report.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3443,9 +4369,150 @@
         ]
       }
     },
+    "/api/v1/sessions/{session_id}/close": {
+      "post": {
+        "description": "Close an open session and return it (idempotent on an already-closed one).\n\nA POST on a `/close` subresource rather than `DELETE /sessions/{id}`:\nclosing is a state TRANSITION that settles the session's turns and leaves a\nreadable record, not a removal. DELETE promised an erasure this route never\nperformed, and it had no honest way to return the closed session's body.",
+        "operationId": "closeSession",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `sessions:run` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'sessions:run'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The session was not found, or is not reachable with this credential. `detail.error_kind` is `session_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "An unexpected server-side failure. `detail.error_kind` is `session_actor_missing`. Not a state to handle: quote `request_id` and the kind in a bug report.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Close Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
     "/api/v1/sessions/{session_id}/turns": {
       "post": {
-        "description": "Submit one observation + declared action set; get the persona's choice.",
+        "description": "Submit one observation + declared action set; get the person's choice.",
         "operationId": "submitTurn",
         "parameters": [
           {
@@ -3493,7 +4560,7 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3501,7 +4568,29 @@
             }
           },
           "402": {
-            "description": "The turn was refused and NOT applied; the session is terminal. `detail.error_kind` says which remedy applies: `credits_exhausted` (no spendable credits — top up), `plan_allowance_exhausted` (the plan's allowance for this period is spent — it refreshes, or top up now), or `spend_cap_reached` (the workspace's own per-period cap — raise it). The first two end the session as `balance_exhausted`, the third as `spend_cap_reached`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The turn was refused and NOT applied; the session is terminal. `detail.error_kind` says which remedy applies: `credits_exhausted` (no spendable credits, so top up), `plan_allowance_exhausted` (the plan's allowance for this period is spent; it refreshes, or top up now), or `spend_cap_reached` (the workspace's own per-period cap, which you can raise). The first two end the session as `balance_exhausted`, the third as `spend_cap_reached`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `sessions:run` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'sessions:run'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3516,7 +4605,7 @@
                 }
               }
             },
-            "description": "The session was not found or is not reachable by this principal.",
+            "description": "The session was not found, or is not reachable with this credential. `detail.error_kind` is `session_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3531,7 +4620,7 @@
                 }
               }
             },
-            "description": "The turn conflicts with session state: the session is not open, or `turn_index` does not match the session's current turn (`detail.error_kind = 'turn_index_mismatch'`).",
+            "description": "The turn conflicts with session state: the session is not open (`detail.error_kind = 'session_not_open'`), or `turn_index` does not match the session's current turn (`turn_index_mismatch`, with `detail.expected_turn_index`).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3560,6 +4649,36 @@
               }
             }
           },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "An unexpected server-side failure. `detail.error_kind` is `payer_unresolved` or `session_actor_missing`. Not a state to handle: quote `request_id` and the kind in a bug report.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
           "502": {
             "content": {
               "application/json": {
@@ -3568,7 +4687,7 @@
                 }
               }
             },
-            "description": "The persona's decision could not be produced this turn (`detail.error_kind = 'decision_invalid'`); no turn is recorded; retry the same `turn_index`.",
+            "description": "The person's decision could not be produced this turn (`detail.error_kind = 'decision_invalid'`); no turn is recorded; retry the same `turn_index`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3589,7 +4708,7 @@
     },
     "/api/v1/workspaces/{workspace_id}/assignments": {
       "get": {
-        "description": "List the workspace family's assignments, oldest first.\n\nFamily-scoped (ADR-0028): a benchmark reference product lists — and\ncollides names with — its parent's registry rather than a private one.",
+        "description": "List the workspace's registered assignments, oldest first.",
         "operationId": "listAssignments",
         "parameters": [
           {
@@ -3639,7 +4758,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3667,6 +4816,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3680,7 +4844,7 @@
         ]
       },
       "post": {
-        "description": "Register an assignment: a named intent sessions can bind by id.\n\nRegistration is OPT-IN by design (ADR-0028's row rule): a row earns its\nplace when runs must be compared across a boundary their container cannot\ndraw — never because the same words were typed twice.",
+        "description": "Register an assignment: a named intent a session can bind by id.\n\nRegistering is optional. Do it when runs have to stay comparable across a boundary the session itself cannot draw, such as the same task across two environments or across a month of builds. A one-off goal belongs inline on the session.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original assignment as a 200, and the same key with a different body is a 409.\n\n`get_or_create` is the older, coarser flag and still works. Note what it does NOT do: on a name match it returns the existing assignment untouched and ignores every other field you sent, so a request whose goal has drifted succeeds while changing nothing. Prefer `Idempotency-Key` for retries and PATCH to reconcile content.",
         "operationId": "createAssignment",
         "parameters": [
           {
@@ -3692,11 +4856,45 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Register an assignment with verification steps",
+                  "value": {
+                    "background": "You ordered a jacket last week. It arrived in the wrong size.",
+                    "goal": "Find the refund policy and start a return.",
+                    "name": "Return a delivered order",
+                    "steps": [
+                      {
+                        "name": "Open order history"
+                      },
+                      {
+                        "name": "Start a return on the jacket"
+                      }
+                    ]
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/CreateAssignmentRequest"
               }
@@ -3713,7 +4911,7 @@
                 }
               }
             },
-            "description": "`get_or_create` was set and a live assignment with this name already exists: the existing row, returned as is (nothing on the request is applied to it).",
+            "description": "The existing assignment, RETURNED AS IS: nothing on this request was applied to it. Two paths reach here: an `Idempotency-Key` replay (same key, same body), or `get_or_create` with a live assignment already holding this name.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3743,7 +4941,37 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "This operation does not admit API keys at all (`detail.error_kind = 'api_key_not_permitted'`); no scope grants it. Call it with an ish user access token.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3751,7 +4979,14 @@
             }
           },
           "409": {
-            "description": "An assignment with this name already exists in the workspace family (names are unique per family, case-insensitive).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `assignment_name_taken` (an assignment with this name already exists in the workspace family; names are unique per family, case-insensitive) or `idempotency_conflict` (the `Idempotency-Key` was reused with a different request body).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3779,6 +5014,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3794,7 +5044,7 @@
     },
     "/api/v1/workspaces/{workspace_id}/environments": {
       "get": {
-        "description": "Every LIVE environment registered in this workspace, oldest first.\n\nArchived environments are excluded unless ``include_archived=true``; they stay\nindividually readable by id either way.",
+        "description": "Every LIVE environment registered in this workspace, oldest first.\n\nArchived environments are excluded unless `include_archived=true`; they stay\nindividually readable by id either way.\n\nAPI keys do not see console-owned kinds (`chatbot` environments, which the\nchat federation writes and the console renders as read-only mirrors). They\nare not developer-registerable, so listing them to an integrator would offer\nrows no key can act on.",
         "operationId": "listEnvironments",
         "parameters": [
           {
@@ -3842,7 +5092,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3857,7 +5122,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3885,6 +5150,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -3898,7 +5178,7 @@
         ]
       },
       "post": {
-        "description": "Register an environment: a named target sessions can be opened against.",
+        "description": "Register an environment: a named target sessions can be opened against.\n\nSupports the standard `Idempotency-Key` header, which is the mechanism to\nreach for in CI: a retry with the same key and body replays the original\nenvironment (200 instead of 201), and the same key with a different body is a\n409 `idempotency_conflict`.\n\n`get_or_create` is the older, coarser flag and remains supported. Note what\nit does NOT do: on a name match it returns the EXISTING row untouched and\nIGNORES every other field on this request, so a request whose config has\ndrifted from the stored one succeeds while changing nothing. Use\n`Idempotency-Key` for retry safety and PATCH to reconcile config.",
         "operationId": "createEnvironment",
         "parameters": [
           {
@@ -3910,11 +5190,50 @@
               "title": "Workspace Id",
               "type": "string"
             }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Register a web environment",
+                  "value": {
+                    "config": {
+                      "url": "https://staging.example.com/checkout"
+                    },
+                    "example_actions": [
+                      {
+                        "description": "Move from the cart to the payment step.",
+                        "name": "continue_to_payment"
+                      },
+                      {
+                        "description": "Return to the cart without paying.",
+                        "name": "back_to_cart"
+                      }
+                    ],
+                    "kind": "web",
+                    "name": "Checkout (staging)",
+                    "operating_notes": "Test card 4242 4242 4242 4242. Coupon codes are disabled here."
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/CreateEnvironmentRequest"
               }
@@ -3931,7 +5250,7 @@
                 }
               }
             },
-            "description": "`get_or_create` was set and a live environment with this name and kind already exists: the existing row, returned as is (nothing on the request is applied to it).",
+            "description": "The existing environment, RETURNED AS IS: nothing on this request was applied to it. Two paths reach here: an `Idempotency-Key` replay (same key, same body), or `get_or_create` with a live environment already holding this name and kind.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3961,7 +5280,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `environments:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'environments:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3976,7 +5310,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -3991,7 +5325,7 @@
                 }
               }
             },
-            "description": "An environment with this name already exists in the workspace (`detail.error_kind = 'environment_name_taken'`); names are unique per workspace, case-insensitive.",
+            "description": "`detail.error_kind` says which: `environment_name_taken` (an environment with this name already exists in the workspace; names are unique per workspace, case-insensitive; with `get_or_create`, only a name held by a DIFFERENT kind conflicts), `environment_address_taken`, or `idempotency_conflict` (the `Idempotency-Key` was reused with a different request body).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4019,6 +5353,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -4034,7 +5383,7 @@
     },
     "/api/v1/workspaces/{workspace_id}/sessions": {
       "get": {
-        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered ``created_at DESC, id DESC``. Page forward with ``after`` set to the\nprior response's ``next_cursor``; ``has_more`` signals another page. Each row\nis a summary (status, goal, environment, persona, turn counts, key\nattribution, accrued credits, timestamps) — the per-turn decision trace lives\non the detail GET.",
+        "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered `created_at DESC, id DESC`. Page forward with `after` set to the\nprior response's `next_cursor`; `has_more` signals another page. Each row\nis a summary (status, goal, environment, person, turn counts, key\nattribution, accrued credits, timestamps). The per-turn decision trace lives\non the detail GET.",
         "operationId": "listSessions",
         "parameters": [
           {
@@ -4107,6 +5456,25 @@
             }
           },
           {
+            "description": "Filter to sessions pinned to this declared environment version, as resolved at open. Narrower than `environment_id` and independent of it: a session that ran the same environment UNVERSIONED is never matched.",
+            "in": "query",
+            "name": "environment_version_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to sessions pinned to this declared environment version, as resolved at open. Narrower than `environment_id` and independent of it: a session that ran the same environment UNVERSIONED is never matched.",
+              "title": "Environment Version Id"
+            }
+          },
+          {
             "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
             "in": "query",
             "name": "assignment_id",
@@ -4123,6 +5491,25 @@
               ],
               "description": "Filter to sessions bound to this registered assignment. Matches on the assignment's id: a renamed assignment still returns its older sessions, inline-goal sessions are never matched, and an archived assignment's sessions keep matching (archive clears nothing; the frozen goal stays on each session).",
               "title": "Assignment Id"
+            }
+          },
+          {
+            "description": "Free-text filter: matches a session id by PREFIX or the frozen goal by case-insensitive substring. One term, no ranking.",
+            "in": "query",
+            "name": "search",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Free-text filter: matches a session id by PREFIX or the frozen goal by case-insensitive substring. One term, no ranking.",
+              "title": "Search"
             }
           },
           {
@@ -4218,7 +5605,22 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `sessions:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'sessions:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4233,7 +5635,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`) was not found or is not reachable by this principal.",
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4261,6 +5663,21 @@
                 "$ref": "#/components/headers/XRequestId"
               }
             }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
           }
         },
         "security": [
@@ -4274,7 +5691,7 @@
         ]
       },
       "post": {
-        "description": "Open a decide-only session for a workspace/platform persona.\n\nSupports the standard ``Idempotency-Key`` header: a retry with the same key\nand body replays the existing session (200 instead of 201); the same key\nwith a different body is a 409 ``idempotency_conflict``.\n\nThe ASSIGNMENT (the session's intent, ADR-0028) is a required union of\nexactly one shape: ``{\"goal\": ...}`` describes it inline, ``{\"id\": ...}``\nbinds a registered assignment — its goal and revision are FROZEN onto the\nsession at create, so later registry edits never touch it. An unreachable\nor nonexistent assignment id is a 404; an ARCHIVED one is a 409\n``assignment_archived``.\n\nThe environment comes in one of two forms (exactly one, enforced by the\nrequest validator): a registered ``environment_id``, or an inline\n``environment`` descriptor. A registered id is resolved within this workspace\nand its name, kind and revision are SNAPSHOT onto the session (ADR-0024) — an\nunreachable or nonexistent id is a 404, an ARCHIVED one is a 409\n``environment_archived``, since the id resolves but the environment is retired.",
+        "description": "Open a session: one of your people, working toward one goal, inside your environment.\n\nThe ASSIGNMENT is required and is exactly one of two shapes: `{\"goal\": \"...\"}` describes the intent inline, or `{\"id\": \"...\"}` binds an assignment you registered. A bound assignment's goal is frozen onto the session, so later edits to the registry never change a run that already happened. An id that does not resolve is a 404; one that resolves but is retired is a 409.\n\nThe ENVIRONMENT is also exactly one of two shapes: `environment_id` names one you registered, or `environment` describes an ad-hoc one inline. A registered environment's name, kind and configuration are snapshot onto the session for the same reason.\n\nSend an `Idempotency-Key` header to make retries safe: the same key with the same body replays the original session as a 200, and the same key with a different body is a 409.",
         "operationId": "createSession",
         "parameters": [
           {
@@ -4307,6 +5724,21 @@
         "requestBody": {
           "content": {
             "application/json": {
+              "examples": {
+                "default": {
+                  "summary": "Open a session against a registered environment",
+                  "value": {
+                    "assignment": {
+                      "goal": "Find the refund policy and start a return."
+                    },
+                    "environment_id": "3c2a1f80-7e64-4b19-8d55-11aa22bb33cc",
+                    "max_turns": 20,
+                    "pacing": "pause_on_decide",
+                    "person_id": "9f1c7b52-0d3a-4a1e-9c4f-2b8e5a6d1234",
+                    "reasoning_effort": "low"
+                  }
+                }
+              },
               "schema": {
                 "$ref": "#/components/schemas/CreateSessionRequest"
               }
@@ -4353,7 +5785,7 @@
                 }
               }
             },
-            "description": "Missing or invalid bearer token.",
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4368,7 +5800,7 @@
                 }
               }
             },
-            "description": "The persona is out of scope for an external-environment session (ADR-0022: workspace-owned or platform-library personas only).",
+            "description": "Either the API key lacks the `sessions:run` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope`), or the person is out of scope for this lane (`person_out_of_scope`): a session can only be opened for a person the workspace owns or one published in the platform library.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4383,7 +5815,7 @@
                 }
               }
             },
-            "description": "The workspace (`workspace_id`), persona (`persona_id`), environment (`environment_id`), or assignment (`assignment.id`) was not found or is not reachable by this principal.",
+            "description": "The workspace, person, environment, or assignment (`workspace_id`, `person_id`, `environment_id`, `assignment.id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`, `person_not_found`, `environment_not_found` or `assignment_not_found`.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4398,7 +5830,7 @@
                 }
               }
             },
-            "description": "The create was refused; `detail.error_kind` says why: `idempotency_conflict` (the Idempotency-Key was reused with a different request body), `environment_archived` (the environment resolves but is retired), or `assignment_archived` (the assignment resolves but is retired — register a new assignment, or pass the goal inline).",
+            "description": "The create was refused and no session was opened BY THIS REQUEST. `detail.error_kind` says which: `idempotency_conflict` (the Idempotency-Key was reused with a different request body; a key maps to one create request), `environment_archived` (the environment resolves but is retired and cannot accept new sessions; register a new environment, or pass an inline environment descriptor), or `assignment_archived` (the assignment resolves but is retired; register a new assignment, or pass the goal inline). An environment or assignment that does not exist, or belongs to another tenant, is a 404 instead.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4428,7 +5860,29 @@
             }
           },
           "429": {
-            "description": "Per-key session-create quota exceeded (API keys only); transient, retry later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Either the API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`) or its daily session-create quota is used up (`session_quota_exceeded`). Both are transient and carry `Retry-After`, but they reset on different clocks: the first within the minute, the second on a day boundary. Existing sessions are unaffected by either. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "An unexpected server-side failure. `detail.error_kind` is `environment_unresolved` or `session_actor_missing`. Not a state to handle: quote `request_id` and the kind in a bug report.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
@@ -4457,6 +5911,20 @@
     {
       "description": "Production",
       "url": "https://api.ishlabs.io"
+    }
+  ],
+  "tags": [
+    {
+      "description": "Open a session for one of your people inside your own environment, submit what they perceive turn by turn, and read back the decision they made and how it felt.",
+      "name": "sessions"
+    },
+    {
+      "description": "Register the targets your sessions run against, and the declared versions of each one. A registered environment carries its own operating notes and default action vocabulary, so a session only has to name it.",
+      "name": "environments"
+    },
+    {
+      "description": "Register the intent a session works toward, so runs stay comparable across environments and over time. A session can also describe its goal inline and skip the registry entirely.",
+      "name": "assignments"
     }
   ]
 }

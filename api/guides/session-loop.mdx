@@ -11,14 +11,14 @@ This is the complete contract for driving a session turn by turn. The [quickstar
 Each turn hands you a decision and a session status. Act on them **in this order**:
 
 1. **If `action_name` is non-null, execute it first**, even if this turn is terminal. A non-null action is always yours to run. If executing fails, add an `error` block to your next turn.
-2. **Then honor `session_status`.** If it is anything other than `open` (`completed`, `gave_up`, `max_turns`), stop, after executing any action from step 1.
-3. **Otherwise (`open`), take the next turn.** If you executed an action, capture the new frame and submit at `turn_index + 1`. If `action_name` was null (an intent `no_match` or `none_needed`), execute nothing, the world is unchanged, and submit the next turn anyway. The outcome feeds back to the persona.
+2. **Then honor `session_status`.** If it is anything other than `open` (`completed`, `gave_up`, `closed`, `max_turns`, `spend_cap_reached`, `balance_exhausted`), stop, after executing any action from step 1.
+3. **Otherwise (`open`), take the next turn.** If you executed an action, capture the new frame and submit at `turn_index + 1`. If `action_name` was null (an intent `no_match` or `none_needed`), execute nothing, the world is unchanged, and submit the next turn anyway. The outcome feeds back to the participant.
 
 <Warning>
-  A terminal turn can still carry your last action. The persona often bundles its final action with `done` in the **same** response: a non-null `action_name` and a terminal `session_status` together. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action. The TV never powers off; the order never places. `session_status` describes the persona's decision state, never your obligation to execute a returned action.
+  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the **same** response: a non-null `action_name` and a terminal `session_status` together. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action. The TV never powers off; the order never places. `session_status` describes the participant's decision state, never your obligation to execute a returned action.
 </Warning>
 
-The persona may also **split** the two: the action on a `continue` turn, then `done` with a null `action_name` on the next turn. Both bundled and split are valid, and the ordering above handles both. Execute a non-null action, then check the status.
+The participant may also **split** the two: the action on a `continue` turn, then `done` with a null `action_name` on the next turn. Both bundled and split are valid, and the ordering above handles both. Execute a non-null action, then check the status.
 
 ## Errors are observations
 
@@ -35,7 +35,7 @@ There is no separate "executed" field on a turn. When an action you executed fai
 }
 ```
 
-A failed execution is something a person would perceive, a dead button or a blocked door, so it travels through the same channel as everything else the persona senses. One turn carries **exactly one image block**; the optional `error` block is additional, never a second image.
+A failed execution is something a person would perceive, a dead button or a blocked door, so it travels through the same channel as everything else the participant senses. One turn carries **exactly one image block**; the optional `error` block is additional, never a second image.
 
 ## Turn indexing
 
@@ -61,23 +61,28 @@ The model behind the page is in [sessions and turns](/api/concepts/sessions-and-
 
 The create call takes an optional `Idempotency-Key` header. The same key with the same body returns the existing session (`200`, not `201`); the same key with a different body is a `409` with `error_kind: idempotency_conflict`.
 
+Every create on the API takes the header on the same terms, so a retried registry write is as safe as a retried session: sessions, environments, environment versions, and assignments. Each create looks its key up in its own scope, the workspace for sessions, environments, and assignments, and the parent environment for a version, so the same string on two different creates never collides.
+
 Turns have a related safety net. An exact-duplicate replay of your **final** turn, the same `turn_index`, the same `observation`, the same `valid_actions`, returns the stored decision **even after the session has ended**. Replay is checked before the "is the session open?" guard, so a lost response to the last turn is always safe to retry. A *different* body at that index is a `turn_index_mismatch`.
 
 ## Handling errors
 
+These are the errors the session loop itself produces. Branch on `detail.error_kind`, not on the status. Every kind the API returns, including the registry ones this table leaves out, is in the [error reference](/api/errors).
+
 | Status | When | What to do |
 |---|---|---|
-| `401` | Missing or invalid API key (a revoked key also returns 401) | Check the `Authorization` header. See [authentication](/api/authentication). |
-| `402` `credits_exhausted` / `plan_allowance_exhausted` / `spend_cap_reached` | The turn could not be paid for and was not applied | Terminal. The three kinds have three different remedies — see [billing and limits](#billing-and-limits). |
-| `403` | Persona out of scope (must be workspace-owned or platform-library) | Use an in-scope persona id. |
-| `404` | Workspace, session, or persona not found or unreachable by your token | Check the ids and that your token's workspace owns them. |
+| `401` `invalid_api_key` | Missing, malformed, unknown, or revoked API key, all one kind | Check the `Authorization` header. See [authentication](/api/authentication). |
+| `402` `credits_exhausted` / `plan_allowance_exhausted` / `spend_cap_reached` | The turn could not be paid for and was not applied | Terminal. The three kinds have three different remedies; see [billing and limits](#billing-and-limits). |
+| `403` `insufficient_scope` | The key lacks the scope this call needs; `detail.required_scope` names it | Use a key carrying that scope. |
+| `403` `person_out_of_scope` | The person is not workspace-owned or platform-library | Use an in-scope `person_id`. |
+| `404` | Workspace, session, person, environment, or assignment not found or unreachable by your token | Check the ids and that your token's workspace owns them. The kind names which one. |
 | `409` `turn_index_mismatch` | Wrong turn index | Resubmit with `turn_index` set to the `expected_turn_index` in the body. |
-| `409` session ended | You posted a turn after the session closed or terminated | The session is terminal; start a new one. |
+| `409` `session_not_open` | You posted a turn after the session closed or terminated | The session is terminal; start a new one. |
 | `409` `idempotency_conflict` | Reused an `Idempotency-Key` with a different body | Use a fresh key, or send the identical body to replay. |
 | `413` | Request body too large (the base64 frame) | Reduce the frame's dimensions. See [frame size](/api/guides/environment-authoring#frame-size). |
 | `422` | Validation error (two envelope shapes, below) | Fix the payload. |
-| `429` | Per-key session-create quota exceeded (API keys only) | Transient: back off and retry the create later. |
-| `502` `decision_invalid` | The persona produced an invalid choice twice; no turn was recorded | Retriable: resubmit the **same** `turn_index` with a fresh frame. |
+| `429` `rate_limited` / `session_quota_exceeded` | The key's per-minute request rate, or its daily session-create quota | Transient. Honor `Retry-After`; the two reset on different clocks. |
+| `502` `decision_invalid` | The participant produced an invalid choice twice; no turn was recorded | Retriable: resubmit the **same** `turn_index` with a fresh frame. |
 
 ### Two shapes of 422
 
@@ -104,9 +109,9 @@ Validation errors come back in two shapes, so parse defensively:
 
 ## Billing and limits
 
-Two limits can end or block a session for cost or capacity reasons, separate from the persona's own termination.
+Two limits can end or block a session for cost or capacity reasons, separate from the participant's own termination.
 
-**Running out of budget.** Each turn accrues credits against the organization's credit pool, and the charge settles when the session ends. A turn that cannot be paid for is refused with a `402` and is **not** applied; the session becomes terminal. Three refusals, three remedies — branch on `detail.error_kind`, not on the status, because the first two share one status:
+**Running out of budget.** Each turn accrues credits against the organization's credit pool, and the charge settles when the session ends. A turn that cannot be paid for is refused with a `402` and is **not** applied; the session becomes terminal. Three refusals, three remedies. Branch on `detail.error_kind`, not on the status, because the first two share one status:
 
 | `error_kind` | Terminal status | What to do |
 |---|---|---|
@@ -143,7 +148,7 @@ loop:
         pending_error = null                      # no_match / none_needed: nothing to execute
     if resp.session_status != "open": break       # THEN stop: completed / gave_up / max_turns
     turn_index = resp.turn_index + 1              # every returned turn is recorded
-DELETE /sessions/{id}                        # when you are done
+POST /sessions/{id}/close                    # when you are done; returns the final session
 ```
 
 ## Related
@@ -153,6 +158,6 @@ DELETE /sessions/{id}                        # when you are done
     Declare actions, write labels, size frames.
   </Card>
   <Card title="Score outcomes" icon="ruler-combined" href="/api/guides/scoring-outcomes">
-    Judge success from your state, not the persona's words.
+    Judge success from your state, not the participant's words.
   </Card>
 </Columns>

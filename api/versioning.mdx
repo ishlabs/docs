@@ -1,0 +1,79 @@
+---
+title: "Versioning and deprecation"
+description: "How the API is versioned, what counts as a breaking change, what can change without one, and how a deprecation would be announced."
+mode: "reference"
+---
+
+This page is the compatibility contract: what the version in the path promises, what may change underneath it, and what your client has to tolerate. The [changelog](/api/changelog) is the record of what actually changed.
+
+## The version is in the path
+
+Every endpoint is versioned in the URL path:
+
+```
+https://api.ishlabs.io/api/v1/...
+```
+
+There is no version header and no date-pinned version. The path is the only version selector. A new major version would appear as a new path prefix (`/api/v2`), served alongside `/api/v1` for as long as the deprecation window below runs.
+
+## What counts as a breaking change
+
+A breaking change is one that can make a correct client stop working. These only land in a new major version:
+
+- Removing or renaming a field, a parameter, an endpoint, or an error `error_kind`.
+- Changing a field's type, or making an optional request field required.
+- Changing the meaning of an existing value.
+- Removing an enum value that the API previously emitted.
+- Changing an HTTP method or path for an existing operation.
+
+## What can change inside a version
+
+Additive changes land on the current version at any time, without notice. Your client must tolerate all of them:
+
+- New fields on a response body.
+- New optional request fields and new optional query parameters.
+- New values in an open union, including new `sentiment` values, new `session_status` values, new `resolution` values, new observation block `type` values, new `environment` kinds, and new `error_kind` values on an error.
+- New endpoints, and new operations on an existing resource.
+- New response headers.
+
+Two rules follow, and both are on your side of the wire:
+
+1. **Ignore fields you do not recognize.** Never fail parsing because a response carried something new. Decode into a permissive shape rather than a closed struct that rejects unknown keys.
+2. **Tolerate values you do not recognize.** Treat an unknown enum value as an unhandled case with a sane default, not as an error. A client that hard-codes today's seven session statuses breaks the day an eighth ships; one that treats any status other than `open` as terminal does not.
+
+The field descriptions in the [API reference](/api/reference/introduction) name every field that is an open union.
+
+## While v1 is pre-release
+
+`/api/v1` is not frozen yet. The API is in developer preview, and breaking revisions still land on `/api/v1` rather than opening a `/api/v2`, because there is no public installed base to protect. The revision of 2026-07-28 is one: it renamed a request field and moved an endpoint.
+
+Every such revision is announced as an entry in the [changelog](/api/changelog), with the exact wire diff and what to change in your client. Read it before you upgrade. If you are integrating now, pin the changelog and check it before each deploy.
+
+Once v1 is declared stable, the rules above hold without the exception: breaking changes go to `/api/v2`, and `/api/v1` keeps working.
+
+## Deprecation, when it applies
+
+No endpoint is deprecated today. When one is, it is announced three ways at once:
+
+- A `Deprecation` header on every response from the deprecated operation, carrying the date the deprecation was announced.
+- A `Sunset` header carrying the date the operation stops being served, as an HTTP date.
+- A `Link` header with `rel="deprecation"` pointing at the migration guide for that change.
+
+```http
+Deprecation: Wed, 12 Aug 2026 00:00:00 GMT
+Sunset: Wed, 11 Nov 2026 00:00:00 GMT
+Link: <https://docs.ishlabs.io/api/changelog>; rel="deprecation"
+```
+
+A deprecated operation keeps working, unchanged, until its `Sunset` date. Log these headers rather than only reading release notes: they arrive in the responses your integration is already making, which is the one channel that cannot be missed.
+
+## Related
+
+<Columns cols={2}>
+  <Card title="Changelog" icon="clock-rotate-left" href="/api/changelog">
+    Every wire change, newest first, with what to change in your client.
+  </Card>
+  <Card title="API reference" icon="code" href="/api/reference/introduction">
+    The operations, the response conventions, and which fields are open unions.
+  </Card>
+</Columns>

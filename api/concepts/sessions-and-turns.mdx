@@ -4,15 +4,15 @@ description: "The server-side session model, the decision trace, pacing, and how
 mode: "explanation"
 ---
 
-A session is the unit of work in the ish API: one persona, one goal, inside one environment, over a series of turns. State lives on the server as a session row plus one row per turn. You send only the per-turn delta and never re-transmit history. The session *is* the decision trace.
+A session is the unit of work in the ish API: one participant, one goal, inside one environment, over a series of turns. State lives on the server as a session row plus one row per turn. You send only the per-turn delta and never re-transmit history. The session *is* the decision trace.
 
 ## The shape of a session
 
 A session moves through three phases:
 
-1. **Create.** You name the persona, the goal, the environment, and a pacing contract. The server opens the session and returns its id.
-2. **Turns.** Each turn you send what the persona perceives plus the actions available, and read back the persona's decision. The server records every turn.
-3. **Close.** The persona ends it, you close it, or the server truncates it at a turn budget.
+1. **Create.** You name the person, the assignment, the environment, and a pacing contract. The server opens the session and returns the whole session object, including everything it froze at open.
+2. **Turns.** Each turn you send what the participant perceives plus the actions available, and read back the participant's decision. The server records every turn.
+3. **Close.** The participant ends it, you close it, or the server truncates it at a turn budget. `POST /v1/sessions/{id}/close` returns the final session.
 
 Because state is server-side, a turn carries only what changed: the new frame and the actions available now. You do not resend past turns. To replay the whole trace, read it back (below).
 
@@ -20,7 +20,7 @@ Because state is server-side, a turn carries only what changed: the new frame an
 
 Every turn carries a `turn_index`, and it must equal the session's current turn count. The first turn is `0`; each recorded turn increments it by one.
 
-The subtlety is what counts as recorded. **Every returned turn is recorded, including turns where nothing was executed.** A turn where the persona wanted something your environment does not offer, or concluded without acting, still increments the index. Do not infer the next index from "did I execute an action?" Drive it off the response's `turn_index`, plus one.
+The subtlety is what counts as recorded. **Every returned turn is recorded, including turns where nothing was executed.** A turn where the participant wanted something your environment does not offer, or concluded without acting, still increments the index. Do not infer the next index from "did I execute an action?" Drive it off the response's `turn_index`, plus one.
 
 Two cases move the index differently, and both are covered in [run the session loop](/api/guides/session-loop):
 
@@ -29,7 +29,9 @@ Two cases move the index differently, and both are covered in [run the session l
 
 ## The decision trace
 
-Reading a session back returns its state plus a page of the recorded turns. Each turn in the trace carries the decision, which observation kinds it saw (by kind and hash, never the frame bytes, since you own those), its latency, how many validation retries it took, the token counts, the frame age, and when it was created.
+Reading a session back returns its state plus a page of the recorded turns. Each turn in the trace carries the decision, which observation kinds it saw and the frame's dimensions, its latency, how many validation retries it took, the token counts, the frame age, and when it was created.
+
+Whether a turn also carries the frame itself depends on the session's `observation_retention`, resolved once at open and one of `none`, `30d`, `90d`, or `indefinite`. When a frame was retained, `observation_url` is a short-lived signed URL: read it, do not store it. It is null when nothing was retained, so a session opened with `none` answers "not retained" rather than leaving you guessing whether a frame expired. A registered environment supplies the default; a session can override it on create; an inline environment with no override lands on `none`.
 
 The trace is a **cursor page**. Pass `after_index` to get turns strictly after a given index and `limit` to size the page (the default is 50, the maximum 200). The response's `has_more` is true when more turns remain; page again with `after_index` set to the last index you received.
 
@@ -43,6 +45,12 @@ Every session declares a **pacing contract**, and it is recorded on the session 
 
 Pacing is also what makes frame provenance readable. Each turn can report `frame_age_ms`, the time between capturing the frame and posting it. It is near zero for `pause_on_decide` and `frame_on_demand`, and meaningful only for `free_running`, where the world moved while the frame was in flight.
 
+## Who ran it, frozen at open
+
+A session records the person it ran as `person_id`, and freezes that person's record onto the session as `person_snapshot` at create. The snapshot is why a trace you read months later still renders the participant who actually ran, even if the live person has since been edited or deleted. List rows carry the same identity in miniature as `participant`, an object of `person_id` and `name`.
+
+The session freezes its environment the same way: `environment` holds the `name` and `kind` it was opened with, and `environment_id`, `environment_revision`, `environment_version_id`, and `environment_version_label` record which registered environment, revision, and declared version it was pinned to. All four are null for a session that described its environment inline.
+
 ## How a session ends
 
 Ending a session is a first-class event, not a side effect, and three parties can cause it. The session status records which:
@@ -50,13 +58,16 @@ Ending a session is a first-class event, not a side effect, and three parties ca
 | Status | Who ended it |
 |---|---|
 | `open` | Still running |
-| `completed` | The persona finished (`done`) |
-| `gave_up` | The persona quit (`gave_up`) |
+| `completed` | The participant finished (`done`) |
+| `gave_up` | The participant quit (`gave_up`) |
 | `closed` | You closed it |
 | `max_turns` | The server truncated it at the turn budget |
 | `spend_cap_reached` | The workspace spend cap was reached mid-session; the turn that would exceed it is refused with a `402` |
+| `balance_exhausted` | The credits ran out mid-session, either the balance or the plan's allowance; `ended_reason` says which |
 
-A natural ending takes precedence over budget truncation, so a persona that finishes on the last allowed turn reports `completed`, never `max_turns`. Session status is an open union: tolerate a status you do not recognize rather than failing on it. `spend_cap_reached` is a case in point: it was added after the first statuses shipped, so a client that hard-coded the original set would have to tolerate it. See [billing and limits](/api/guides/session-loop#billing-and-limits).
+A natural ending takes precedence over budget truncation, so a participant who finishes on the last allowed turn reports `completed`, never `max_turns`. Session status is an open union: tolerate a status you do not recognize rather than failing on it. `spend_cap_reached` is a case in point: it was added after the first statuses shipped, so a client that hard-coded the original set would have to tolerate it. See [billing and limits](/api/guides/session-loop#billing-and-limits).
+
+Two more fields on the session say when and why it ended. `ended_at` is stamped on the first terminal transition and never moves; it is null while the session is open. `ended_reason` is null for an ordinary ending and names the billing cause when there was one, which is how the two `balance_exhausted` cases stay distinguishable on a session you read back later.
 
 ## Related
 

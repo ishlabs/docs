@@ -1,10 +1,10 @@
 ---
 title: "API reference"
-description: "The sessions and environments endpoints: base URL, authentication, conventions, and the ten operations."
+description: "The sessions, environments, versions, and assignments endpoints: base URL, authentication, conventions, and all 21 operations."
 mode: "reference"
 ---
 
-The reference pages in this section are generated from the API's OpenAPI specification. Each operation page lists its parameters, request body, responses, and an interactive request builder. This page is the orientation: the base URL, how requests authenticate, the response conventions, and the operations in lifecycle order.
+The reference pages in this section are generated from the API's OpenAPI specification. Each operation page lists its parameters, request body, responses, and an interactive request builder. This page is the orientation: the base URL, how requests authenticate, the response conventions, and every operation in lifecycle order.
 
 ## Base URL
 
@@ -26,35 +26,69 @@ The token is a workspace API key (prefix `ish_sk_live_`), minted in **Settings**
 
 ## What "session" means here
 
-A **session** is one persona working toward one goal in your environment, turn by turn. It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.
+A **session** is one participant working toward one goal in your environment, turn by turn. It is not the ish product's notion of a study session (a person sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.
 
 ## The operations
 
-Two surfaces. **Sessions** is the loop: open a session for a persona, submit turns, read the trace, list your sessions, close it. **Environments** is the registry: name a target once and reference it from every session that runs against it, instead of describing it inline each time.
+Twenty-one operations across four surfaces, and this is all of them.
+
+**Sessions** is the loop: open a session for a person, submit turns, read the trace, list your sessions, close it. The other three are registries you write once and reference by id. **Environments** names a target instead of describing it inline on every session. **Environment versions** are the declared variants of one environment, so a session can pin the exact variant it ran against. **Assignments** names an intent a session can bind by id, freezing its goal and revision onto the session.
+
+You need none of the registries to run a session. Describe the environment inline, pass the goal inline, and the sessions surface alone is a complete integration.
+
+### Sessions
 
 | Operation | Method and path | Purpose |
 |---|---|---|
-| Create session | `POST /api/v1/workspaces/{workspace_id}/sessions` | Open a decide-only session for a workspace or platform-library persona |
-| List sessions | `GET /api/v1/workspaces/{workspace_id}/sessions` | List the workspace's sessions |
-| Submit turn | `POST /api/v1/sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the persona's choice |
+| Create session | `POST /api/v1/workspaces/{workspace_id}/sessions` | Open a decide-only session for a workspace-owned or platform-library person; returns the full session |
+| List sessions | `GET /api/v1/workspaces/{workspace_id}/sessions` | List the workspace's sessions, newest first, filtered and keyset-paged |
+| Submit turn | `POST /api/v1/sessions/{session_id}/turns` | Submit one observation plus the declared action set; get the participant's choice |
 | Get session | `GET /api/v1/sessions/{session_id}` | Read the session state plus a cursor page of the decision trace |
-| Close session | `DELETE /api/v1/sessions/{session_id}` | Close an open session (idempotent no-op on an already-closed one) |
+| Close session | `POST /api/v1/sessions/{session_id}/close` | Close an open session and get the final session back (idempotent on an already-closed one) |
+
+### Environments
+
+| Operation | Method and path | Purpose |
+|---|---|---|
 | Create environment | `POST /api/v1/workspaces/{workspace_id}/environments` | Register a named target sessions can be opened against |
-| List environments | `GET /api/v1/workspaces/{workspace_id}/environments` | List the workspace's registered environments |
+| List environments | `GET /api/v1/workspaces/{workspace_id}/environments` | Every live environment in the workspace, oldest first |
 | Get environment | `GET /api/v1/environments/{environment_id}` | Read one registered environment |
 | Update environment | `PATCH /api/v1/environments/{environment_id}` | Partially update an environment; omitted fields are untouched |
-| Delete environment | `DELETE /api/v1/environments/{environment_id}` | Delete an environment |
+| Delete environment | `DELETE /api/v1/environments/{environment_id}` | Retire an environment; sessions that ran against it keep their snapshot |
 
-Operations that create a thing in a workspace, or list what it owns, nest under `/workspaces/{workspace_id}/…`. The rest act on an existing session or environment by its globally-unique id, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
+### Environment versions
+
+| Operation | Method and path | Purpose |
+|---|---|---|
+| Create version | `POST /api/v1/environments/{environment_id}/versions` | Author a declared variant of this environment |
+| List versions | `GET /api/v1/environments/{environment_id}/versions` | Every declared version of this environment, oldest first |
+| Get version | `GET /api/v1/environment-versions/{version_id}` | Read one variant; archived ones stay readable by id |
+| Update version | `PATCH /api/v1/environment-versions/{version_id}` | Partially update a variant; omitted fields are untouched |
+| Delete version | `DELETE /api/v1/environment-versions/{version_id}` | Archive a variant |
+| Set default version | `POST /api/v1/environment-versions/{version_id}/set-default` | Point the environment's default at this variant |
+
+### Assignments
+
+| Operation | Method and path | Purpose |
+|---|---|---|
+| Create assignment | `POST /api/v1/workspaces/{workspace_id}/assignments` | Register a named intent a session can bind by id |
+| List assignments | `GET /api/v1/workspaces/{workspace_id}/assignments` | The workspace's registered assignments, oldest first |
+| Get assignment | `GET /api/v1/assignments/{assignment_id}` | Read one assignment; archived ones stay readable by id |
+| Update assignment | `PATCH /api/v1/assignments/{assignment_id}` | Partially update an assignment; any applied write bumps `revision` |
+| Delete assignment | `DELETE /api/v1/assignments/{assignment_id}` | Retire an assignment; sessions that bound it keep their frozen copy |
+
+Operations that create a thing in a workspace, or list what it owns, nest under `/workspaces/{workspace_id}/…`. The rest act on an existing record by its globally-unique id, so the path carries no workspace: the id already resolves it. Both address the same workspace and authorize the same way.
 
 ## Environments
 
+An **environment** is your own product surface under test: the site, app, device, or world you are building. It is not a deploy target, a hosting environment, or a sandbox ish runs for you. You render it and you execute in it.
+
 Every session names the environment it runs in, one of two ways, and you must supply **exactly one**:
 
-- `environment_id` — a registered environment. It supplies the default operating notes for the resolver and a default action vocabulary, and its name and kind are snapshotted onto the session.
-- `environment` — an ad-hoc descriptor (`{ name, platform }`) described inline on the session.
+- `environment_id`, a registered environment. It supplies the default operating notes for the resolver and a default action vocabulary, and its name and kind are snapshotted onto the session.
+- `environment`, an ad-hoc descriptor (`{ name, kind }`) described inline on the session.
 
-An environment has a `kind` (`web`, `device`, `world` today; treat it as an open union) and a `config` validated per kind: `web` needs `config.url`, `device` needs `config.app_artifact`, and any kind may declare an `origins` allowlist. Identity is the `environment_id`, never the URL — a target reached through a rotating tunnel host keeps the same environment across sessions.
+An environment has a `kind` (`web`, `device`, `world` today; treat it as an open union) and a `config` validated per kind: `web` needs `config.url`, `device` needs `config.app_artifact`, and any kind may declare an `origins` allowlist. Identity is the `environment_id`, never the URL, so a target reached through a rotating tunnel host keeps the same environment across sessions.
 
 Renaming or deleting an environment never rewrites history: a session keeps the name and kind it was opened with, and its `environment_id` simply becomes null.
 
@@ -63,10 +97,11 @@ The turn-by-turn contract that drives these (ordering, retries, indexing) is in 
 ## Response conventions
 
 - **Correlation id.** Every response carries an `X-Request-Id` header. Error bodies echo it as `request_id`. Quote it in support requests.
-- **Two error envelopes.** A request-shape failure (HTTP 422) uses the `ValidationError` envelope, a field-level object with `error_code` and an `errors` array so you can pinpoint the offending field. Everything else (401, 403, 404, 409, 502, and handler-raised 422s) uses the `Error` envelope, a `{ detail, request_id }` object where `detail` may be a string or a structured object carrying a machine-readable `error_kind` such as `idempotency_conflict`, `turn_index_mismatch`, or `decision_invalid`. The recovery table for each is in [handling errors](/api/guides/session-loop#handling-errors).
+- **Two error envelopes.** A request-shape failure (HTTP 422) uses the `ValidationError` envelope, a field-level object with `error_code` and an `errors` array so you can pinpoint the offending field. Everything else (401, 403, 404, 409, 502, and handler-raised 422s) uses the `Error` envelope, a `{ detail, request_id }` object where `detail` may be a string or a structured object carrying a machine-readable `error_kind` such as `idempotency_conflict`, `turn_index_mismatch`, or `decision_invalid`. Every kind, with what it means and what to do, is in the [error reference](/api/errors); where each one lands in the loop is in [handling errors](/api/guides/session-loop#handling-errors).
 - **Open unions.** Several enum-typed and block-typed fields (`sentiment`, `session_status`, `resolution`, the observation block `type`) may gain new values over time. Tolerate a value you do not recognize rather than failing on it.
-- **Idempotency.** Create accepts an `Idempotency-Key` header; a retry with the same key and body replays the existing session. See the create operation and [run the session loop](/api/guides/session-loop#idempotency-and-replay).
-- **Pagination.** Get returns a cursor page of the trace: pass `after_index` and `limit` (default 50, max 200), and page again while `has_more` is true.
+- **Idempotency.** Every create accepts an `Idempotency-Key` header (sessions, environments, environment versions, assignments); a retry with the same key and body replays the thing already created. See the create operations and [run the session loop](/api/guides/session-loop#idempotency-and-replay).
+- **Pagination, two shapes.** Reading one session pages its **trace** by index: pass `after_index` and `limit` (default 50, max 200), and page again while `has_more` is true. Listing a workspace's **sessions** pages by opaque keyset instead: pass `after` and `limit` (default 25, max 100), then follow `next_cursor` while `has_more` is true, newest first. Never build a cursor yourself and never treat it as an offset. The environment, environment-version, and assignment lists return the whole collection under `items` and are unpaginated today; they carry `has_more: false` and `next_cursor: null` so pagination can land later without a wire break, so read those two fields rather than assuming one page forever.
+- **Versioned path.** Every path is versioned under `/api/v1`. What that promises, and what may change inside it, is in [versioning](/api/versioning).
 
 ## Before you integrate
 

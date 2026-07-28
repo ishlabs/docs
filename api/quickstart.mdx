@@ -1,33 +1,33 @@
 ---
 title: "Quickstart"
-description: "Create a session, run one turn of the loop, and read how the persona reacted."
+description: "Create a session, run one turn of the loop, and read how the participant reacted."
 mode: "tutorial"
 ---
 
-This walks one happy path: create a session, send the first turn, read the persona's decision, and close. By the end you will have run one full turn of the loop and seen the shape of every response. For the complete integration contract (ordering, retries, pagination, every error), follow [run the session loop](/api/guides/session-loop) next.
+This walks one happy path: create a session, send the first turn, read the participant's decision, and close. By the end you will have run one full turn of the loop and seen the shape of every response. For the complete integration contract (ordering, retries, pagination, every error), follow [run the session loop](/api/guides/session-loop) next.
 
 <Info>
-  You need a workspace, a persona to run, and a workspace API key. See [authentication](/api/authentication) for how to mint one. The examples use `api.ishlabs.io` as a placeholder base; substitute the base URL from your onboarding if you have one.
+  You need a workspace, a person to run, and a workspace API key. See [authentication](/api/authentication) for how to mint one. The examples use `api.ishlabs.io` as a placeholder base; substitute the base URL from your onboarding if you have one.
 </Info>
 
 ## Step 1: set your placeholders
 
-Four values stand in for yours throughout. `WORKSPACE_ID` is the workspace the session runs under and `PERSONA_ID` is the persona to run.
+Four values stand in for yours throughout. `WORKSPACE_ID` is the workspace the session runs under and `PERSON_ID` is the person to run.
 
 ```bash
 export API_URL="https://api.ishlabs.io"   # your ish API base
 export TOKEN="..."                         # your bearer token
 export WORKSPACE_ID="..."                  # the workspace the session runs under (UUID)
-export PERSONA_ID="..."                    # the persona to run (UUID)
+export PERSON_ID="..."                     # the person to run (UUID)
 ```
 
 ## Step 2: create a session
 
-A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the persona, a goal, the environment, and a pacing contract.
+A session is `create` then a series of turns, then `close`. State lives on the server; you drive the loop. Create one with the person, an assignment, the environment, and a pacing contract.
 
-A "session" here is one persona working toward one goal in your environment, turn by turn — not a study session, and nothing to do with a browser session.
+A "session" here is one participant working toward one goal in your environment, turn by turn. It is not a study session, and it has nothing to do with a browser session.
 
-The environment comes one of two ways and you supply **exactly one**: an inline `environment` descriptor, as below, or an `environment_id` naming an environment you registered once (which then supplies the default operating notes and action vocabulary for every session that uses it). Start inline; register one when you find yourself repeating it.
+The environment is your own product surface, the thing you are testing: a site, an app, a device, a world. It comes one of two ways and you supply **exactly one**: an inline `environment` descriptor, as below, or an `environment_id` naming an environment you registered once (which then supplies the default operating notes and action vocabulary for every session that uses it). Start inline; register one when you find yourself repeating it.
 
 The assignment works the same way: `assignment` is a required object with exactly one shape. `{"goal": ...}` describes the intent inline; `{"id": ...}` binds an assignment you registered, freezing its goal and revision onto the session so later edits to the registered assignment never change what this session ran against.
 
@@ -36,9 +36,9 @@ curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -H "Idempotency-Key: my-unique-key-001" -d @- <<JSON
 {
-  "persona_id": "$PERSONA_ID",
+  "person_id": "$PERSON_ID",
   "assignment": { "goal": "Turn the TV on and find something you would actually watch." },
-  "environment": { "name": "tv_remote", "platform": "device" },
+  "environment": { "name": "tv_remote", "kind": "device" },
   "pacing": "frame_on_demand",
   "max_turns": 20,
   "reasoning_effort": "low"
@@ -46,13 +46,49 @@ curl -sS -X POST "$API_URL/api/v1/workspaces/$WORKSPACE_ID/sessions" \
 JSON
 ```
 
-The response is a `201`:
+The response is a `201` carrying the full session, the same object a later read returns:
 
 ```json
-{ "id": "b1c2...uuid", "status": "open", "decision_mode": "intent", "turn_count": 0, "max_turns": 20 }
+{
+  "id": "b1c2...uuid",
+  "workspace_id": "a0f1...uuid",
+  "person_id": "c3d4...uuid",
+  "person_snapshot": { "id": "c3d4...uuid", "name": "Dana Whitfield", "occupation": "Nurse practitioner" },
+  "status": "open",
+  "assignment": {
+    "id": null,
+    "name": null,
+    "revision": null,
+    "goal": "Turn the TV on and find something you would actually watch."
+  },
+  "environment": { "name": "tv_remote", "kind": "device" },
+  "environment_id": null,
+  "environment_revision": null,
+  "environment_version_id": null,
+  "environment_version_label": null,
+  "decision_mode": "intent",
+  "turn_count": 0,
+  "max_turns": 20,
+  "pacing": "frame_on_demand",
+  "observation_retention": "none",
+  "reasoning_effort": "low",
+  "created_by_api_key_id": "e5f6...uuid",
+  "accrued_credits": 0,
+  "ended_reason": null,
+  "ended_at": null,
+  "created_at": "2026-07-28T09:12:04.881Z",
+  "updated_at": "2026-07-28T09:12:04.881Z"
+}
 ```
 
-`decision_mode` echoes your workspace's resolved default. Because you can omit it on create, this is how you discover the mode you are in. Plan for `intent`. Capture the id:
+Four fields are worth reading now:
+
+- `decision_mode` echoes your workspace's resolved default. Because you can omit it on create, this is how you discover the mode you are in. Plan for `intent`.
+- `assignment` is the frozen intent. An inline goal leaves `id`, `name`, and `revision` null; binding a registered assignment fills all four and pins the revision.
+- The four `environment_*` fields are null here because this session described its environment inline. Pass an `environment_id` instead and they record which registered environment, revision, and declared version the session was pinned to.
+- `person_snapshot` is the person as they were at create, frozen so a trace you read months later renders the participant who actually ran. It carries identity, demographics, and any custom fields; the sample above is abridged.
+
+Capture the id:
 
 ```bash
 export SESSION_ID="b1c2...uuid"   # the "id" from the create response
@@ -64,7 +100,7 @@ export SESSION_ID="b1c2...uuid"   # the "id" from the create response
 
 ## Step 3: submit the first turn
 
-Each turn sends what the persona perceives (one image block) plus the actions available this turn. The `turn_index` must equal the session's current turn count, so the first turn is `0`.
+Each turn sends what the participant perceives (one image block) plus the actions available this turn. The `turn_index` must equal the session's current turn count, so the first turn is `0`.
 
 The `data` is the raw base64 of a real screenshot, with no `data:` prefix. Encode your own frame as shown below. Send a real frame: a blank or degenerate image (for example a 1x1 pixel) is rejected by the vision model. See [frame size](/api/guides/environment-authoring#frame-size) for dimensions.
 
@@ -93,7 +129,7 @@ JSON
 
 ## Step 4: read the decision and act
 
-The turn response carries the persona's decision and the session status after the turn:
+The turn response carries the participant's decision and the session status after the turn:
 
 ```json
 {
@@ -130,16 +166,31 @@ Act on it in this order:
 </Steps>
 
 <Warning>
-  A terminal turn can still carry your last action. The persona often bundles its final action with `done` in the same response. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action: the TV never powers off, the order never places. Always read `action_name` and execute it before you stop. Full detail in [run the session loop](/api/guides/session-loop#the-loop-order).
+  A terminal turn can still carry your last action. The participant often bundles their final action with `done` in the same response. Checking "is the session over?" first and skipping the action silently fails any goal whose last step is an action: the TV never powers off, the order never places. Always read `action_name` and execute it before you stop. Full detail in [run the session loop](/api/guides/session-loop#the-loop-order).
 </Warning>
 
 ## Step 5: close the session
 
-When the persona is done or you are, close the session. Closing an already-closed session is a no-op `200`.
+When the participant is done or you are, close the session. Closing an already-closed session is a no-op `200`.
 
 ```bash
-curl -sS -X DELETE "$API_URL/api/v1/sessions/$SESSION_ID" -H "Authorization: Bearer $TOKEN"
+curl -sS -X POST "$API_URL/api/v1/sessions/$SESSION_ID/close" -H "Authorization: Bearer $TOKEN"
 ```
+
+Close takes no body and returns the same full session object create returned, now in its final state, so the last thing you read is what was actually recorded. The fields that moved:
+
+```json
+{
+  "status": "closed",
+  "turn_count": 7,
+  "accrued_credits": 7,
+  "ended_reason": null,
+  "ended_at": "2026-07-28T09:19:37.204Z",
+  "updated_at": "2026-07-28T09:19:37.204Z"
+}
+```
+
+`status` says who ended it: `closed` when you did, `completed` or `gave_up` when the participant did, `max_turns` when the server truncated at the budget. `ended_reason` stays null on an ordinary ending and names a billing cause when there was one.
 
 That is the whole loop: create, then observe, decide, execute, repeat, then close.
 
@@ -153,7 +204,7 @@ That is the whole loop: create, then observe, decide, execute, repeat, then clos
     Declare actions, write labels, render frames that decode.
   </Card>
   <Card title="Score outcomes" icon="ruler-combined" href="/api/guides/scoring-outcomes">
-    Judge success from your own state, not the persona's words.
+    Judge success from your own state, not the participant's words.
   </Card>
   <Card title="Sessions and turns" icon="layer-group" href="/api/concepts/sessions-and-turns">
     The session model, the trace, and pacing.

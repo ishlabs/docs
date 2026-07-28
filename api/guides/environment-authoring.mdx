@@ -1,14 +1,16 @@
 ---
 title: "Author your environment"
-description: "Declare actions the persona can pick, write labels that do not leak, guide the resolver, and render frames that decode."
+description: "Declare actions the participant can pick, write labels that do not leak, guide the resolver, and render frames that decode."
 mode: "how-to"
 ---
 
-Your environment holds up two things each turn: the frame the persona perceives and the actions it may pick from. This guide covers how to declare actions, keep labels honest, guide the resolver in intent mode, and render frames that survive the wire. For the reasoning behind the rules, see [observations](/api/concepts/observations) and [the decide-only loop](/api/concepts/decide-only-loop).
+An **environment** is your own product surface under test: the site, app, device, or world you are building. It is not a deploy target, a hosting environment, or a sandbox ish runs for you. You render it, you execute in it, and ish only decides what a person would do inside it.
+
+Your environment holds up two things each turn: the frame the participant perceives and the actions they may pick from. This guide covers how to declare actions, keep labels honest, guide the resolver in intent mode, and render frames that survive the wire. For the reasoning behind the rules, see [observations](/api/concepts/observations) and [the decide-only loop](/api/concepts/decide-only-loop).
 
 ## Declare actions
 
-Each turn you send `valid_actions`, the set available right now. The set can change every turn as the persona moves through your environment. A declared action has this shape:
+Each turn you send `valid_actions`, the set available right now. The set can change every turn as the participant moves through your environment. A declared action has this shape:
 
 ```json
 {
@@ -49,17 +51,17 @@ Put human-readable option names in the enum. They are printed on the screen, so 
 
 ## Keep labels from leaking
 
-A label names what is *pressable*, never what it *means*. The persona reads meaning off the pixels, so a label that encodes hidden state hands it knowledge a person would not have.
+A label names what is *pressable*, never what it *means*. The participant reads meaning off the pixels, so a label that encodes hidden state hands them knowledge a person would not have.
 
 - Declare `move` with a direction, not `walk_to_treasure`.
 - Declare a from-and-to square pair, not the chess move `Nxe5+` (which leaks the piece, the capture, and the check).
-- Declare `click` on a visible target, not `rusty key` (which leaks an object's identity and role before the persona has looked).
+- Declare `click` on a visible target, not `rusty key` (which leaks an object's identity and role before the participant has looked).
 
-Your on-screen control hints also shape the persona's intents, because it reads them literally. If your UI overlays "press the up arrow key", the persona will intend exactly that. Write control labels the way you want intents phrased. The reasoning is in [observations](/api/concepts/observations#the-label-leak-rule).
+Your on-screen control hints also shape the participant's intents, because they read them literally. If your UI overlays "press the up arrow key", the participant will intend exactly that. Write control labels the way you want intents phrased. The reasoning is in [observations](/api/concepts/observations#the-label-leak-rule).
 
 ## Guide the resolver (intent mode)
 
-In intent mode a resolver maps the persona's intent onto your declared actions. Two layers let you steer it, and **neither is ever shown to the persona**:
+In intent mode a resolver maps the participant's intent onto your declared actions. Two layers let you steer it, and **neither is ever shown to the participant**:
 
 - `resolver_hint` is a **per-control** note on a single declared action (up to 1000 characters). Use it to disambiguate one control: "this toggles mute, not volume".
 - `resolver_guidance` is a **session-level, environment-wide** manual passed on create (up to 8000 characters). Use it for rules that span the whole environment: how your navigation works, what a gesture does, which controls are modal.
@@ -71,16 +73,16 @@ They complement each other. Reach for a hint when one control is ambiguous, and 
 You can drive the API from any client. For web environments there is a small convention worth following, an object on `window.__ishEnv` that the loop reads each turn:
 
 ```js
-meta()              // -> { name, platform, pacing }   matches your create-session environment and pacing
+meta()              // -> { name, kind, pacing }   matches your create-session environment and pacing
 declaredActions()   // -> [ { name, description, parameters, resolver_hint? } ]   reflects NOW; may change every turn
 execute(name, args) // -> Promise<{ ok, error }>   performs the action; resolves after the page visually settles
-state()             // -> { ...your ground truth... }   OPTIONAL; for your own scoring only; NEVER sent to the persona
+state()             // -> { ...your ground truth... }   OPTIONAL; for your own scoring only; NEVER sent to the participant
 ```
 
 A failed `execute` (`{ ok: false, error }`) becomes the next turn's `error` block. There is no separate executed field. Native, desktop, and game integrations do not need this adapter; they run the same loop directly: observe, post, execute.
 
 <Warning>
-  `state()` is for your own scoring and must never reach the persona. Sending it as an observation defeats the whole point of running the persona. See [score outcomes](/api/guides/scoring-outcomes).
+  `state()` is for your own scoring and must never reach the participant. Sending it as an observation defeats the whole point of running the participant. See [score outcomes](/api/guides/scoring-outcomes).
 </Warning>
 
 ## WebGL and 3D environments
