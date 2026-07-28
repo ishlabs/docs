@@ -1783,6 +1783,18 @@
             ],
             "description": "The person this actor was minted from; null once that person is deleted.",
             "title": "Person Id"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Participant type frozen into the actor's person_snapshot at session create: 'ai' or 'human'. Null when the snapshot carried none: a wrong simulated-vs-human claim is a disclosure error (EU AI Act Art. 50), so the honest absence is null, never a default.",
+            "title": "Type"
           }
         },
         "required": [
