@@ -1201,6 +1201,29 @@
         "title": "IterationType",
         "type": "string"
       },
+      "LimitsResponse": {
+        "description": "Everything that bounds what this workspace can spend. Read-only.",
+        "properties": {
+          "cost": {
+            "$ref": "#/components/schemas/SessionCost"
+          },
+          "spend": {
+            "$ref": "#/components/schemas/SpendLimit"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace_id",
+          "spend",
+          "cost"
+        ],
+        "title": "LimitsResponse",
+        "type": "object"
+      },
       "LocaleType": {
         "enum": [
           "urban",
@@ -2577,6 +2600,121 @@
         "title": "PublicPersonUpdateRequest",
         "type": "object"
       },
+      "RateLimitBudget": {
+        "description": "One budget: what it counts, what a 429 says, and its windows.",
+        "properties": {
+          "error_kind": {
+            "description": "The `detail.error_kind` a 429 from this budget carries. They differ because the remedies differ: `rate_limited` refills within the minute, `session_quota_exceeded` on a day boundary. Sessions already open are unaffected by either.",
+            "title": "Error Kind",
+            "type": "string"
+          },
+          "name": {
+            "description": "`requests` counts every call this credential makes. `session_creates` counts only session opens, on top of the request budget.",
+            "enum": [
+              "requests",
+              "session_creates"
+            ],
+            "title": "Name",
+            "type": "string"
+          },
+          "windows": {
+            "description": "Every window this budget enforces. All of them apply at once, so the tightest one is what refuses you.",
+            "items": {
+              "$ref": "#/components/schemas/RateLimitWindow"
+            },
+            "title": "Windows",
+            "type": "array"
+          }
+        },
+        "required": [
+          "name",
+          "error_kind",
+          "windows"
+        ],
+        "title": "RateLimitBudget",
+        "type": "object"
+      },
+      "RateLimitWindow": {
+        "description": "One window of a budget, and how much of it is left.",
+        "properties": {
+          "limit": {
+            "description": "Requests allowed per window.",
+            "title": "Limit",
+            "type": "integer"
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Requests left in the CURRENT window, or null when no counter could be read. Null is never zero: it means the budget is not being counted for this credential (a user access token) or is not being enforced at all (see `enforced`). This call is itself a request and is already counted in the figure it returns, so polling costs one per poll.",
+            "title": "Remaining"
+          },
+          "resets_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the current window rolls over and `remaining` returns to `limit`. Null exactly when `remaining` is.",
+            "title": "Resets At"
+          },
+          "window_seconds": {
+            "description": "Length of the window in seconds. 60 is a per-minute budget, 86400 a per-day one.",
+            "title": "Window Seconds",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "limit",
+          "window_seconds",
+          "remaining",
+          "resets_at"
+        ],
+        "title": "RateLimitWindow",
+        "type": "object"
+      },
+      "RateLimitsResponse": {
+        "description": "This credential's rate-limit budgets, read without charging them.",
+        "properties": {
+          "budgets": {
+            "items": {
+              "$ref": "#/components/schemas/RateLimitBudget"
+            },
+            "title": "Budgets",
+            "type": "array"
+          },
+          "credential": {
+            "description": "Which credential made this call. Budgets are per API key: a user access token is not rate limited, and reads its own budgets as configuration with null counters.",
+            "enum": [
+              "api_key",
+              "user_token"
+            ],
+            "title": "Credential",
+            "type": "string"
+          },
+          "enforced": {
+            "description": "Whether the limits below are currently being counted. False makes every `remaining` null rather than full, so a null counter is never mistaken for a fresh window.",
+            "title": "Enforced",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "credential",
+          "enforced",
+          "budgets"
+        ],
+        "title": "RateLimitsResponse",
+        "type": "object"
+      },
       "Sentiment": {
         "description": "How the person felt while making this turn's decision.\n\nThe labels span the positive/negative and active/passive range, so disengagement reads differently from frustration. Reported with an ordinal `felt_intensity`.\n\nVALUES ARE CAPITALISED exactly as listed (`Confident`, not `confident`); match on the literal string. Open union: new labels may be added over time; clients must tolerate an unknown label rather than failing on it.",
         "enum": [
@@ -2745,6 +2883,21 @@
           "ended_at"
         ],
         "title": "SessionBase",
+        "type": "object"
+      },
+      "SessionCost": {
+        "description": "What a session draws, so a caller can budget before running one.",
+        "properties": {
+          "turn_credits": {
+            "description": "Credits one decision draws. A session's cost is this times the number of turns it takes.",
+            "title": "Turn Credits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "turn_credits"
+        ],
+        "title": "SessionCost",
         "type": "object"
       },
       "SessionDetailResponse": {
@@ -3080,6 +3233,67 @@
           "created_at"
         ],
         "title": "SessionTurnView",
+        "type": "object"
+      },
+      "SpendLimit": {
+        "description": "The workspace spend cap and where the current period stands against it.",
+        "properties": {
+          "cap_credits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The most credits sessions in this workspace may draw in one billing period, or null when no cap is configured, which means unlimited. Zero is a configured cap of zero, which halts the first turn, and is a different thing from null.\n\nRead-only here. The cap bounds what API keys may spend, so only a signed-in workspace member can change it, in Settings.",
+            "title": "Cap Credits"
+          },
+          "period_accrued_credits": {
+            "description": "Credits sessions have drawn since `period_start`. This is the figure the cap is compared against.",
+            "title": "Period Accrued Credits",
+            "type": "integer"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the current billing period began, and therefore when `period_accrued_credits` started counting. Null when the workspace's organization has no period boundary yet, in which case the period figure IS the all-time figure.",
+            "title": "Period Start"
+          },
+          "remaining_credits": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "`cap_credits` minus `period_accrued_credits`, or null when uncapped.",
+            "title": "Remaining Credits"
+          },
+          "total_accrued_credits": {
+            "description": "Credits sessions have drawn all time, across every period.",
+            "title": "Total Accrued Credits",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "cap_credits",
+          "period_accrued_credits",
+          "remaining_credits",
+          "total_accrued_credits",
+          "period_start"
+        ],
+        "title": "SpendLimit",
         "type": "object"
       },
       "StoredEnvironmentConfig": {
@@ -3790,6 +4004,200 @@
         "title": "UpdateTaskRequest",
         "type": "object"
       },
+      "UsageBucket": {
+        "description": "One time bucket of the workspace's session usage.\n\nTWO TIMELINES, and the difference matters when reconciling the numbers.\n`sessions_started` and `sessions_ended` are bucketed on the session: opened\nat its create instant, ended at the instant it first left the open state.\nEverything else is bucketed on the TURN, because turns, credits and latency\nare properties of turns. So a session opened just before midnight whose\nfirst turn lands after it contributes its open to one bucket and its turns\nto the next, and a session that opens and never takes a turn still appears,\nwith `sessions_started` 1 and `turns` 0.\n\nBuckets are ZERO-FILLED across the requested window, so the series is\ncontinuous and a chart never has to interpolate a gap. A filler bucket\ncarries zeros and NULL latency, never a zero latency, because no turn\nhappened in it and 0 ms would be a measurement that was never taken.",
+        "properties": {
+          "accrued_credits": {
+            "description": "Credits this bucket's turns drew from the workspace's pool.",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "bucket_start": {
+            "description": "Start of the bucket, UTC. Buckets are half-open: this one covers everything from here up to the next bucket_start. The LAST bucket of a window is usually partial, so divide by elapsed time rather than by a whole day when computing a rate.",
+            "format": "date-time",
+            "title": "Bucket Start",
+            "type": "string"
+          },
+          "group": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The series' display label, or null when ungrouped. For `group_by=environment` this is the environment's current name, so it can change under you and two environments can share it. Render this; group and key on `group_key`.",
+            "title": "Group"
+          },
+          "group_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The series' STABLE identity, or null when ungrouped. Group by this, render `group`.\n\nFor `group_by=status` it is the status itself. For `group_by=environment` it is a composite key that survives renames, in one of three forms:\n\n- `<environment_id>@<version_id>@<revision>`, or `<environment_id>@-@<revision>` when the session pinned no version. The arity is fixed: the middle component is a literal `-` rather than omitted, so the two forms stay distinguishable without counting separators.\n- `<environment_id>` alone, for sessions recorded before environments carried a revision.\n- the environment's frozen name, for a session that described its environment inline instead of naming a registered one, and for one whose environment has since been deleted.\n\nThe last two forms are textually indistinguishable, deliberately: match on an environment id you already hold and an inline name simply never matches.",
+            "title": "Group Key"
+          },
+          "latency_p50_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Median time ish took to return a decision, over this bucket's turns. Null when the bucket has no turns. Measures the decision itself, not your round trip.",
+            "title": "Latency P50 Ms"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "95th-percentile decision time over this bucket's turns, or null. Null below 20 turns in the bucket as well as at zero: under that, the 95th percentile is indistinguishable from the slowest single turn, and reading it as a tail would be wrong. Compare `turns` when it is null to tell the two cases apart, and read `window.latency_p95_ms` for a figure computed over the whole window.",
+            "title": "Latency P95 Ms"
+          },
+          "sessions_ended": {
+            "description": "Sessions that left the open state in this bucket, by close, by cap, or by the idle sweep. Over a window in which every session has finished, the started and ended totals reconcile.",
+            "title": "Sessions Ended",
+            "type": "integer"
+          },
+          "sessions_started": {
+            "description": "Sessions opened in this bucket, whether or not they ever took a turn.",
+            "title": "Sessions Started",
+            "type": "integer"
+          },
+          "turns": {
+            "description": "Decisions taken in this bucket. Also the sample count behind the latency figures below.",
+            "title": "Turns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "bucket_start",
+          "group",
+          "group_key",
+          "turns",
+          "sessions_started",
+          "sessions_ended",
+          "accrued_credits",
+          "latency_p50_ms",
+          "latency_p95_ms"
+        ],
+        "title": "UsageBucket",
+        "type": "object"
+      },
+      "UsageResponse": {
+        "description": "The usage series plus the window it describes.\n\nBucket order is `bucket_start` ascending. WITHIN a bucket, series follow\n`group_key`, which is stable across requests but arbitrary to a reader\n(environment keys sort as ids). Sort for display yourself, on `group`.",
+        "properties": {
+          "buckets": {
+            "description": "Zero-filled across the window. When grouped, one continuous series per group that had ANY activity in the window: a group with none is absent rather than present as zeros, because the set of groups is discovered from the window itself.",
+            "items": {
+              "$ref": "#/components/schemas/UsageBucket"
+            },
+            "title": "Buckets",
+            "type": "array"
+          },
+          "window": {
+            "$ref": "#/components/schemas/UsageWindow"
+          }
+        },
+        "required": [
+          "window",
+          "buckets"
+        ],
+        "title": "UsageResponse",
+        "type": "object"
+      },
+      "UsageWindow": {
+        "description": "The window's own totals, and its real latency percentiles.\n\nNot a convenience: counts sum across buckets but PERCENTILES DO NOT. There\nis no arithmetic that turns thirty daily p95s into the window's p95, so the\ntwo here are computed by a separate pass over every turn in the window\nrather than folded up from the series. The counts are the bucket sums, so\nthey agree with the series by construction.",
+        "properties": {
+          "accrued_credits": {
+            "description": "Credits drawn across the whole window.",
+            "title": "Accrued Credits",
+            "type": "integer"
+          },
+          "bucket": {
+            "description": "The bucket granularity the series was built at.",
+            "enum": [
+              "1d",
+              "1w"
+            ],
+            "title": "Bucket",
+            "type": "string"
+          },
+          "from": {
+            "description": "Window start, UTC. Echoes the request, or the default.",
+            "format": "date-time",
+            "title": "From",
+            "type": "string"
+          },
+          "latency_p50_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Median decision time over every turn in the window, not an average of the buckets. Null when the window has no turns.",
+            "title": "Latency P50 Ms"
+          },
+          "latency_p95_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "95th-percentile decision time over every turn in the window. Null when the window holds fewer than 20 turns, on the same reasoning as the per-bucket field: below that there is no tail to report.",
+            "title": "Latency P95 Ms"
+          },
+          "sessions_ended": {
+            "title": "Sessions Ended",
+            "type": "integer"
+          },
+          "sessions_started": {
+            "title": "Sessions Started",
+            "type": "integer"
+          },
+          "to": {
+            "description": "Window end, UTC. Echoes the request, or the request instant.",
+            "format": "date-time",
+            "title": "To",
+            "type": "string"
+          },
+          "turns": {
+            "title": "Turns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "bucket",
+          "turns",
+          "sessions_started",
+          "sessions_ended",
+          "accrued_credits",
+          "latency_p50_ms",
+          "latency_p95_ms"
+        ],
+        "title": "UsageWindow",
+        "type": "object"
+      },
       "ValidationError": {
         "description": "Request body / parameter validation failure (HTTP 422). A field-level envelope so callers can pinpoint the offending field, value, and allowed values without parsing prose.",
         "properties": {
@@ -3843,7 +4251,7 @@
     },
     "securitySchemes": {
       "bearerAuth": {
-        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments), `tasks:read` and `tasks:write` (manage the workspace's registered tasks), and `people:read` (list and search the people the workspace can run a session for). A key is minted with `sessions:run`, `sessions:read`, and `tasks:read` by default; every other scope must be requested, `people:read` included. An ish user access token also works on the same header for personal scripts.",
+        "description": "Workspace API key as a bearer token: `Authorization: Bearer ish_sk_live_...`. Keys are workspace-scoped machine principals minted in Settings > Developers (shown once at mint). Scopes: `sessions:run` (create a session, submit turns, close), `sessions:read` (read the session and its decision trace), `environments:read` and `environments:write` (manage the workspace's registered environments), `tasks:read` and `tasks:write` (manage the workspace's registered tasks), `people:read` and `people:write` (the people the workspace can run a session for), and `usage:read` (the workspace's own consumption, spend limits and rate-limit budgets). A key is minted with `sessions:run`, `sessions:read`, and `tasks:read` by default; every other scope must be requested, `people:read` and `usage:read` included. An ish user access token also works on the same header for personal scripts.",
         "scheme": "bearer",
         "type": "http"
       }
@@ -3854,13 +4262,13 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives. Two kinds are available to you:   the ones your workspace owns, and the ones published in the shared ish   library. Both are listed and searchable under `/v1/workspaces/{workspace_id}/people`, and each carries an `owner` saying which it is.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, `tasks:read` / `tasks:write` for the task registry, and `people:read` to list and search the people you can run a session for. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope, and for `people:read`, explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open.\n\nYou do not have to wait for the `429` to find out. Every key-authed response, including the `429` itself, carries the budget it just spent:\n\n- **`x-ratelimit-limit`**: the ceiling for that window.\n- **`x-ratelimit-remaining`**: what is left in it after this request.\n- **`x-ratelimit-reset`**: **seconds from now** until the window resets. A   delta, not a Unix timestamp.\n\nWhen a request charges more than one budget (a session create spends both), the headers describe the one closest to refusing you, so pacing off `remaining` is always pacing off the binding constraint. Treat all three as optional: they are absent when nothing was charged, and `reset` alone can be omitted if the limit backend cannot be read at that moment.\n\nUser access tokens are deliberately not rate limited, so their responses carry no `x-ratelimit-*` headers. The per-key budgets exist because a key is a machine principal that can loop unattended; an interactive session is bounded by the person driving it.\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives. Two kinds are available to you:   the ones your workspace owns, and the ones published in the shared ish   library. Both are listed and searchable under `/v1/workspaces/{workspace_id}/people`, and each carries an `owner` saying which it is.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, `tasks:read` / `tasks:write` for the task registry, `people:read` / `people:write` for the people you can run a session for, and `usage:read` for this workspace's consumption, limits and rate-limit budgets. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope, and for `people:read` and `usage:read`, explicitly. `usage:read` is never implied by another scope: it covers the shape of the whole workspace's operation, not just the lane a key was minted for. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open.\n\nYou do not have to wait for the `429` to find out. Every key-authed response, including the `429` itself, carries the budget it just spent:\n\n- **`x-ratelimit-limit`**: the ceiling for that window.\n- **`x-ratelimit-remaining`**: what is left in it after this request.\n- **`x-ratelimit-reset`**: **seconds from now** until the window resets. A   delta, not a Unix timestamp.\n\nWhen a request charges more than one budget (a session create spends both), the headers describe the one closest to refusing you, so pacing off `remaining` is always pacing off the binding constraint. Treat all three as optional: they are absent when nothing was charged, and `reset` alone can be omitted if the limit backend cannot be read at that moment.\n\nUser access tokens are deliberately not rate limited, so their responses carry no `x-ratelimit-*` headers. The per-key budgets exist because a key is a machine principal that can loop unattended; an interactive session is bounded by the person driving it.\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.4.0"
+    "version": "1.5.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7492,6 +7900,162 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspace_id}/limits": {
+      "get": {
+        "description": "What bounds this workspace's spending, and where it currently stands.\n\nThe spend cap is per billing period and is compared against\n`spend.period_accrued_credits`, not against the all-time total. A session\nthat would take the workspace past the cap ends rather than continuing, so\na long-running integration should watch `spend.remaining_credits`.\n\nRead-only. The cap is the guardrail that bounds what API keys may spend, so\nonly a signed-in workspace member can move it, in Settings. For the\nper-request budgets that bound how FAST you may call, read\n`/workspaces/{workspace_id}/rate-limits`.",
+        "operationId": "getLimits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `usage:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'usage:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Limits",
+        "tags": [
+          "usage"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspace_id}/people": {
       "get": {
         "description": "List the people you can open a session for, newest first.\n\nTwo kinds of person are reachable: the ones your workspace owns, and the\nones published in the shared ish library. Both are usable in a session, and\neach row's `owner` says which it is. People that other workspaces have\npublished are deliberately NOT listed: you could not open a session for\nthem, and listing what you cannot use is worse than not listing it.\n\nKeyset-paginated: page forward with `after` set to the previous response's\n`next_cursor`, and stop when `has_more` is false. For anything beyond a name\nmatch, use the search endpoint.",
@@ -10046,6 +10610,162 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspace_id}/rate-limits": {
+      "get": {
+        "description": "The rate-limit budgets this credential is spending, and what is left.\n\nTwo budgets. `requests` counts every call; `session_creates` counts session\nopens on top of it. Both refuse with a 429 carrying `Retry-After` and a\ndistinct `error_kind`, because they refill on different clocks.\n\nThe counters are read rather than charged, so this does not consume the\nbudgets it reports beyond the single request it costs like any other call.\nBudgets are per API key: an ish user access token is not rate limited and\nsees the same configuration with null counters.",
+        "operationId": "getRateLimits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitsResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `usage:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'usage:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Rate Limits",
+        "tags": [
+          "usage"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspace_id}/sessions": {
       "get": {
         "description": "List a workspace's sessions, newest first (keyset-paginated).\n\nOrdered `created_at DESC, id DESC`. Page forward with `after` set to the\nprior response's `next_cursor`; `has_more` signals another page. Each row\nis a summary (status, instructions, environment, person, turn counts, key\nattribution, accrued credits, timestamps). The per-turn decision trace lives\non the detail GET.",
@@ -11162,6 +11882,233 @@
           "tasks"
         ]
       }
+    },
+    "/api/v1/workspaces/{workspace_id}/usage": {
+      "get": {
+        "description": "How much this workspace has used, bucketed over time.\n\nPer bucket: decisions taken, sessions opened and ended, credits drawn, and\nthe median and 95th-percentile time ish took to decide. Optionally split per\nenvironment or per session status.\n\nThe series is zero-filled across the window, so buckets with no activity are\npresent with zeros rather than missing, and a chart needs no gap handling.\nLatency in an empty bucket is null rather than 0.\n\n`window` carries the same totals summed up, plus latency percentiles\ncomputed over every turn in the window. Read those rather than averaging the\nper-bucket ones: percentiles do not compose, and averaging them\nunder-reports a spiky day.\n\nThe window has a bound: it may not need more than 1000 buckets, which is\nabout 2.7 years daily or 19 years weekly. A wider one is refused rather than\nsilently cut short, so `window` always describes exactly the dates it\ncarries.",
+        "operationId": "getUsage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Bucket granularity: `1d` daily or `1w` weekly.",
+            "in": "query",
+            "name": "bucket",
+            "required": false,
+            "schema": {
+              "default": "1d",
+              "description": "Bucket granularity: `1d` daily or `1w` weekly.",
+              "enum": [
+                "1d",
+                "1w"
+              ],
+              "title": "Bucket",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Window start, ISO 8601. Defaults to 30 days before `to`. Inclusive.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Window start, ISO 8601. Defaults to 30 days before `to`. Inclusive.",
+              "title": "From"
+            }
+          },
+          {
+            "description": "Window end, ISO 8601. Defaults to the instant of the request. Inclusive.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Window end, ISO 8601. Defaults to the instant of the request. Inclusive.",
+              "title": "To"
+            }
+          },
+          {
+            "description": "Split each bucket into one series per environment or per session status. Omit it for one series over the whole workspace.",
+            "in": "query",
+            "name": "group_by",
+            "required": false,
+            "schema": {
+              "default": "none",
+              "description": "Split each bucket into one series per environment or per session status. Omit it for one series over the whole workspace.",
+              "enum": [
+                "environment",
+                "status",
+                "none"
+              ],
+              "title": "Group By",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `usage:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'usage:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Usage",
+        "tags": [
+          "usage"
+        ]
+      }
     }
   },
   "security": [
@@ -11191,6 +12138,10 @@
     {
       "description": "Find the person a session should run as. Read and search the pool you can draw on: the people your workspace owns, plus the ones published in the shared ish library. Read-only at this version.",
       "name": "people"
+    },
+    {
+      "description": "What this workspace has consumed, and what bounds it: the session usage series over time, the spend cap and the credits drawn against it, and the live rate-limit budgets this credential is spending. Read-only.",
+      "name": "usage"
     }
   ]
 }

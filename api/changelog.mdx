@@ -8,6 +8,16 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-08-02 (spec 1.5.0)
+
+Additive. No existing operation changed.
+
+- **Usage is readable from a key**, under a new `usage:read` scope that nothing implies and the mint default does not include. Three operations: the session usage series over time, the spend cap with credits drawn against it, and the rate-limit budgets as an on-demand read (answered from the counter without charging it).
+- **The series can be split per environment or per session status, and deliberately not per API key.** A key cannot enumerate its siblings; that split stays with a signed-in member in the app.
+- **Window percentiles are computed over the window, not averaged from the buckets**, because percentiles do not compose. A per-bucket `latency_p95_ms` is `null` below 20 turns rather than reported, since under that it sits within a hair of the slowest single turn. `turns` sits beside it so "not enough data" and "no data" stay distinguishable.
+- **A window too wide to represent is refused, not silently shortened.** Previously a long enough daily range returned a truncated series while still echoing the full date range back, so the totals beside it belonged to a shorter window. It now returns `422` naming the limit.
+- **Filler buckets carry zeros and `null` latency, never `0` ms.** The last bucket in a series is usually partial, so divide by elapsed time rather than by a whole day.
+
 ## 2026-08-02 (spec 1.4.0)
 
 Additive. No existing operation, status code or body changed.
