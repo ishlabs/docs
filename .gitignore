@@ -1,1 +1,3 @@
 .planning
+# Claude Code worktrees (sibling repos ignore the same path)
+.claude/worktrees/
