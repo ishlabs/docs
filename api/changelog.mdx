@@ -8,6 +8,17 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-08-01 (spec 1.3.0)
+
+Additive. Nothing existing changes shape, and no operation refuses anything it previously accepted.
+
+- **You can now manage your own people, not just read them.** Create, update, archive and restore, under a new `people:write` scope: `POST`, `PATCH` and `DELETE` on `/v1/workspaces/{workspace_id}/people`, plus `POST .../people/{person_id}/restore`. `people:write` does **not** imply `people:read`: the two are granted independently, so a key that only feeds people in never gains the ability to read the pool back out.
+- **Delete archives; it does not erase.** `DELETE` sets `archived_at` and the row stops appearing in listings unless you pass `?archived=true`. Restore brings it back. Sessions that already ran keep the person snapshot they froze at open, byte for byte, across both. Permanent erasure stays inside the ish app.
+- **The write contract is narrower than the read shape.** `product_id`, `type`, `visibility`, `custom_fields` and the simulation config are not writable through this API: a key cannot move a person between workspaces or change what kind of thing it is. Send a field explicitly as `null` to clear it; omit it to leave it alone.
+- **`external_id` for your own identifiers.** Workspace-unique, and looked up with `?external_id=` rather than in the path, so your id space never has to collide with ours. Create accepts `Idempotency-Key`.
+- **Generation is an API operation, and it is metered.** `POST .../people/generation-jobs` with `GET` polling and `POST .../cancel`. The job reports a live `counts` object as people land. Billing draws **2 credits per person that actually succeeds**, plus **1 more when avatars are generated**. The number you watched climb is the number you are charged for. Cancelling keeps whatever was already produced and you pay only for that. `Prefer: wait=n` (1-60s) holds the create open for a short job rather than making you poll.
+- **An unknown interest id is now a `422` instead of an empty page.** A `qualification`/`tag` filter naming an id outside the taxonomy used to expand to itself and match nothing, so a typo returned a clean, well-formed, empty result indistinguishable from a real audience of zero. It now names the offending id.
+
 ## 2026-07-28 (spec 1.2.0)
 
 Mostly additive. One existing operation changes what it refuses, and only for a `person_id` no integration should have been sending.

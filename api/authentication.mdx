@@ -36,12 +36,15 @@ A key carries any combination of seven scopes. Grant only what the integration n
 | `tasks:read` | Read the workspace's registered tasks |
 | `tasks:write` | Register, update, and delete tasks |
 | `people:read` | List and search the [people](/api/concepts/people) the workspace can run a session for |
+| `people:write` | Create, edit, archive and restore the workspace's own people, and run generation jobs |
 
 A new key is minted with `sessions:run`, `sessions:read`, and `tasks:read`. The task read is a default because a session can bind a registered task by id, so a key that runs sessions but cannot resolve the task it names would be a broken starting point.
 
 No `:write` scope is granted by default. Ask for `environments:write` or `tasks:write` when the integration manages a registry rather than just running against it.
 
 `people:read` is not granted by default either, and for a different reason: a person record carries demographics and a written background about someone the workspace modelled, so reading the pool is a decision the person minting the key should make deliberately. Ask for it when the integration picks its own participants rather than being handed a `person_id`.
+
+`people:write` does not imply `people:read`. They are granted independently, so a key that only feeds people in never gains the ability to read the pool back out. Ask for both when the integration manages a roster it also searches.
 
 A key without the scope an operation requires is refused with `403` and `detail.error_kind = "insufficient_scope"`, which names the `required_scope`. Reading a trace needs `sessions:read`; everything that drives a session needs `sessions:run`.
 

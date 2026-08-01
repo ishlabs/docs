@@ -9,6 +9,255 @@
       }
     },
     "schemas": {
+      "AccessibilityAuditory": {
+        "additionalProperties": false,
+        "description": "Auditory preferences, such as whether captions are expected.",
+        "properties": {
+          "audio_descriptions_required": {
+            "default": false,
+            "title": "Audio Descriptions Required",
+            "type": "boolean"
+          },
+          "captions_required": {
+            "default": false,
+            "title": "Captions Required",
+            "type": "boolean"
+          },
+          "mono_audio": {
+            "default": false,
+            "title": "Mono Audio",
+            "type": "boolean"
+          },
+          "uses_hearing_aid": {
+            "default": false,
+            "title": "Uses Hearing Aid",
+            "type": "boolean"
+          },
+          "visual_alerts_required": {
+            "default": false,
+            "title": "Visual Alerts Required",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessibilityAuditory",
+        "type": "object"
+      },
+      "AccessibilityCognitive": {
+        "additionalProperties": false,
+        "description": "Cognitive preferences, such as reduced motion and plain language.",
+        "properties": {
+          "avoid_flashing": {
+            "default": false,
+            "title": "Avoid Flashing",
+            "type": "boolean"
+          },
+          "extra_reading_time": {
+            "default": false,
+            "title": "Extra Reading Time",
+            "type": "boolean"
+          },
+          "predictable_navigation": {
+            "default": false,
+            "title": "Predictable Navigation",
+            "type": "boolean"
+          },
+          "reduce_motion": {
+            "default": false,
+            "title": "Reduce Motion",
+            "type": "boolean"
+          },
+          "simple_language_preferred": {
+            "default": false,
+            "title": "Simple Language Preferred",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessibilityCognitive",
+        "type": "object"
+      },
+      "AccessibilityData": {
+        "additionalProperties": false,
+        "description": "Data preferences, such as a metered or low-bandwidth connection.",
+        "properties": {
+          "reduce_data": {
+            "default": false,
+            "title": "Reduce Data",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessibilityData",
+        "type": "object"
+      },
+      "AccessibilityMotor": {
+        "additionalProperties": false,
+        "description": "Motor preferences, such as reliance on alternative input methods.",
+        "properties": {
+          "avoid_hover_interactions": {
+            "default": false,
+            "title": "Avoid Hover Interactions",
+            "type": "boolean"
+          },
+          "extended_interaction_timeouts": {
+            "default": false,
+            "title": "Extended Interaction Timeouts",
+            "type": "boolean"
+          },
+          "needs_larger_tap_targets": {
+            "default": false,
+            "title": "Needs Larger Tap Targets",
+            "type": "boolean"
+          },
+          "sticky_keys": {
+            "default": false,
+            "title": "Sticky Keys",
+            "type": "boolean"
+          },
+          "uses_eye_tracking": {
+            "default": false,
+            "title": "Uses Eye Tracking",
+            "type": "boolean"
+          },
+          "uses_switch_control": {
+            "default": false,
+            "title": "Uses Switch Control",
+            "type": "boolean"
+          },
+          "uses_voice_control": {
+            "default": false,
+            "title": "Uses Voice Control",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessibilityMotor",
+        "type": "object"
+      },
+      "AccessibilityProfileSchema": {
+        "additionalProperties": false,
+        "description": "How a person experiences an interface.\n\nOptional, and absent means no accessibility configuration was declared rather than none applying. Treat a missing nested key as that field's default rather than as a deliberate choice.",
+        "properties": {
+          "assistive_tech": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Assistive Tech",
+            "type": "array"
+          },
+          "auditory": {
+            "$ref": "#/components/schemas/AccessibilityAuditory"
+          },
+          "cognitive": {
+            "$ref": "#/components/schemas/AccessibilityCognitive"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AccessibilityData"
+          },
+          "extensions": {
+            "additionalProperties": true,
+            "title": "Extensions",
+            "type": "object"
+          },
+          "motor": {
+            "$ref": "#/components/schemas/AccessibilityMotor"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "version": {
+            "const": "1.0",
+            "default": "1.0",
+            "title": "Version",
+            "type": "string"
+          },
+          "visual": {
+            "$ref": "#/components/schemas/AccessibilityVisual"
+          }
+        },
+        "title": "AccessibilityProfileSchema",
+        "type": "object"
+      },
+      "AccessibilityVisual": {
+        "additionalProperties": false,
+        "description": "Visual presentation preferences, such as text size and contrast.",
+        "properties": {
+          "color_filter": {
+            "default": "none",
+            "enum": [
+              "none",
+              "deuteranopia",
+              "protanopia",
+              "tritanopia",
+              "grayscale"
+            ],
+            "title": "Color Filter",
+            "type": "string"
+          },
+          "color_scheme": {
+            "default": "no_preference",
+            "enum": [
+              "no_preference",
+              "light",
+              "dark"
+            ],
+            "title": "Color Scheme",
+            "type": "string"
+          },
+          "contrast_preference": {
+            "default": "default",
+            "enum": [
+              "default",
+              "more",
+              "less"
+            ],
+            "title": "Contrast Preference",
+            "type": "string"
+          },
+          "dyslexia_friendly_font": {
+            "default": false,
+            "title": "Dyslexia Friendly Font",
+            "type": "boolean"
+          },
+          "forced_colors": {
+            "default": false,
+            "title": "Forced Colors",
+            "type": "boolean"
+          },
+          "inverted_colors": {
+            "default": false,
+            "title": "Inverted Colors",
+            "type": "boolean"
+          },
+          "reduce_transparency": {
+            "default": false,
+            "title": "Reduce Transparency",
+            "type": "boolean"
+          },
+          "text_size": {
+            "default": "default",
+            "enum": [
+              "default",
+              "large",
+              "xl",
+              "xxl"
+            ],
+            "title": "Text Size",
+            "type": "string"
+          },
+          "uses_magnifier": {
+            "default": false,
+            "title": "Uses Magnifier",
+            "type": "boolean"
+          },
+          "uses_screen_reader": {
+            "default": false,
+            "title": "Uses Screen Reader",
+            "type": "boolean"
+          }
+        },
+        "title": "AccessibilityVisual",
+        "type": "object"
+      },
       "CreateEnvironmentRequest": {
         "additionalProperties": false,
         "properties": {
@@ -887,6 +1136,19 @@
         "title": "Gender",
         "type": "string"
       },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "Household": {
         "enum": [
           "single",
@@ -1108,7 +1370,7 @@
         "description": "What you may do with an attribute's value.\n\nA separate block, rather than flags scattered across the attribute,\nbecause these three answers change independently: an attribute can be\nserved but not filterable (`bio`), filterable but not served (`age`, which\nis derived from `date_of_birth`), or served and filterable but never\nsettable.",
         "properties": {
           "read_only": {
-            "description": "True when the value cannot be set through this API. Every attribute reports true today: the people surface is read-only at this version. This block is where writability is announced when that changes, so branch on it rather than on the API version.",
+            "description": "True when the value cannot be set through this API. Most attributes are now writable; the ones that are not are either DERIVED from an attribute you can set (`age`, `occupation_code`), STATE an operation owns (`archived_at`, moved by DELETE and restore), or PROVENANCE (`generation_job_id`). Branch on this block rather than on the API version.",
             "title": "Read Only",
             "type": "boolean"
           },
@@ -1348,6 +1610,176 @@
         "title": "PersonSnapshot",
         "type": "object"
       },
+      "PublicGenerationCounts": {
+        "description": "How many people the run was asked for, and how many exist so far.",
+        "properties": {
+          "requested": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The `count` the job was created with, or null when the agent was left to choose. Null here is why `succeeded` can exceed nothing you sent: there was no target.",
+            "title": "Requested"
+          },
+          "succeeded": {
+            "description": "People from this run that exist right now. Climbs while the job is in flight, so polling this is a real progress read. This is also the number you are charged for: a run that under-delivers, fails part-way, or is cancelled bills exactly this many.",
+            "title": "Succeeded",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "succeeded"
+        ],
+        "title": "PublicGenerationCounts",
+        "type": "object"
+      },
+      "PublicGenerationJobRequest": {
+        "additionalProperties": false,
+        "description": "Ask ish to invent people.",
+        "properties": {
+          "count": {
+            "anyOf": [
+              {
+                "maximum": 10,
+                "minimum": 1,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How many people to produce. Omit it and the agent proposes a number for the brief, clamped to 1-10; `credits_estimated` is then null because the ceiling is not known until it decides.",
+            "title": "Count"
+          },
+          "description": {
+            "description": "Who you need. Describe the audience the way you would brief a recruiter: who they are, what they are trying to get done, and what makes them hard to serve. The agent writes each person a background in their own register, and that background is the bulk of what the model is told about them when a session runs, so detail here is what makes a run worth reading.",
+            "maxLength": 100000,
+            "minLength": 10,
+            "title": "Description",
+            "type": "string"
+          },
+          "generate_avatars": {
+            "default": false,
+            "description": "Also generate a portrait for each person. A separate image model call, so it costs one extra credit per person actually produced.",
+            "title": "Generate Avatars",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "description"
+        ],
+        "title": "PublicGenerationJobRequest",
+        "type": "object"
+      },
+      "PublicGenerationJobResponse": {
+        "description": "One generation job, as an external integrator sees it.",
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/PublicGenerationCounts"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "credits_consumed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What you were actually charged. Null until the job reaches a terminal state, then final. That includes `0` for a run that produced nobody, which is different from null.",
+            "title": "Credits Consumed"
+          },
+          "credits_estimated": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What a FULL delivery would cost, stamped at create. A ceiling, not a quote: you are charged for what the run produced. Null when `counts.requested` is null, because there is no ceiling to state.",
+            "title": "Credits Estimated"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The brief the job was created with.",
+            "title": "Description"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the run failed, present only when `status` is `failed`.",
+            "title": "Error"
+          },
+          "generate_avatars": {
+            "title": "Generate Avatars",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "`queued` and `processing` are in flight; `completed`, `failed` and `cancelled` are terminal. `cancelling` means a stop was requested and the run has not noticed yet. Treat this as an open union.",
+            "enum": [
+              "queued",
+              "processing",
+              "completed",
+              "failed",
+              "cancelling",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "workspace_id": {
+            "description": "The workspace the people land in.",
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "status",
+          "generate_avatars",
+          "counts",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PublicGenerationJobResponse",
+        "type": "object"
+      },
       "PublicPersonCountsResponse": {
         "description": "How large the pool is, split by owner.\n\nThe feasibility seed: before building a filter you want to know whether the\nworkspace has 4 people or 4000, and how much of that is the shared library.\n`total` is exactly `self + platform` (the two sets are disjoint), and\nall three are exact counts, not estimates.",
         "properties": {
@@ -1373,6 +1805,183 @@
           "platform"
         ],
         "title": "PublicPersonCountsResponse",
+        "type": "object"
+      },
+      "PublicPersonCreateRequest": {
+        "additionalProperties": false,
+        "description": "A person to create in this workspace.\n\nOnly `name` is required. Everything else is what you know about them;\n`bio` is the highest-leverage field by a distance, because it is the bulk\nof what the model is told when a session runs.",
+        "properties": {
+          "accessibility_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessibilityProfileSchema"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Declared accessibility needs. Validated on the way IN (an unrecognized key is a 422) while the read tolerates keys it does not know: strict where a typo would silently do nothing, lenient where a new key must not break an old client."
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-text background written in the person's own register. This is the bulk of what the model is told about them when a session runs, so it carries more of the simulation than every demographic field combined.",
+            "title": "Bio"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "ISO 3166-1 alpha-2 code, normalized uppercase.",
+            "title": "Country"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EducationLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employment_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmploymentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your own identifier for this person. Unique among the people this workspace owns, so you can address the row by the id your system already holds: `GET .../people?external_id=...`. Reusing one that is taken is a `409`.",
+            "title": "External Id"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "household": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Household"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "income_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomeLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "IAB Content Taxonomy node ids. Every id is checked against the taxonomy: an unknown one is a `422`, never a tag that silently matches nothing later.",
+            "title": "Interests"
+          },
+          "locale_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "description": "The person's display name.",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Free-text job title. ish resolves it to a canonical `occupation_code` where it can, which is what makes occupational family filters work on people you created.",
+            "title": "Occupation"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "PublicPersonCreateRequest",
         "type": "object"
       },
       "PublicPersonListResponse": {
@@ -1426,6 +2035,19 @@
             ],
             "description": "Declared accessibility needs, as a nested object of boolean and enum flags. Only non-default keys are present. An open union: new keys appear over time.",
             "title": "Accessibility Profile"
+          },
+          "archived_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When this person was archived, or null while they are live. An archived person is hidden from the default listing and closed to edits, but stays readable by id and keeps every session that ran for them intact. `POST .../restore` clears it.",
+            "title": "Archived At"
           },
           "avatar_url": {
             "anyOf": [
@@ -1510,6 +2132,18 @@
               }
             ]
           },
+          "external_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Your own identifier for this person, if you set one. Unique among the people your workspace owns. Always null on a `platform` person: the shared library is nobody's to label.",
+            "title": "External Id"
+          },
           "gender": {
             "anyOf": [
               {
@@ -1519,6 +2153,19 @@
                 "type": "null"
               }
             ]
+          },
+          "generation_job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The generation job that produced this person, when one did. This is how you collect a job's results: list people filtered by it.",
+            "title": "Generation Job Id"
           },
           "household": {
             "anyOf": [
@@ -1668,6 +2315,25 @@
         "additionalProperties": false,
         "description": "A capped rule-tree query over the workspace's reachable people.\n\nUnknown keys are rejected rather than ignored: a typo in a filter that\nsilently widened the result set would be indistinguishable from a match.",
         "properties": {
+          "archived": {
+            "default": false,
+            "description": "`false` (the default) searches live people; `true` searches the archive instead. The two sets are disjoint, so this selects which one you are searching rather than widening the search.",
+            "title": "Archived",
+            "type": "boolean"
+          },
+          "generation_job_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Restrict to the people one generation job produced. Reads its own writes: a person is visible here the moment the job records them.",
+            "title": "Generation Job Id"
+          },
           "owner": {
             "anyOf": [
               {
@@ -1715,6 +2381,182 @@
           }
         },
         "title": "PublicPersonSearchRequest",
+        "type": "object"
+      },
+      "PublicPersonUpdateRequest": {
+        "additionalProperties": false,
+        "description": "Fields to change on a person. Everything is optional.\n\n**Omitting a field leaves it alone; sending it as `null` CLEARS it.** The\ntwo are distinguishable here and are not the same request, which is what\nlets you blank a value you no longer stand behind without having to send\nthe whole person back.",
+        "properties": {
+          "accessibility_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AccessibilityProfileSchema"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "bio": {
+            "anyOf": [
+              {
+                "maxLength": 8000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "city": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "City"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "date_of_birth": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Of Birth"
+          },
+          "education_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EducationLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "employment_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EmploymentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "external_id": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "External Id"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Gender"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "household": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Household"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "income_level": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IncomeLevel"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Replaces the whole set. `[]` clears every interest; `null` leaves them untouched.",
+            "title": "Interests"
+          },
+          "locale_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LocaleType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 255,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A person must have a name, so this is the one field `null` cannot clear: sending null leaves the current name in place.",
+            "title": "Name"
+          },
+          "occupation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Occupation"
+          }
+        },
+        "title": "PublicPersonUpdateRequest",
         "type": "object"
       },
       "Sentiment": {
@@ -3000,7 +3842,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.2.0"
+    "version": "1.3.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5633,6 +6475,56 @@
             }
           },
           {
+            "description": "Look a person up by the id YOUR system gave them. Exact match, and at most one person can carry it, so a hit is a one-item page and a miss is an empty one. This is the lookup, and it lives here rather than on a path so that a missing external id is an empty result rather than a 404 you have to branch on.",
+            "in": "query",
+            "name": "external_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 255,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Look a person up by the id YOUR system gave them. Exact match, and at most one person can carry it, so a hit is a one-item page and a miss is an empty one. This is the lookup, and it lives here rather than on a path so that a missing external id is an empty result rather than a 404 you have to branch on.",
+              "title": "External Id"
+            }
+          },
+          {
+            "description": "Restrict to the people one generation job produced. This is how a job's results are collected: poll the job, then list by its id. Reads its own writes.",
+            "in": "query",
+            "name": "generation_job_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Restrict to the people one generation job produced. This is how a job's results are collected: poll the job, then list by its id. Reads its own writes.",
+              "title": "Generation Job Id"
+            }
+          },
+          {
+            "description": "`false` (the default) lists live people; `true` lists the archive instead. The two sets are disjoint, so this chooses which one you are looking at rather than widening the list.",
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "`false` (the default) lists live people; `true` lists the archive instead. The two sets are disjoint, so this chooses which one you are looking at rather than widening the list.",
+              "title": "Archived",
+              "type": "boolean"
+            }
+          },
+          {
             "description": "Opaque keyset cursor from a prior page's `next_cursor`.",
             "in": "query",
             "name": "after",
@@ -5771,11 +6663,185 @@
         "tags": [
           "people"
         ]
+      },
+      "post": {
+        "description": "Create a person in this workspace.\n\nOnly `name` is required. The person is yours: private to this workspace,\nimmediately usable in a session, and never added to the shared library\n(publishing is a moderated act in the ish app, not a field here).\n\n`bio` is the field that matters. Demographics steer a simulated person at\nthe margins; the free-text background is the bulk of what the model is\nactually told about them.\n\nSet `external_id` to your own identifier for this person and you can address\nthem by it afterwards without storing ours: `GET .../people?external_id=...`.\nIt is unique within the workspace, so a second create under the same one is\na `409` naming the row you already have.\n\nSupports the standard `Idempotency-Key` header: the same key with the same\nbody replays the original person as a `200`, and the same key with a\ndifferent body is a `409`.",
+        "operationId": "createPerson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPersonCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "An `Idempotency-Key` replay: the person the original request created, returned as is. Nothing on the retried request was applied.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `person_external_id_taken` (another person in this workspace already carries that `external_id`; the detail names them) or `idempotency_conflict` (the `Idempotency-Key` was reused with a different body).",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The ordinary field-level validation envelope, or `detail.error_kind` `interest_id_unknown` when `interests` names an id that is not in the IAB Content Taxonomy.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Person",
+        "tags": [
+          "people",
+          "people"
+        ]
       }
     },
     "/api/v1/workspaces/{workspace_id}/people/counts": {
       "get": {
-        "description": "How many people this credential can reach, split by owner.\n\nCheaper than paging the list to find out, and the number you want before\nbuilding a filter: it tells you whether a rule that matches 3 people is a\nprecise audience or a nearly-empty workspace. Exact counts, not estimates.",
+        "description": "How many people this credential can reach, split by owner.\n\nCheaper than paging the list to find out, and the number you want before\nbuilding a filter: it tells you whether a rule that matches 3 people is a\nprecise audience or a nearly-empty workspace. Exact counts, not estimates.\n\nCounts the same pool the list pages, archive state included: a count that\ndisagreed with the list it introduces would be worse than no count.",
         "operationId": "getPeopleCounts",
         "parameters": [
           {
@@ -5786,6 +6852,18 @@
               "format": "uuid",
               "title": "Workspace Id",
               "type": "string"
+            }
+          },
+          {
+            "description": "`false` (the default) counts live people, matching what the list serves; `true` counts the archive.",
+            "in": "query",
+            "name": "archived",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "`false` (the default) counts live people, matching what the list serves; `true` counts the archive.",
+              "title": "Archived",
+              "type": "boolean"
             }
           }
         ],
@@ -5899,9 +6977,498 @@
         ]
       }
     },
+    "/api/v1/workspaces/{workspace_id}/people/generation-jobs": {
+      "post": {
+        "description": "Generate people from a description of who you need.\n\nDescribe the audience in `description`: who they are, what they are trying\nto do, what makes them hard. The agent writes each person a background in\ntheir own register, which is the part that actually drives a simulation.\n\nRuns asynchronously. Poll `GET .../generation-jobs/{id}`, or send\n`Prefer: wait=10` (1-60 seconds) to hold this response open until the job\nfinishes. A wait that expires is not an error: you get the job's current\nstate and `status` tells you it is still going.\n\nCollect the results from the people listing:\n`GET .../people?generation_job_id={id}`. A person appears there the moment\nthe job records them, so you can read partial results while a run is still\nin flight, and after cancelling one.\n\n## What it costs\n\n2 credits per person actually produced, 3 with `generate_avatars`. Charged\non what was DELIVERED, never on what was requested: a run asked for 5 that\nproduces 3 costs 6. `credits_estimated` on the response is the ceiling that\na full delivery would cost, and is null when you let the agent choose the\ncount. `credits_consumed` is null until the job finishes, then it is what\nyou were charged.\n\nSend an `Idempotency-Key`. A retry without one starts a second run and\nspends again.",
+        "operationId": "createPeopleGenerationJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Prefer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prefer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicGenerationJobRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGenerationJobResponse"
+                }
+              }
+            },
+            "description": "An `Idempotency-Key` replay: the job the original request created, in whatever state it has reached. No second run was started and nothing was charged twice.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGenerationJobResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "Either the API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`), or the run would take the workspace past its plan's ceiling on how many people may exist (`plan_limit_reached`, carrying `current`, `max` and `tier`). The second is checked BEFORE the run is enqueued, so an at-ceiling caller is refused without any spend. It is a `403` and not a `402` on purpose: topping up credits does not raise a ceiling on how many people you may hold.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` `idempotency_conflict`: the `Idempotency-Key` was reused with a different body.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Create Generation Job",
+        "tags": [
+          "people",
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/generation-jobs/{job_id}": {
+      "get": {
+        "description": "Read a generation job's current state.\n\n`counts.succeeded` climbs while the run is in flight, so this is a real\nprogress read rather than a binary done/not-done. Send `Prefer: wait=n`\n(1-60 seconds) to have the response held until the job finishes instead of\npolling in a loop; the response carries `Preference-Applied: wait=n` when\nthe wait was honoured.\n\nA job belonging to another workspace answers `404`, the same as one that\ndoes not exist.",
+        "operationId": "getPeopleGenerationJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Prefer",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Prefer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGenerationJobResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or generation job (`workspace_id`, `job_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `generation_job_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Get Generation Job",
+        "tags": [
+          "people",
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/generation-jobs/{job_id}/cancel": {
+      "post": {
+        "description": "Stop a running job. The people it already made are yours, and are billed.\n\nAnswers `200` with the job rather than `204`, because the state you get back\nis the point: `cancelling` means the run was asked to stop and has not\nnoticed yet, `cancelled` means it has stopped for good. A job that had\nalready finished is returned untouched: cancelling something that is over\nis a no-op, not an error, which is what makes this safe to fire on a timeout\nyou are not sure about.\n\n**Cancelling is not a refund.** Every person the run produced before it\nstopped exists in the workspace, is usable in a session, and is charged for\nat the ordinary rate. Read them with\n`GET .../people?generation_job_id={id}`; `counts.succeeded` and\n`credits_consumed` on the cancelled job say how many and how much.",
+        "operationId": "cancelPeopleGenerationJob",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicGenerationJobResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or generation job (`workspace_id`, `job_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `generation_job_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Cancel Generation Job",
+        "tags": [
+          "people",
+          "people"
+        ]
+      }
+    },
     "/api/v1/workspaces/{workspace_id}/people/schema": {
       "get": {
-        "description": "Every attribute a person can carry: its type, its values, how to filter it.\n\nThis is the authoritative vocabulary for the search endpoint. An attribute\nlisted here with a `filter` block can be used in a rule; one without cannot,\nand one absent entirely is refused rather than silently matching nothing.\n\nCache it. It is the same for every workspace and changes only when ish adds\nan attribute or an enum value, both of which are additive.\n\nEvery attribute currently reports `writability.read_only: true` because this\nAPI reads and searches people, it does not create or edit them. That block\nis where writability will be announced, so branch on it rather than on a\nversion number.",
+        "description": "Every attribute a person can carry: its type, its values, how to filter it.\n\nThis is the authoritative vocabulary for the search endpoint. An attribute\nlisted here with a `filter` block can be used in a rule; one without cannot,\nand one absent entirely is refused rather than silently matching nothing.\n\nCache it. It is the same for every workspace and changes only when ish adds\nan attribute or an enum value, both of which are additive.\n\nRead `writability` rather than guessing from a version number. Most\nattributes are settable through the create and update endpoints; the ones\nthat are not fall into three groups, and the block says which: derived from\nsomething you can set (`age`, `occupation_code`), owned by an operation\nrather than a field (`archived_at`), or provenance (`generation_job_id`).",
         "operationId": "getPeopleSchema",
         "parameters": [
           {
@@ -6116,6 +7683,135 @@
             "content": {
               "application/json": {
                 "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Search People",
+        "tags": [
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/{person_id}": {
+      "delete": {
+        "description": "Archive a person: hide them from the pool, keep everything they did.\n\n**This is not an erasure, and this API has no erasure.** Archiving stamps `archived_at`. The person drops out of the default listing, search and counts, and is closed to edits. Everything else survives, on purpose:\n\n- Their id keeps resolving, so a reference you stored still reads.\n- Every session that ran for them keeps its own frozen copy of who they were at the time, byte for byte. That copy is what makes a finished run reproducible, and archiving cannot rewrite it.\n- `POST .../restore` puts them back, unchanged.\n\nReturns the archived person rather than an empty `204`, so you can see `archived_at` without a follow-up read. Idempotent: archiving an archived person succeeds and leaves the original instant in place.\n\nErasing a person for real is deliberately not offered here. It is irreversible and it rewrites finished runs, so it belongs with a human in the ish app.",
+        "operationId": "archivePerson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or person (`workspace_id`, `person_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `person_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
                   "oneOf": [
                     {
                       "$ref": "#/components/schemas/ValidationError"
@@ -6155,13 +7851,12 @@
             "bearerAuth": []
           }
         ],
-        "summary": "Search People",
+        "summary": "Archive Person",
         "tags": [
+          "people",
           "people"
         ]
-      }
-    },
-    "/api/v1/workspaces/{workspace_id}/people/{person_id}": {
+      },
       "get": {
         "description": "Fetch one person by id.\n\nThe read names a workspace because the pool does. Alongside the people your\nworkspace owns, you can read the ones published in the shared ish library,\nand a library person belongs to no workspace of their own. Naming the\nworkspace you are asking as is what lets the same library person be readable\nthrough any workspace you belong to, so this read is workspace-scoped where\na session, an environment or a task is not.\n\nReachability is the same rule the list uses, so a person this workspace can\nneither own nor run answers `404` with `error_kind` `person_not_found`,\nidentical to an id that does not exist. That is deliberate: a\ndistinguishable answer would let anyone test which ids are real.",
         "operationId": "getPerson",
@@ -6293,6 +7988,296 @@
         ],
         "summary": "Get Person",
         "tags": [
+          "people"
+        ]
+      },
+      "patch": {
+        "description": "Change what you know about a person.\n\nSend only the fields you are changing. **Omitting a field leaves it alone; sending it as `null` clears it.** The two are different requests, so you never have to read a person back and echo their whole state in order to edit one field.\n\nThe one exception is `name`, which a person must have: `null` there leaves the current name in place rather than blanking it.\n\n`interests` replaces the whole set. `[]` clears it; omitting it changes nothing.",
+        "operationId": "updatePerson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPersonUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or person (`workspace_id`, `person_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `person_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "`detail.error_kind` is `person_archived` (restore them first) or `person_external_id_taken`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Update Person",
+        "tags": [
+          "people",
+          "people"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/people/{person_id}/restore": {
+      "post": {
+        "description": "Put an archived person back in the pool.\n\nClears `archived_at` and nothing else: the person returns exactly as they were. Sessions that ran for them are unchanged either way, because they were never reading the live row. Idempotent on a person who is not archived.",
+        "operationId": "restorePerson",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "person_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Person Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPersonResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace or person (`workspace_id`, `person_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found` or `person_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Restore Person",
+        "tags": [
+          "people",
           "people"
         ]
       }
