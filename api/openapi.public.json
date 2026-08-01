@@ -1,6 +1,24 @@
 {
   "components": {
     "headers": {
+      "XRateLimitLimit": {
+        "description": "Ceiling for the rate-limit window this request charged. Present on responses made with an API key against a rate-limited operation, including the `429` itself; absent for user access tokens (which carry no per-key budget) and when the rate-limit backend could not be read.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "XRateLimitRemaining": {
+        "description": "Requests left in that window AFTER this one was counted. Pace off this rather than waiting for a `429`.",
+        "schema": {
+          "type": "integer"
+        }
+      },
+      "XRateLimitReset": {
+        "description": "**Seconds from now** until that window resets (a delta, NOT a Unix timestamp). Measured when the response is written. Omitted on the rare occasion the reset instant could not be read, while `limit` and `remaining` are still published.",
+        "schema": {
+          "type": "integer"
+        }
+      },
       "XRequestId": {
         "description": "Per-response correlation id, present on EVERY response (success and error). Error bodies echo it as `request_id`.",
         "schema": {
@@ -3836,13 +3854,13 @@
       "name": "ish developer platform",
       "url": "https://docs.ishlabs.io/"
     },
-    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives. Two kinds are available to you:   the ones your workspace owns, and the ones published in the shared ish   library. Both are listed and searchable under `/v1/workspaces/{workspace_id}/people`, and each carries an `owner` saying which it is.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, `tasks:read` / `tasks:write` for the task registry, and `people:read` to list and search the people you can run a session for. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope, and for `people:read`, explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open. User access tokens are not rate limited.\n",
+    "description": "The ish Developer API: the entry point for getting human feedback on whatever you're building, in whichever format you need.\n\nIts first surface is **sessions**: you open a session for one of your people inside *your own* environment, submit what that person perceives (human-sensory observations: a rendered screen, an error message) along with the set of actions your environment currently offers, and they decide one action per turn and tell you how it felt. Your code executes the chosen action and loops. **The loop is decide-only: ish never locates, drives, or executes anything inside your environment.** You stay in control of what runs; we tell you what a person would do next and why.\n\n## Vocabulary\n\nThe public vocabulary is **workspace**, **person**, **environment**, and **session**, and the wire uses these names directly:\n\n- `workspace_id`: the workspace that owns the person and is billed for the   session (the create path is `/workspaces/{workspace_id}/sessions`).\n- `person_id`: the person the session drives. Two kinds are available to you:   the ones your workspace owns, and the ones published in the shared ish   library. Both are listed and searchable under `/v1/workspaces/{workspace_id}/people`, and each carries an `owner` saying which it is.\n- `environment_id`: a registered environment in that workspace: a named target   with its own operating notes and default action vocabulary. Register one and   reference it, or describe an ad-hoc one inline on the session; supply exactly   one of the two.\n\n**\"Session\" here means one API session: a single person working toward one task in your environment, turn by turn.** It is not the ish product's notion of a study session (someone sitting down with a study), and it is unrelated to a browser session. Sessions live under `/v1/sessions`.\n\n## Authentication\n\nAll requests use a bearer token: `Authorization: Bearer <token>`. The token is a **workspace API key** (prefix `ish_sk_live_`), a workspace-scoped machine principal minted in Settings > Developers and shown exactly once at mint. Scopes: `sessions:run` (create, submit turns, close), `sessions:read` (read the session and trace), `environments:read` / `environments:write` for the environment registry, `tasks:read` / `tasks:write` for the task registry, and `people:read` to list and search the people you can run a session for. Keys are minted with `sessions:run`, `sessions:read`, and `tasks:read`; ask for any `:write` scope, and for `people:read`, explicitly. An ish user access token (JWT) also works on the same header for personal scripts; server integrations should use keys.\n\n## Versioning & forward-compatibility\n\nThe API is versioned in the URL path (`/api/v1`). Several enum-typed and block-typed fields are **open unions**: new values may be added over time, and clients MUST tolerate values they do not recognize rather than failing on them. The field descriptions call these out.\n\n## Correlation & errors\n\nEvery response carries an **`X-Request-Id`** header; quote it in support requests. Error responses additionally echo it in the body as `request_id`.\n\nTwo error-body shapes exist; parse defensively, they differ:\n\n- **`ValidationError`**: the request-validation layer (HTTP 422): a malformed   body (wrong types, missing fields, an invalid observation `type`, a bad enum   value, `parameters` that don't fit the model). A field-level envelope   (`error_code`, `errors[]`, `suggestions[]`; `suggestions` is CLI-oriented   boilerplate; ignore it for API use).\n- **`Error`**: everything else, a `{ detail, request_id }` envelope. This   covers the handler layer's business-rule 422s (e.g. `exactly one image   observation block is required`; `person has no renderable background`) as well   as 401 / 402 / 403 / 404 / 409 / 429 / 502.\n\nThat is why 422 is documented on the responses below as either shape (`oneOf`).\n\n**Branch on `detail.error_kind`, not on the status code.** On every refusal this API classifies, `detail` is an object rather than a string:\n\n```json\n{\n  \"detail\": {\n    \"error_kind\": \"turn_index_mismatch\",\n    \"message\": \"expected turn_index 4, got 3\",\n    \"expected_turn_index\": 4\n  },\n  \"request_id\": \"9f2c...\",\n  \"docs_url\": \"https://docs.ishlabs.io/api/errors#turn_index_mismatch\"\n}\n```\n\n`error_kind` is the stable, machine-readable classification; `message` is for humans and may be reworded; any further keys carry the specifics you would act on. One status often covers several kinds with different remedies. A 402 is either \"top up\" or \"raise your cap\"; a 429 is either \"slow down\" or \"you are out of sessions for today\". The status alone is not enough to decide what to do. `docs_url` links to that kind's entry in the error catalog.\n\nThe set of kinds is an **open union**: new ones are added as new refusals are classified, so treat an unfamiliar `error_kind` as \"an error of this status class\" rather than failing on it. `message` is always present.\n\n## Rate limits\n\nAPI keys carry a per-key request budget and, on session creates, a per-key daily session quota. Exceeding either is a `429` with a `Retry-After` header (also echoed as `detail.retry_after_seconds`) and a distinct `error_kind`: `rate_limited` resets within the minute, `session_quota_exceeded` on a day boundary. Both are transient and neither affects sessions that are already open.\n\nYou do not have to wait for the `429` to find out. Every key-authed response, including the `429` itself, carries the budget it just spent:\n\n- **`x-ratelimit-limit`**: the ceiling for that window.\n- **`x-ratelimit-remaining`**: what is left in it after this request.\n- **`x-ratelimit-reset`**: **seconds from now** until the window resets. A   delta, not a Unix timestamp.\n\nWhen a request charges more than one budget (a session create spends both), the headers describe the one closest to refusing you, so pacing off `remaining` is always pacing off the binding constraint. Treat all three as optional: they are absent when nothing was charged, and `reset` alone can be omitted if the limit backend cannot be read at that moment.\n\nUser access tokens are deliberately not rate limited, so their responses carry no `x-ratelimit-*` headers. The per-key budgets exist because a key is a machine principal that can loop unattended; an interactive session is bounded by the person driving it.\n",
     "license": {
       "identifier": "LicenseRef-Proprietary",
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.3.0"
+    "version": "1.4.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -3868,6 +3886,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -3883,6 +3910,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -3898,6 +3934,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -3913,6 +3958,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -3935,6 +3989,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -3950,6 +4013,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -3992,6 +4064,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4007,6 +4088,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4022,6 +4112,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4037,6 +4136,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4059,6 +4167,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4074,6 +4191,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4126,6 +4252,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4141,6 +4276,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4156,6 +4300,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4171,6 +4324,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4186,6 +4348,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4208,6 +4379,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4223,6 +4403,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4267,6 +4456,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4282,6 +4480,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4297,6 +4504,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4312,6 +4528,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4327,6 +4552,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4349,6 +4583,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4364,6 +4607,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4401,6 +4653,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4416,6 +4677,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4431,6 +4701,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4446,6 +4725,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4468,6 +4756,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4483,6 +4780,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4525,6 +4831,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4540,6 +4855,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4555,6 +4879,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4570,6 +4903,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4592,6 +4934,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4607,6 +4958,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4659,6 +5019,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4674,6 +5043,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4689,6 +5067,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4704,6 +5091,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4719,6 +5115,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4741,6 +5146,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4756,6 +5170,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4810,6 +5233,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4825,6 +5257,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4840,6 +5281,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4855,6 +5305,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4877,6 +5336,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4892,6 +5360,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -4972,6 +5449,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -4987,6 +5473,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5002,6 +5497,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5017,6 +5521,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5032,6 +5545,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5047,6 +5569,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5069,6 +5600,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5084,6 +5624,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5226,6 +5775,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5241,6 +5799,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5256,6 +5823,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5271,6 +5847,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5293,6 +5878,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5308,6 +5902,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5323,6 +5926,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5367,6 +5979,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5382,6 +6003,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5397,6 +6027,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5412,6 +6051,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5434,6 +6082,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5449,6 +6106,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5464,6 +6130,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5518,6 +6193,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5533,6 +6217,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5548,6 +6241,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5563,6 +6265,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5578,6 +6289,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5593,6 +6313,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5615,6 +6344,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5630,6 +6368,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5645,6 +6392,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5660,6 +6416,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5697,6 +6462,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5712,6 +6486,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5727,6 +6510,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5742,6 +6534,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5757,6 +6558,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5779,6 +6589,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5794,6 +6613,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5836,6 +6664,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5851,6 +6688,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5866,6 +6712,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5881,6 +6736,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5903,6 +6767,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5918,6 +6791,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -5970,6 +6852,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -5985,6 +6876,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6000,6 +6900,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6015,6 +6924,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6030,6 +6948,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6052,6 +6979,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6067,6 +7003,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -6121,6 +7066,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6136,6 +7090,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6151,6 +7114,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6166,6 +7138,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6188,6 +7169,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6203,6 +7193,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -6294,6 +7293,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6309,6 +7317,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6324,6 +7341,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6339,6 +7365,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6354,6 +7389,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6369,6 +7413,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6391,6 +7444,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6406,6 +7468,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -6568,6 +7639,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6583,6 +7663,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6598,6 +7687,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6613,6 +7711,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6635,6 +7742,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6650,6 +7766,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -6718,6 +7843,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6733,6 +7867,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6748,6 +7891,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6763,6 +7915,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6778,6 +7939,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6793,6 +7963,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6808,6 +7987,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6823,6 +8011,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -6880,6 +8077,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6895,6 +8101,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6910,6 +8125,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6925,6 +8149,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6947,6 +8180,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -6962,6 +8204,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7048,6 +8299,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7063,6 +8323,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7078,6 +8347,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7093,6 +8371,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7108,6 +8395,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7123,6 +8419,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7145,6 +8450,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7160,6 +8474,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7231,6 +8554,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7246,6 +8578,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7261,6 +8602,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7276,6 +8626,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7298,6 +8657,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7313,6 +8681,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7368,6 +8745,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7383,6 +8769,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7398,6 +8793,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7413,6 +8817,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7435,6 +8848,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7450,6 +8872,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7495,6 +8926,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7510,6 +8950,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7525,6 +8974,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7540,6 +8998,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7562,6 +9029,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7577,6 +9053,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7631,6 +9116,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7646,6 +9140,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7661,6 +9164,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7676,6 +9188,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7691,6 +9212,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7706,6 +9236,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7760,6 +9299,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7775,6 +9323,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7790,6 +9347,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7805,6 +9371,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7827,6 +9402,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7842,6 +9426,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -7895,6 +9488,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7910,6 +9512,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7925,6 +9536,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7940,6 +9560,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7962,6 +9591,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -7977,6 +9615,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -8039,6 +9686,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8054,6 +9710,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8069,6 +9734,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8084,6 +9758,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8099,6 +9782,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8114,6 +9806,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8129,6 +9830,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -8184,6 +9894,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8199,6 +9918,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8214,6 +9942,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8229,6 +9966,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8251,6 +9997,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8266,6 +10021,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -8495,6 +10259,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8510,6 +10283,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8525,6 +10307,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8540,6 +10331,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8562,6 +10362,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8577,6 +10386,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -8660,6 +10478,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8675,6 +10502,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8690,6 +10526,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8705,6 +10550,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8720,6 +10574,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8735,6 +10598,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8757,6 +10629,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8772,6 +10653,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8787,6 +10677,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -8843,6 +10742,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8858,6 +10766,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8873,6 +10790,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8888,6 +10814,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8910,6 +10845,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -8925,6 +10869,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
@@ -9011,6 +10964,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9026,6 +10988,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9041,6 +11012,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9056,6 +11036,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9071,6 +11060,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9086,6 +11084,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9108,6 +11115,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           },
@@ -9123,6 +11139,15 @@
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
               }
             }
           }
