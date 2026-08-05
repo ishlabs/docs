@@ -1258,6 +1258,31 @@
         "title": "ObservationBlock",
         "type": "object"
       },
+      "ObservationPurgeResponse": {
+        "description": "Outcome of a request to delete a session's retained observation frames.\n\n`observations_deleted` counts frames actually removed. `delete_failures` counts frames whose stored object could not be removed; their references are kept so a retry or the next expiry sweep collects them. The two are reported separately, rather than as one boolean, because they answer different halves of \"is it gone\".\n\nA non-zero `delete_failures` is not a failed request: it was accepted and partially applied. Re-issue until it reads zero if you need certainty. All zeros is the normal result for a session that retained nothing.",
+        "properties": {
+          "delete_failures": {
+            "title": "Delete Failures",
+            "type": "integer"
+          },
+          "observations_deleted": {
+            "title": "Observations Deleted",
+            "type": "integer"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "observations_deleted",
+          "delete_failures"
+        ],
+        "title": "ObservationPurgeResponse",
+        "type": "object"
+      },
       "ObservationRetention": {
         "description": "How long a session's observation frames are kept: `none` (discarded after the turn), `30d`, `90d`, or `indefinite`.\n\nOne field rather than a flag beside a window, so the incoherent pair (off, 90 days) cannot be expressed. Resolved once when the session opens, from the session's own value or the registered environment's default, and fixed for that session's lifetime: editing the environment later never changes what an open session promised.\n\nOpen union: new windows may be added over time; clients must tolerate unknown values rather than failing on them.",
         "enum": [
@@ -4268,7 +4293,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.5.0"
+    "version": "1.6.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -6557,6 +6582,162 @@
           }
         ],
         "summary": "Close Session",
+        "tags": [
+          "sessions"
+        ]
+      }
+    },
+    "/api/v1/sessions/{session_id}/observations": {
+      "delete": {
+        "description": "Delete this session's retained observation frames now, without waiting for its retention window to expire.\n\nOnly the frames are erased. The session, its turns, and its full decision trace survive. Requires the `sessions:run` scope.\n\nIdempotent and safe to re-issue: a session that retained nothing returns zeros. A non-zero `delete_failures` means some frames remain and their references were kept so a retry can collect them, so the request succeeded while the erasure is still incomplete.",
+        "operationId": "purgeSessionObservations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObservationPurgeResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `sessions:run` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'sessions:run'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "Purge Session Observations",
         "tags": [
           "sessions"
         ]
