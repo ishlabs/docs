@@ -597,6 +597,7 @@
             "type": "string"
           },
           "name": {
+            "description": "Names a visible affordance, never its hidden meaning. Use bare targets and generic verbs. A label must not encode state the person could not read off the rendered frame: `take_rusty_key` leaks an object's identity and role, and chess SAN like `nxe5_check` leaks the piece and the check. Declare what is pressable; the meaning is read off the pixels. This is a contract, not a validated constraint: a leaking label is accepted, and it silently corrupts the findings this session exists to produce.",
             "pattern": "^[a-z][a-z0-9_]{0,63}$",
             "title": "Name",
             "type": "string"
@@ -4293,7 +4294,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.6.0"
+    "version": "1.6.1"
   },
   "openapi": "3.1.0",
   "paths": {
