@@ -25,14 +25,14 @@ Do not restate side B's goal inside side A's scenario, or vice versa. Cross-leak
 `group_a` and `group_b` pair 1:1 by index. Side A's first person talks to side B's first person, the second to the second, and so on.
 
 ```
-group_a = [tp-aaa, tp-bbb]
-group_b = [tp-ccc, tp-ddd]
+group_a = [p-aaa, p-bbb]
+group_b = [p-ccc, p-ddd]
               |        |
       conversation 0  conversation 1
-      (tp-aaa <-> tp-ccc)  (tp-bbb <-> tp-ddd)
+      (p-aaa <-> p-ccc)  (p-bbb <-> p-ddd)
 ```
 
-Equal counts zip 1:1. One side of exactly one **broadcasts** to the other: `[tp-aaa]` against `[tp-ccc, tp-ddd]` makes two conversations that share `tp-aaa`. That is the 1xN rehearsal, fix one side and vary the other. Any other mismatch is rejected.
+Equal counts zip 1:1. One side of exactly one **broadcasts** to the other: `[p-aaa]` against `[p-ccc, p-ddd]` makes two conversations that share `p-aaa`. That is the 1xN rehearsal, fix one side and vary the other. Any other mismatch is rejected.
 
 You rarely list person IDs by hand. The recommended path is criteria-driven: hand each side a `RoleCriteria` filter and the backend resolves the pool when the iteration is created. Reach for explicit `group_a` / `group_b` only when you already have a hand-curated panel from [`concepts/people`](/concepts/people).
 
@@ -179,8 +179,8 @@ study_add_iteration(
     name="Iteration 1",
     modality="chat",
     chat_pair=ChatPairConfig(
-        group_a=["tp-aaa"],
-        group_b=["tp-ccc", "tp-ddd"],
+        group_a=["p-aaa"],
+        group_b=["p-ccc", "p-ddd"],
         scenario_a="You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot.",
         scenario_b="You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in.",
     ),
@@ -193,8 +193,8 @@ ish iteration create \
   --study s-b2c \
   --name "Iteration 1" \
   --chat-mode participant_pair \
-  --group-a tp-aaa \
-  --group-b tp-ccc,tp-ddd \
+  --group-a p-aaa \
+  --group-b p-ccc,p-ddd \
   --scenario-a "You're a sales rep pitching an analytics SaaS to a CTO. Goal: secure a 30-day pilot." \
   --scenario-b "You're a CTO evaluating new analytics tools. Goal: stay within budget; avoid lock-in."
 ```

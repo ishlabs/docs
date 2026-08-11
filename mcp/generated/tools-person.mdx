@@ -28,7 +28,7 @@ hand-tailored material to a single persona after the fact (vs.
 rejects shared/published profiles (moderation gate); the MCP surfaces
 that as ``[validation_error]`` with a "must be private" message.
 
-`person_id`: UUID or short alias (e.g. ``tp-d4e``); must be a
+`person_id`: UUID or short alias (e.g. ``p-d4e``); must be a
 caller-owned private profile.
 `source`: file payload - exactly one of ``source`` / ``evidence``.
 `evidence`: 1..N ``EvidenceTraceInput`` rows (mutually exclusive with
@@ -43,7 +43,7 @@ not_found, forbidden, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 <ParamField body="source" type="object">
 &nbsp;
@@ -79,7 +79,7 @@ Public-pool profiles cannot be deleted by individual workspaces; the
 backend rejects those with ``[auth_failed]`` (or ``[not_found]`` if
 the profile does not exist).
 
-`person_id`: UUID or short alias (e.g. ``tp-d4e``) of the person
+`person_id`: UUID or short alias (e.g. ``p-d4e``) of the person
 to delete.
 
 **Returns** ``&#123;"deleted": True, "person_id": &lt;id>}`` on success; on
@@ -88,7 +88,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 
 ## `person_generate`
@@ -150,7 +150,7 @@ against existing sources without re-uploading.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 <ParamField body="description" type="string">
 &nbsp;
@@ -216,7 +216,7 @@ Three text-search dimensions (each case-insensitive substring, AND'd):
 occupation (OR'd within the dimension).
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`person_id`: UUID or short alias (e.g. ``tp-d4e``); omit to list.
+`person_id`: UUID or short alias (e.g. ``p-d4e``); omit to list.
 `country`: ISO-3166-alpha-2 codes. `gender`: gender labels.
 `occupation`: free-text occupation substrings (OR'd).
 `role_in`: canonical role keys (``founder``, ``product_leader``,
@@ -264,7 +264,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 <ParamField body="person_id" type="string">
 &nbsp;
@@ -381,7 +381,7 @@ network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 <ParamField body="source_path" type="string">
 &nbsp;

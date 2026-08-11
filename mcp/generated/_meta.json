@@ -1,10 +1,10 @@
 {
   "generator": "generate_docs_mcp.py",
-  "tool_count": 40,
+  "tool_count": 45,
   "resource_count": 10,
   "tags": [
+    "account",
     "ask",
-    "brand",
     "chatbot",
     "compat",
     "connect",
@@ -13,6 +13,7 @@
     "docs",
     "person",
     "read",
+    "reference",
     "simulation",
     "site_access",
     "study",
@@ -30,7 +31,7 @@
     "tools-site-access",
     "tools-connect",
     "tools-upload",
-    "tools-brand",
+    "tools-reference",
     "tools-docs"
   ]
 }

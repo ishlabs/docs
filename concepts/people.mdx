@@ -109,11 +109,11 @@ person_generate(
 person_get(workspace_id="w-6ec", country=["SE"], age_min=35, age_max=50)
 
 # Read one profile
-person_get(workspace_id="w-6ec", person_id="tp-d4e")
+person_get(workspace_id="w-6ec", person_id="p-d4e")
 ```
 </CodeGroup>
 
-Both surfaces mint a short alias for each person, but the prefix differs: the CLI uses `p-` (for example `p-d4e`, as in `--person p-795,p-af2`), the MCP server uses `tp-` (for example `tp-d4e`). Either is accepted anywhere its own surface expects an id, alongside the full UUID. For full flags, parameters, and return shapes, see the [CLI person reference](/cli/generated/person) and the [MCP person tools](/mcp/generated/tools-person).
+Both surfaces mint a short alias for each person, but the prefix differs: the CLI uses `p-` (for example `p-d4e`, as in `--person p-795,p-af2`), the MCP server uses `tp-` (for example `p-d4e`). Either is accepted anywhere its own surface expects an id, alongside the full UUID. For full flags, parameters, and return shapes, see the [CLI person reference](/cli/generated/person) and the [MCP person tools](/mcp/generated/tools-person).
 
 ## Related
 

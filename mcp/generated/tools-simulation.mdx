@@ -32,7 +32,7 @@ Set exactly one scope of ``participant_id`` / ``study_id`` /
   scoped to one round when ``round`` is given (1-indexed) or all rounds
   otherwise.
 
-`participant_id`: UUID or alias (``t-...``) of one participant.
+`participant_id`: UUID or alias (``pt-...``) of one participant.
 `study_id`: UUID or alias (``s-...``) - fans out across all iterations.
 `iteration_id`: UUID or alias (``i-...``) - fans out across one iteration.
 `ask_id`: UUID or alias (``a-...``) - fans out across the ask audience.
@@ -74,7 +74,7 @@ The source must be terminal (``completed`` / ``failed`` / ``cancelled``).
 The backend spawns a **new** participant under the same iteration,
 branched from the source's last interaction; the source row is untouched.
 
-`participant_id`: UUID or alias (``t-...``) of the source participant.
+`participant_id`: UUID or alias (``pt-...``) of the source participant.
 `additional_steps`: more interactions to allow past the original cap.
 Default 10; capped server-side (the failure envelope names the bound).
 `instruction`: optional user message injected as overriding direction for
@@ -96,7 +96,7 @@ out), or a backend error code.
 
 ### Parameters
 <ParamField body="participant_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 <ParamField body="additional_steps" type="integer">
 Default: `10`.

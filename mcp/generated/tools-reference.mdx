@@ -1,0 +1,135 @@
+---
+title: "reference tools"
+description: "MCP tool reference for the reference domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `reference_create`
+
+**Tier:** write · **Tags:** reference, write
+
+Create a reference (comparison product) under a parent workspace, the
+comparison target for a benchmark.
+
+Benchmark workflow: ``reference_create`` each target, run the SOURCE study,
+then ``study_benchmark(source_study_id, reference_ids=[...],
+source_iteration_id=...)`` to clone the study onto each reference and run it,
+then ``study_comparison(study_id)`` to read the aggregated results.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`name`: human-readable reference name.
+`description`: optional description.
+`base_url`: optional default URL that becomes the target URL for benchmark
+rounds cloned onto this reference (per-run ``custom_urls`` override it).
+
+**Returns** ``Reference``; on failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;auth_failed, forbidden, validation_error,
+usage_limit_reached, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="base_url" type="string">
+&nbsp;
+</ParamField>
+
+## `reference_delete`
+
+**Tier:** destructive · **Tags:** delete, reference
+
+Permanently delete a reference. **DESTRUCTIVE**: cascades to every
+cloned study and iteration under it. Irreversible (no soft-archive);
+confirm with the user before calling.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`reference_id`: UUID or short alias (``w-...``) of the reference to delete.
+
+**Returns** ``&#123;"deleted": True, "reference_id": &lt;id>}``; on failure raises
+``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found,
+server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+<ParamField body="reference_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+
+## `reference_get`
+
+**Tier:** read-only · **Tags:** read, reference
+
+Read references (comparison products) under a parent workspace.
+
+Polymorphic on ``reference_id``: omit it to list every reference under the
+workspace (unpaginated ``PaginatedList[Reference]``, ``has_more`` always
+``False``); pass it to return that reference's details. References share the
+``w-`` alias prefix with workspaces; ``workspace_get()`` lists only standard
+workspaces, never references.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`reference_id`: UUID or short alias (``w-...``) of the reference. Optional;
+omit to list.
+
+**Returns** ``PaginatedList[Reference]`` (no id) or ``Reference`` (with id);
+on failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+<ParamField body="reference_id" type="string">
+&nbsp;
+</ParamField>
+
+## `reference_update`
+
+**Tier:** write · **Tags:** reference, write
+
+Edit a reference's ``name``, ``description``, or ``base_url``. Only the
+fields you pass are changed; omitted fields are left untouched.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the parent
+workspace.
+`reference_id`: UUID or short alias (``w-...``) of the reference to update.
+`name`: new reference name (optional).
+`description`: new description (optional).
+`base_url`: new default URL for benchmark rounds cloned onto this reference
+(optional).
+
+**Returns** the updated ``Reference``; on failure raises ``ToolError`` with
+``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found, validation_error,
+server_error, network_error, http_error}``.
+
+### Parameters
+<ParamField body="workspace_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+<ParamField body="reference_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="description" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="base_url" type="string">
+&nbsp;
+</ParamField>

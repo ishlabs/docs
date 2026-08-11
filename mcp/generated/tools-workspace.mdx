@@ -42,7 +42,7 @@ usage_limit_reached, server_error, network_error, http_error}``.
 **Tier:** destructive · **Tags:** delete, workspace
 
 Permanently delete a workspace. **DESTRUCTIVE** - cascades to every
-study, ask, person, audience source, brand, and chatbot endpoint inside
+study, ask, person, audience source, reference, and chatbot endpoint inside
 it, and is irreversible (no soft-archive). Confirm with the user first.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) to delete.
@@ -53,7 +53,7 @@ not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'tp-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc')
 </ParamField>
 
 ## `workspace_get`
@@ -77,7 +77,7 @@ Read workspaces. Polymorphic on ``workspace_id``.
 Use the list form to discover workspace IDs, or an id to branch on plan
 caps before a create that would return ``[usage_limit_reached]`` (see
 ``docs_get("guides/cold-start")``) or to check credits before dispatch.
-Brands are separate - use ``brand_get(workspace_id)``.
+References are separate; use ``reference_get(workspace_id)``.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``). Omit to list.
 `name`: list-mode only - case-insensitive substring filter on the workspace
@@ -94,6 +94,37 @@ network_error, http_error}``.
 <ParamField body="workspace_id" type="string">
 &nbsp;
 </ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+
+## `workspace_list`
+
+**Tier:** read-only · **Tags:** read, workspace
+
+List every workspace you can access as a lean id / alias / name array.
+
+The cheap enumeration primitive for cross-workspace work. To review
+research across all your workspaces: ``workspace_list`` → ``study_list``
+(per workspace, or ``study_list()`` with no args to fan out over every
+workspace) → ``study_get(study_id, view="insights")`` to read a study's AI
+summary and key findings.
+
+Only top-level workspaces are returned: reference/child products
+(benchmark comparison targets) are excluded by design, matching the app and
+CLI. For one workspace's plan-limit counters and simulation-credit pool call
+``workspace_get(workspace_id)`` instead; this tool deliberately drops those
+to stay lean. For account-wide plan + credits, call ``account_usage()``.
+
+`name`: optional case-insensitive substring filter on the workspace name,
+applied after the fetch (e.g. ``workspace_list(name="Acme")``).
+
+**Returns** a list of ``WorkspaceListItem`` (``id`` / ``alias`` / ``name``),
+ordered case-insensitively by name. On failure raises ``ToolError`` with
+``error_kind`` in ``&#123;auth_failed, forbidden, server_error, network_error,
+http_error}``.
+
+### Parameters
 <ParamField body="name" type="string">
 &nbsp;
 </ParamField>
