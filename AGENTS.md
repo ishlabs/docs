@@ -55,15 +55,20 @@ non-generated reference pages.
 
 ## Terminology (use exactly these)
 
+{/* GENERATED:terminology -- edit the sheet, then run ish-vocabulary/generate/agents_table.py */}
+
 | Use | Not | Why |
 |---|---|---|
 | `workspace` | `product`, `project` | The agent-facing name (backend calls it "product"). |
 | `study` | `test`, `project` | The persistent research artifact. |
-| `iteration` | `version`, `variant` | One configured run of a study. |
-| `simulated person`, `people`, `audience`, `participant`, or the role noun (`reader`, `viewer`, `listener`, `buyer`, `visitor`) | `tester`, `user-tester` | `tester` is category language and is the old domain noun; the CLI/MCP surface is `person`/`participant`. |
+| `iteration` | `version`, `variant` | One configured version of a study. THIS ROW ONLY: `variant` is a legitimate ask-round noun with its own entry, banned here solely as a synonym for iteration. |
+| `simulated person`, `people`, `panel`, `participant`, or the role noun (`reader`, `viewer`, `listener`, `buyer`, `visitor`) | `tester`, `user-tester` | `tester` is category language and is the old domain noun; the CLI/MCP surface is `person`/`participant`. |
 | `findings`, `reactions`, `what they noticed / missed / felt` | `insights` (as the output noun) | ish is narrative, not a scoring tool. |
-| `Simulate a visit` (in-product action), `Get ish free` (signup CTA) | `Run a test`, `Try for free` | Names the product, not the category. |
+| `Simulate a visit` (in-product action), `Get ish free` (signup CTA) | `Run a test`, `Run with 1 tester`, `Try for free` | Names the product, not the category. |
 | `under five minutes` | `in minutes`, `under two minutes` | One committed number. |
+
+{/* /GENERATED:terminology */}
+
 
 **Identifier exceptions.** When a command, field, or value is literally named, document
 it by its real name in `code` formatting even if the word is otherwise discouraged: the
