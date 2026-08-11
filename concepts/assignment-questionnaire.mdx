@@ -5,17 +5,29 @@ mode: "explanation"
 ---
 
 A [study](/concepts/study) holds two lists that shape what every simulated person
-does. Assignments are the tasks. The questionnaire is the questions. Together they
-are the half of the study that stays fixed across runs, so two iterations of the
-same study put their panels through the same script and the only thing that
+does. Assignments are what they do. The questionnaire is what they answer. Together
+they are the half of the study that stays fixed across runs, so two iterations of
+the same study put their panels through the same script and the only thing that
 changes is the artifact under test.
 
-Both lists live on the study, not the iteration. That is deliberate: the tasks and
-questions are the question you are asking, held steady while the draft moves.
+Both lists live on the study, not the iteration. That is deliberate: what people
+do and what they answer are the question you are asking, held steady while the
+draft moves.
+
+<Note>
+  **This page is the study lane.** Assignments belong to studies, which you run
+  through the CLI, the MCP server, and the web app. The [ish
+  API](/api/overview) is a separate lane with a separate vocabulary: there the
+  same idea is a [task](/api/reference/introduction#tasks), registered per
+  workspace and bound to a session. The flags and parameters on this page are
+  study lane only, and `assignment` is not a field on any API endpoint. Only the
+  step shape carries across: an API task takes steps with the same bounds,
+  stored but not yet read during a session.
+</Note>
 
 ## Assignments: what people do
 
-An assignment is a single task a simulated person attempts during an `interactive`
+An assignment is one thing a simulated person attempts during an `interactive`
 run (or considers, for the media modalities where they read, watch, or listen
 rather than click). A study carries one or more assignments and they run in order.
 

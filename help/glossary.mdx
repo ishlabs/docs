@@ -4,10 +4,19 @@ description: One-line definitions of every ish term, each linking to the concept
 mode: reference
 ---
 
-Every term used across the ish CLI and MCP docs, defined once. Each entry links
-to the concept page that carries the full mental model. For exact flags,
-parameters, and return shapes, follow the links into the [CLI](/cli/overview)
-and [MCP](/mcp/overview) reference.
+Every term used across the ish CLI, MCP, and API docs, defined once. Each entry
+links to the concept page that carries the full mental model. For exact flags,
+parameters, and return shapes, follow the links into the [CLI](/cli/overview),
+[MCP](/mcp/overview), and [API](/api/reference/introduction) reference.
+
+<Note>
+  One primitive is spelled differently in each half of the product. In a
+  **study** (the CLI, the MCP server, and the web app) what a simulated person is
+  asked to do is an **assignment**. In the **ish API** the same idea is a
+  **task**: a per-workspace registry a session binds by id, or an inline `task`
+  object on session create. They are separate records on separate endpoints, not
+  two names for one thing. Entries below name the lane where it matters.
+</Note>
 
 ## Core objects
 
@@ -40,8 +49,8 @@ and [MCP](/mcp/overview) reference.
 | --- | --- |
 | [Modality](/concepts/modalities) | The kind of thing a study puts in front of people. ish supports seven: `interactive`, `text`, `image`, `video`, `audio`, `document`, `chat`. |
 | [Content type](/concepts/modalities#content-types-tune-the-modality) | An optional sub-type that tunes a modality (for example `editorial` or `reference` for `text`). Five modalities carry one; `interactive` and `chat` do not. |
-| [Assignment](/concepts/assignment-questionnaire#assignments-what-people-do) | A single task a simulated person attempts during a run. A study carries one or more, run in order. |
-| [Step](/concepts/assignment-questionnaire#steps-a-checklist-inside-an-assignment) | An ordered atomic action inside an assignment, each a name of 1 to 80 characters. |
+| [Assignment](/concepts/assignment-questionnaire#assignments-what-people-do) | **Study lane.** One thing a simulated person is asked to do during a run. A study carries one or more, run in order. Authored as `--assignment` on the CLI and `assignments` through MCP. The ish API's equivalent is a [task](#the-ish-api). |
+| [Step](/concepts/assignment-questionnaire#steps-a-checklist-inside-an-assignment) | An ordered atomic action inside an assignment, each a `name` of 1 to 80 characters plus an optional `description` of up to 500. An API task accepts the same shape, stored but not yet read during a session. |
 | [Questionnaire](/concepts/assignment-questionnaire) | The set of questions each simulated person answers. Lives on the study, alongside assignments. |
 | [Site access](/concepts/site-access) | How ish reaches a gated URL: public, HTTP basic auth, a session cookie, or a login form. Configured per workspace. |
 | [Secret](/concepts/secrets) | A per-workspace named value that backs a `{{secret:KEY}}` placeholder in chatbot endpoint config, resolved on the wire at dispatch. |
@@ -58,6 +67,19 @@ and [MCP](/mcp/overview) reference.
 | [Sentiment](/concepts/reactions-and-results) | A per-participant label and valence, rolled up as a histogram across the panel from completed participants only. |
 | [Share link](/concepts/sharing) | A public, no-login URL to one study's results, hosted on the web app, that anyone opens in a browser to read the run as a stakeholder would. |
 
+## The ish API
+
+The [ish API](/api/overview) puts a simulated person inside your own
+environment's decision loop, so it carries its own object vocabulary. These
+terms belong to that lane only.
+
+| Term | Definition |
+| --- | --- |
+| [Session](/api/concepts/sessions-and-turns) | One participant working toward one task inside one environment, turn by turn. Not a study run, and unrelated to a browser session or the login session `ish status` reports. |
+| [Task](/api/reference/introduction#tasks) | A named intent, registered per workspace, that a session binds by id: the bind freezes the task's `instructions` and `revision` onto the session, so later edits never change what a past session ran against. A session can describe one inline instead. The study lane's equivalent is an [assignment](#study-definition). |
+| [Environment](/api/guides/environment-authoring) | The target a session runs against, registered once and referenced by id instead of described on every session. |
+| [Turn](/api/concepts/sessions-and-turns) | One exchange in a session: you send what the participant perceives and the actions available, and the participant decides. One row per turn on the server, so you never re-send history. |
+
 ## Credits and limits
 
 | Term | Definition |
@@ -70,8 +92,9 @@ and [MCP](/mcp/overview) reference.
 
 | Term | Definition |
 | --- | --- |
-| [CLI](/cli/overview) | The `ish` command line, reading as `ish <noun> <verb>`. One developer surface onto the backend. |
-| [MCP server](/mcp/overview) | The same operations exposed as tools an AI agent calls, hosted at `https://mcp.ishlabs.io/mcp`. The other developer surface. |
+| [CLI](/cli/overview) | The `ish` command line, reading as `ish <noun> <verb>`. One developer surface onto studies. |
+| [MCP server](/mcp/overview) | The same study operations exposed as tools an AI agent calls, hosted at `https://mcp.ishlabs.io/mcp`. The other developer surface onto studies. |
+| [ish API](/api/overview) | The HTTP API under `https://api.ishlabs.io/api/v1`, where a simulated person runs inside an environment you drive turn by turn. A separate lane from studies, with its own nouns (see [above](#the-ish-api)). |
 | [Active context](/concepts/active-context) | The CLI's saved workspace, study, and ask, kept in `~/.ish/config.json` (or `ISH_HOME`), so you do not repeat IDs. The MCP server is stateless. |
 | [Alias](/concepts/workspace#how-you-select-one) | A short, prefixed id every object carries (`w-`, `s-`, `i-`, `a-`, `p-` for a person, `ps-` for a source) that any tool taking that object's id accepts. |
 
