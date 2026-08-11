@@ -7,9 +7,16 @@ extract plus docs-only rules.
 
 ## About this project
 
-- Public documentation for **two developer products**: the `ish` **CLI**
-  (`@ishlabs/cli`) and the `ish` **MCP server** (`mcp.ishlabs.io`). Plus a shared
-  concepts core both depend on.
+- Public documentation for **three developer surfaces**: the `ish` **CLI**
+  (`@ishlabs/cli`), the `ish` **MCP server** (`mcp.ishlabs.io`), and the `ish`
+  **API** (`api.ishlabs.io`). Plus a shared concepts core the first two depend on.
+- **The CLI and MCP drive studies; the API is a different lane.** It puts a
+  simulated person inside your own environment's decision loop, and it carries its
+  own nouns: session, task, environment, turn. The study lane's `assignment` is not
+  a field on any API endpoint, and the API's `session` is not a study run. When a
+  page uses either vocabulary, say which lane it is in. This file described only
+  two surfaces until 2026-08-11, which is plausibly how the API tab's vocabulary
+  drifted away from the Guides tab unnoticed.
 - ish is a simulated human experience engine. Simulated people experience the thing
   you are making (a link, a Figma prototype, an ad, a video, a PDF, a chatbot) and
   report back what they noticed, where they got stuck, and what they would do next,

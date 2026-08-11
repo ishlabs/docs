@@ -25,7 +25,7 @@ workspace ID accepts a brand alias and resolves it. ish surfaces it in its own
 top-level workspace: it is a thing you compare against, not a place you keep work.
 
 That split is deliberate, and it shows up in what the read tools return.
-`workspace_get` lists only standard workspaces, never brands. `brand_get` lists
+`workspace_get` lists only standard workspaces, never brands. `reference_get` lists
 only the brands under one parent. A brand never shows up as a workspace you might
 accidentally start fresh work in, and a workspace never gets pulled into a
 benchmark cohort by mistake.
@@ -96,7 +96,7 @@ worth holding even though the parameters live in the reference.
 
 <Steps>
   <Step title="Create one brand per comparison target">
-    `brand_create` under the parent workspace, once per competitor or alternative
+    `reference_create` under the parent workspace, once per competitor or alternative
     version. Give each a `base_url` so its cloned iteration starts pre-filled.
   </Step>
   <Step title="Clone the study across them">
@@ -116,15 +116,15 @@ worth holding even though the parameters live in the reference.
 </Steps>
 
 Full parameters, return shapes, and error kinds live in the reference:
-[brand tools](/mcp/generated/tools-brand) for `brand_create` / `brand_get` /
-`brand_delete`, and [study tools](/mcp/generated/tools-study) for
+[reference tools](/mcp/generated/tools-reference) for `reference_create` /
+`reference_get` / `reference_delete`, and [study tools](/mcp/generated/tools-study) for
 `study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.
 
 <Warning>
   Deleting a brand cascades to every study and iteration cloned under it, with no
-  soft archive. Confirm before calling `brand_delete`. The widest destructive
+  soft archive. Confirm before calling `reference_delete`. The widest destructive
   action, deleting the parent workspace, takes its brands with it. See the
-  [brand tools](/mcp/generated/tools-brand).
+  [reference tools](/mcp/generated/tools-reference).
 </Warning>
 
 ## Related
@@ -139,8 +139,8 @@ Full parameters, return shapes, and error kinds live in the reference:
   <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
     The placeholder iteration each clone is born with, and how to fill it.
   </Card>
-  <Card title="brand tools" icon="/images/logos/mcp.svg" href="/mcp/generated/tools-brand">
-    The MCP reference for `brand_create`, `brand_get`, and `brand_delete`.
+  <Card title="reference tools" icon="/images/logos/mcp.svg" href="/mcp/generated/tools-reference">
+    The MCP reference for `reference_create`, `reference_get`, and `reference_delete`.
   </Card>
   <Card title="study tools" icon="/images/logos/mcp.svg" href="/mcp/generated/tools-study">
     `study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.

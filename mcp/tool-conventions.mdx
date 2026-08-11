@@ -15,7 +15,7 @@ primitive; the verb is the workflow outcome.
 
 | Part | Values |
 | --- | --- |
-| Noun | `workspace`, `brand`, `study`, `ask`, `person`, `chatbot`, `simulation`, `site_access`, `upload`, `connect`, `me`, `docs` |
+| Noun | `workspace`, `reference`, `study`, `ask`, `person`, `chatbot`, `simulation`, `site_access`, `upload`, `connect`, `me`, `docs` |
 | Verb | the outcome, for example `create`, `get`, `run`, `add_iteration`, `revise`, `delete`, `setup`, `extend` |
 
 Names use an underscore, never a dot. Underscore grouping resolves the same across every MCP
@@ -57,7 +57,7 @@ any backend call. Because every mode is a read, the `read-only` annotation (belo
 across all of them.
 
 The `_get` tools: [`workspace_get`](/mcp/generated/tools-workspace),
-[`brand_get`](/mcp/generated/tools-brand), [`study_get`](/mcp/generated/tools-study),
+[`reference_get`](/mcp/generated/tools-reference), [`study_get`](/mcp/generated/tools-study),
 [`ask_get`](/mcp/generated/tools-ask), [`person_get`](/mcp/generated/tools-person),
 [`chatbot_get`](/mcp/generated/tools-chatbot). The status reads
 ([`connect_status`](/mcp/generated/tools-connect),
@@ -82,7 +82,7 @@ and in the catalog index.
 
 <Warning>
   `destructive` is reserved for tools that remove persisted user data: `workspace_delete`,
-  `study_delete`, `ask_delete`, `brand_delete`, `person_delete`, `chatbot_delete`,
+  `study_delete`, `ask_delete`, `reference_delete`, `person_delete`, `chatbot_delete`,
   `chatbot_delete_configuration`. Each one is a separately named tool, never a
   `delete` mode on a polymorphic tool, so the `destructiveHint` survives at the schema level.
 </Warning>

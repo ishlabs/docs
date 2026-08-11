@@ -137,7 +137,7 @@ as a comparison target, not a top-level container.
 Because a brand is a workspace underneath, it shares the `w-` alias prefix. Any tool
 that takes a workspace ID accepts a brand alias and resolves it. The reverse is not
 true the other way you might expect: `workspace_get` lists only standard
-workspaces, never brands, and `brand_get` lists only the brands under a given
+workspaces, never brands, and `reference_get` lists only the brands under a given
 parent.
 
 The benchmark flow is two steps. Create one brand per comparison target, then run a
@@ -152,7 +152,7 @@ same questions and audience run against each variant.
   Both are irreversible. The CLI requires `-y` / `--yes` to delete in a
   non-interactive context. Full flags are in the
   [`workspace` CLI reference](/cli/generated/workspace) and the
-  [brand tools](/mcp/generated/tools-brand).
+  [reference tools](/mcp/generated/tools-reference).
 </Note>
 
 ## Related
