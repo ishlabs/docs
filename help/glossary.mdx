@@ -4,6 +4,12 @@ description: One-line definitions of every ish term, each linking to the concept
 mode: reference
 ---
 
+{/* GENERATED FILE -- do not hand-edit. Definitions come from the vocabulary
+    sheet in Notion; section order, links and prose come from
+    ish-vocabulary/generate/sections.json. To change a definition, edit the
+    Notion row and re-export. To change the layout, edit sections.json.
+    Regenerate: python3 generate/glossary.py  (gate 09 fails on drift) */}
+
 Every term used across the ish CLI, MCP, and API docs, defined once. Each entry
 links to the concept page that carries the full mental model. For exact flags,
 parameters, and return shapes, follow the links into the [CLI](/cli/overview),
@@ -28,8 +34,8 @@ parameters, and return shapes, follow the links into the [CLI](/cli/overview),
 | [Ask](/concepts/ask-and-round) | A lighter comparison: one prompt and one or more variants of creative put in front of a fixed panel. Alias prefix `a-`. |
 | [Round](/concepts/ask-and-round) | One pass of an ask's panel over a prompt and its variants. The first round is created with the ask; later rounds reuse the same people. An ask holds up to five. |
 | [Variant](/concepts/ask-and-round#variants-the-things-being-compared) | One candidate inside an ask round: a headline, a hero image, an ad cut. Each has a kind and a value. |
-| [Brand](/concepts/benchmarking) | A workspace flagged as a comparison target (type `competitor`). Shares the `w-` alias prefix; surfaced in its own `brand` namespace. MCP only. |
-| [Benchmark](/concepts/benchmarking) | A clone of a study across a set of brands so each brand runs the same study head to head. MCP only. |
+| [reference](/concepts/benchmarking) | A workspace flagged as a comparison target (`product_type` is always `reference`). Shares the `w-` alias prefix. Available through the MCP `reference_*` tools and the CLI's `ish workspace reference`. |
+| [Benchmark](/concepts/benchmarking) | A clone of a study across a set of brands so each brand runs the same study head to head. Available through MCP and the CLI's `ish study benchmark`. |
 
 ## People
 
@@ -42,13 +48,14 @@ parameters, and return shapes, follow the links into the [CLI](/cli/overview),
 | [Pool](/concepts/people#two-ways-to-get-the-people-you-need) | The people available to a workspace, filtered by demographic to assemble an audience. |
 | [Visibility](/concepts/people#where-a-person-lives-visibility) | The scope that decides who can see and use a profile: workspace, platform, or community-shared. |
 | [Source](/concepts/source) | Real evidence (a transcript, recording, screenshot, support email, PDF) handed to person generation to ground a persona in how someone actually reacted. |
+| [Situation](/concepts/source) | A short prompt put to a real person during person creation, in one of four forms, whose answer becomes behavioural evidence grounding that Person. |
 
 ## Study definition
 
 | Term | Definition |
 | --- | --- |
-| [Modality](/concepts/modalities) | The kind of thing a study puts in front of people. ish supports seven: `interactive`, `text`, `image`, `video`, `audio`, `document`, `chat`. |
-| [Content type](/concepts/modalities#content-types-tune-the-modality) | An optional sub-type that tunes a modality (for example `editorial` or `reference` for `text`). Five modalities carry one; `interactive` and `chat` do not. |
+| [Modality](/concepts/modalities) | The kind of thing a study puts in front of people. ish supports eight: `interactive`, `text`, `image`, `video`, `audio`, `document`, `chat`, `survey`. |
+| [Content type](/concepts/modalities#content-types-tune-the-modality) | An optional sub-type that tunes a modality (for example `editorial` or `reference` for `text`). Six modalities carry one; `interactive` and `chat` do not. |
 | [Assignment](/concepts/assignment-questionnaire#assignments-what-people-do) | **Study lane.** One thing a simulated person is asked to do during a run. A study carries one or more, run in order. Authored as `--assignment` on the CLI and `assignments` through MCP. The ish API's equivalent is a [task](#the-ish-api). |
 | [Step](/concepts/assignment-questionnaire#steps-a-checklist-inside-an-assignment) | An ordered atomic action inside an assignment, each a `name` of 1 to 80 characters plus an optional `description` of up to 500. An API task accepts the same shape, stored but not yet read during a session. |
 | [Questionnaire](/concepts/assignment-questionnaire) | The set of questions each simulated person answers. Lives on the study, alongside assignments. |
@@ -59,7 +66,7 @@ parameters, and return shapes, follow the links into the [CLI](/cli/overview),
 
 | Term | Definition |
 | --- | --- |
-| [Run](/concepts/run-vs-ask) | Sending simulated people through a real surface end to end (a link, an app, a video) against the latest or a named iteration. |
+| [run](/concepts/run-vs-ask) | To send simulated people through a real surface end to end (a link, an app, a video) against the latest or a named iteration. A verb: there is no run object, and a participant belongs to an iteration, an ask or a session directly. |
 | [Dispatch](/concepts/credits-and-limits#the-20-participant-dispatch-cap) | One request that sends a group of simulated people at once. Capped at 20 participants, independent of tier. |
 | [Reactions](/concepts/reactions-and-results) | What each simulated person reports back: what they noticed, where they got stuck, and what they would do next. |
 | [Reported journey](/concepts/reactions-and-results#the-layers-of-a-reported-journey) | The full record a run returns per participant: transcript, signals, and the reasoning behind them, plus screenshots for interactive runs. Not a score. |
