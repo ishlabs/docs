@@ -15,6 +15,13 @@ extract plus docs-only rules.
   report back what they noticed, where they got stuck, and what they would do next,
   **before it ships**. The output is a reported journey (sentiment, friction,
   blockers, positive moments, completion) with the reasoning behind it, not a score.
+- **Two altitudes, and they are not interchangeable** (ruled 2026-08-11). The line
+  above is the PRODUCT DESCRIPTION: what ish is. The CATEGORY, what ish is building,
+  is **human experience simulation**. Use the category name when naming the field or
+  the market; use the product description when explaining what the thing does. Never
+  use `engine` as the category label, and never abbreviate the category to "human
+  simulation", which names real humans role-playing patients in medical training and
+  so means close to the opposite of this product.
 - Built on [Mintlify](https://mintlify.com). Pages are MDX with YAML frontmatter.
   Config is `docs.json`. Deployed at `docs.ishlabs.io` (also reachable at
   `ishlabs.io/docs`).
