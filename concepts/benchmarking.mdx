@@ -1,6 +1,6 @@
 ---
-title: "Benchmarks and brand workspaces"
-description: "How a brand workspace and study benchmark let you run the same study head-to-head against competitors or alternative versions."
+title: "Benchmarks and reference workspaces"
+description: "How a reference workspace and study benchmark let you run the same study head-to-head against competitors or alternative versions."
 mode: "explanation"
 ---
 
@@ -9,42 +9,42 @@ my checkout land better than the two competitors I keep losing to?" To answer it
 fairly, every variant has to face the same audience and the same questions. Only
 the thing being experienced should change.
 
-ish models that with two pieces. A **brand workspace** is one comparison target.
-A **benchmark** clones a [study](/concepts/study) across a set of brands so each
+ish models that with two pieces. A **reference workspace** is one comparison target.
+A **benchmark** clones a [study](/concepts/study) across a set of references so each
 one inherits the same modality, assignments, and interview questions, and differs
 only in the artifact participants actually see. Both live on the MCP server. There
-is no CLI surface for brands or benchmarks.
+is no CLI surface for references or benchmarks.
 
-## A brand is a comparison workspace
+## A reference is a comparison workspace
 
-A brand is a [workspace](/concepts/workspace#brands-comparison-workspaces) in
-disguise. Underneath it is a workspace with a parent set and a type of
-`competitor`, and it shares the `w-` alias prefix, so any tool that takes a
-workspace ID accepts a brand alias and resolves it. ish surfaces it in its own
-`brand` namespace anyway, because you reason about a brand differently than a
-top-level workspace: it is a thing you compare against, not a place you keep work.
+A reference is a [workspace](/concepts/workspace#references-comparison-workspaces)
+in disguise. Underneath it is a workspace with a parent set and a `product_type` of
+`reference`, and it shares the `w-` alias prefix, so any tool that takes a
+workspace ID accepts a reference alias and resolves it. ish surfaces it in its own
+`reference` namespace anyway, because you reason about a reference differently than
+a top-level workspace: it is a thing you compare against, not a place you keep work.
 
 That split is deliberate, and it shows up in what the read tools return.
-`workspace_get` lists only standard workspaces, never brands. `reference_get` lists
-only the brands under one parent. A brand never shows up as a workspace you might
-accidentally start fresh work in, and a workspace never gets pulled into a
-benchmark cohort by mistake.
+`workspace_get` lists only standard workspaces, never references. `reference_get`
+lists only the references under one parent. A reference never shows up as a
+workspace you might accidentally start fresh work in, and a workspace never gets
+pulled into a benchmark cohort by mistake.
 
-A brand carries three fields that matter for a benchmark: a `name`, an optional
+A reference carries three fields that matter for a benchmark: a `name`, an optional
 `description`, and an optional `base_url`. The `base_url` is the one that does
-work later. When a benchmark clones an interactive study to a brand, that URL
+work later. When a benchmark clones an interactive study to a reference, that URL
 becomes the suggested URL for the clone's iteration, so the competitor's site is
 already half filled in.
 
 <Note>
-  Brands and the source study must share the same parent workspace. A benchmark
+  References and the source study must share the same parent workspace. A benchmark
   compares variants of one body of work; it does not reach across workspaces.
 </Note>
 
 ## The benchmark clones, it does not run
 
-`study_benchmark` takes a source study and a list of brand IDs, and clones the
-study into each brand. What carries over is the question, not the answer: the
+`study_benchmark` takes a source study and a list of reference IDs, and clones the
+study into each reference. What carries over is the question, not the answer: the
 name, description, assignments, and interview questions. What does **not** carry
 over is everything that makes a run concrete. Iterations, participants, and frames
 are not copied.
@@ -74,8 +74,8 @@ treat a benchmark like a one-shot.
   </Step>
 </Steps>
 
-A benchmark is also idempotent against a brand that already has a clone of this
-study, and it never silently overrides access. Any brand it could not clone to
+A benchmark is also idempotent against a reference that already has a clone of this
+study, and it never silently overrides access. Any reference it could not clone to
 comes back in a `skipped` list with a reason: `no_access`, or `already_cloned`
 with a pointer to the existing clone. Read `skipped` before you assume a clean
 cohort, or you will run a comparison that is missing a competitor.
@@ -95,17 +95,17 @@ End to end, a benchmark is a small, ordered set of MCP calls. The mental model i
 worth holding even though the parameters live in the reference.
 
 <Steps>
-  <Step title="Create one brand per comparison target">
+  <Step title="Create one reference per comparison target">
     `reference_create` under the parent workspace, once per competitor or alternative
     version. Give each a `base_url` so its cloned iteration starts pre-filled.
   </Step>
   <Step title="Clone the study across them">
-    `study_benchmark(source_study_id, brand_ids=[...])`. One call fans the study
-    out to every brand. Check `skipped`.
+    `study_benchmark(source_study_id, reference_ids=[...])`. One call fans the study
+    out to every reference. Check `skipped`.
   </Step>
   <Step title="Fill each placeholder iteration">
     `study_update_iteration` on each `placeholder_iteration_ids` entry, pointing
-    the clone at that brand's artifact.
+    the clone at that reference's artifact.
   </Step>
   <Step title="Run each clone">
     `study_run` per clone (and the source). Each draws credits only when it runs.
@@ -121,9 +121,9 @@ Full parameters, return shapes, and error kinds live in the reference:
 `study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.
 
 <Warning>
-  Deleting a brand cascades to every study and iteration cloned under it, with no
-  soft archive. Confirm before calling `reference_delete`. The widest destructive
-  action, deleting the parent workspace, takes its brands with it. See the
+  Deleting a reference cascades to every study and iteration cloned under it, with
+  no soft archive. Confirm before calling `reference_delete`. The widest destructive
+  action, deleting the parent workspace, takes its references with it. See the
   [reference tools](/mcp/generated/tools-reference).
 </Warning>
 
@@ -131,10 +131,10 @@ Full parameters, return shapes, and error kinds live in the reference:
 
 <Columns cols={3}>
   <Card title="Workspace" icon="folder-open" href="/concepts/workspace">
-    Why a brand is a workspace underneath, and how the namespaces stay apart.
+    Why a reference is a workspace underneath, and how the namespaces stay apart.
   </Card>
   <Card title="Studies" icon="flask" href="/concepts/study">
-    The recipe a benchmark clones across brands, and what carries over.
+    The recipe a benchmark clones across references, and what carries over.
   </Card>
   <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
     The placeholder iteration each clone is born with, and how to fill it.

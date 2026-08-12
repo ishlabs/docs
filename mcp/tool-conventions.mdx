@@ -107,15 +107,15 @@ Each noun owns a fixed alias prefix:
 
 | Entity | Prefix | Entity | Prefix |
 | --- | --- | --- | --- |
-| workspace, brand | `w-` | ask | `a-` |
+| workspace, reference | `w-` | ask | `a-` |
 | study | `s-` | ask round | `r-` |
 | iteration | `i-` | chatbot endpoint | `ep-` |
 | person | `p-` | chatbot configuration | `cc-` |
 | participant | `pt-` | frame | `f-` |
 
 An id parameter validates the prefix: pass a `w-` workspace alias where a study id is expected
-and it raises `[validation_error]` before any backend call. A brand resolves through the
-workspace prefix, since a brand is a workspace underneath.
+and it raises `[validation_error]` before any backend call. A reference resolves through
+the workspace prefix, since a reference is a workspace underneath.
 
 <Note>
   Aliases are minted per server instance and held in memory, so an alias from one session may

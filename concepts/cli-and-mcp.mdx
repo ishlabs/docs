@@ -95,7 +95,7 @@ A few operations exist only as MCP tools. They have no CLI command today.
     Patch a study's top-level metadata: `name`, `description`, `status`, `modality`, `content_type`, `assignments`, and interview `questions`. Only the fields you pass change; the rest stay untouched, and iterations are left alone (edit those with `study_update_iteration` or `study_add_iteration`). The MCP exposes it as a `write`-tier tool; the CLI has no `ish study revise` verb. See [study tools](/mcp/generated/tools-study).
   </Accordion>
   <Accordion title="study_benchmark">
-    Clone a study's shape (name, description, assignments, interview questions) into one or more competitor brand workspaces so you can compare the same setup across audiences. It does not copy iterations, participants, or frames, and it does not run anything: each clone is a draft with an empty placeholder iteration you fill in, then `study_run` yourself. The source and the brands must share a parent workspace. A `long-running` tool with no CLI equivalent. See [study tools](/mcp/generated/tools-study).
+    Clone a study's shape (name, description, assignments, interview questions) into one or more competitor reference workspaces so you can compare the same setup across panels. It does not copy iterations, participants, or frames, and it does not run anything: each clone is a draft with an empty placeholder iteration you fill in, then `study_run` yourself. The source and the references must share a parent workspace. A `long-running` tool with no CLI equivalent. See [study tools](/mcp/generated/tools-study).
   </Accordion>
 </AccordionGroup>
 

@@ -6,7 +6,7 @@ mode: "explanation"
 
 A workspace is the top-level container in ish. Everything you create lives inside
 exactly one workspace: [studies](/concepts/study), asks, the people you generate,
-the sources you upload, secrets, and the brands you compare against. Pick a
+the sources you upload, secrets, and the references you compare against. Pick a
 workspace first, then operate within it. Most flows start there.
 
 The backend calls a workspace a "product". The CLI and MCP server surface the
@@ -126,29 +126,29 @@ existing workspaces first and reuse one, or on the CLI use the idempotent
 workspace of that name instead of failing. The full saturated-account walkthrough
 is its own guide.
 
-## Brands: comparison workspaces
+## References: comparison workspaces
 
-A brand is a workspace in disguise. When you want to benchmark your study against a
-competitor or an alternative version on the same audience, you create a brand under
-a parent workspace. At the data layer a brand is a workspace with a parent set and a
-type of `competitor`; ish gives it its own `brand` namespace so you reason about it
-as a comparison target, not a top-level container.
+A reference is a workspace in disguise. When you want to benchmark your study against
+a competitor or an alternative version on the same panel, you create a reference under
+a parent workspace. At the data layer a reference is a workspace with a parent set and
+a `product_type` of `reference`; ish gives it its own `reference` namespace so you
+reason about it as a comparison target, not a top-level container.
 
-Because a brand is a workspace underneath, it shares the `w-` alias prefix. Any tool
-that takes a workspace ID accepts a brand alias and resolves it. The reverse is not
-true the other way you might expect: `workspace_get` lists only standard
-workspaces, never brands, and `reference_get` lists only the brands under a given
-parent.
+Because a reference is a workspace underneath, it shares the `w-` alias prefix. Any
+tool that takes a workspace ID accepts a reference alias and resolves it. The reverse
+is not true the other way you might expect: `workspace_get` lists only standard
+workspaces, never references, and `reference_get` lists only the references under a
+given parent.
 
-The benchmark flow is two steps. Create one brand per comparison target, then run a
-single benchmark that clones the study to every brand. Each clone gets its own
-[iteration](/concepts/iteration) to fill in with that brand's URL or media, so the
-same questions and audience run against each variant.
+The benchmark flow is two steps. Create one reference per comparison target, then run
+a single benchmark that clones the study to every reference. Each clone gets its own
+[iteration](/concepts/iteration) to fill in with that reference's URL or media, so the
+same questions and panel run against each variant.
 
 <Note>
   Deleting a workspace is the widest destructive action in ish. It cascades to
-  every study, ask, person, source, secret, and brand inside it, and there is no
-  soft archive. Deleting a brand cascades to its cloned studies and iterations.
+  every study, ask, person, source, secret, and reference inside it, and there is no
+  soft archive. Deleting a reference cascades to its cloned studies and iterations.
   Both are irreversible. The CLI requires `-y` / `--yes` to delete in a
   non-interactive context. Full flags are in the
   [`workspace` CLI reference](/cli/generated/workspace) and the
@@ -164,8 +164,8 @@ same questions and audience run against each variant.
   <Card title="Credits and limits" icon="coins" href="/concepts/credits-and-limits">
     How the entity caps and the credit pool scoped here behave in full.
   </Card>
-  <Card title="Benchmarks and brands" icon="code-compare" href="/concepts/benchmarking">
-    Brand workspaces and the benchmark that clones a study across them.
+  <Card title="Benchmarks and references" icon="code-compare" href="/concepts/benchmarking">
+    Reference workspaces and the benchmark that clones a study across them.
   </Card>
   <Card title="workspace commands" icon="terminal" href="/cli/generated/workspace">
     Every CLI flag for `workspace create`, `use`, `info`, and `delete`.
