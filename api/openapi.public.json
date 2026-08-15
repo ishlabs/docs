@@ -1235,6 +1235,29 @@
         "title": "LocaleType",
         "type": "string"
       },
+      "NoticedItem": {
+        "description": "Something the person picked up and expects to still know later, such as a price, a limit or a figure they worked out. Notes carry forward for the rest of the session.",
+        "properties": {
+          "detail": {
+            "description": "The thing itself, concretely enough to use later without looking it up again: '$25 per seat/month', 'free up to 3 seats', '400 seats x $25 = $10k/mo'.",
+            "maxLength": 280,
+            "title": "Detail",
+            "type": "string"
+          },
+          "label": {
+            "description": "Short name for the thing, in the person's own words (for example 'Business tier price'). Re-using a name replaces the note stored under it, which is how a person corrects something they misread.",
+            "maxLength": 60,
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "detail"
+        ],
+        "title": "NoticedItem",
+        "type": "object"
+      },
       "ObservationBlock": {
         "additionalProperties": false,
         "description": "One block of what the person perceives this turn.\n\n`image` carries the rendered frame; `error` carries feedback from executing the previous action. Exactly one `image` block is required per turn. New block types may be added, so tolerate a `type` you do not recognize.",
@@ -3690,6 +3713,13 @@
             ],
             "title": "Intent"
           },
+          "noticed": {
+            "items": {
+              "$ref": "#/components/schemas/NoticedItem"
+            },
+            "title": "Noticed",
+            "type": "array"
+          },
           "resolution": {
             "anyOf": [
               {
@@ -4294,7 +4324,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.6.1"
+    "version": "1.7.0"
   },
   "openapi": "3.1.0",
   "paths": {
