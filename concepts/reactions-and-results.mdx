@@ -17,8 +17,8 @@ it has, and why there is no single number at the top.
 
 [`ish study run`](/cli/generated/study-run) dispatches a panel against one
 [iteration](/concepts/iteration) of a [study](/concepts/study). Each
-[simulated person](/concepts/people) becomes a participant: one persona's run
-against that iteration. A participant walks a lifecycle of
+[simulated person](/concepts/people) becomes a participant: one run-scoped
+instance of a Person against that iteration. A participant walks a lifecycle of
 `draft` to `pending` to `running` to a terminal state of `completed`, `failed`,
 or `cancelled`. Results accrue per participant, so a study with 80 participants
 holds 80 separate reported journeys, plus the aggregates across them.

@@ -144,10 +144,10 @@ Always sends ``type=ai`` to the backend (simulations are AI-driven).
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
 </ParamField>
 <ParamField body="sample" type="integer">
-Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching profile.
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
 </ParamField>
 <ParamField body="all_matching" type="boolean">
-Use every profile that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+Use every person that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
 </ParamField>
 <ParamField body="search" type="string">
 Case-insensitive substring match on the person's name.
@@ -363,10 +363,10 @@ Always sends ``type=ai`` to the backend (simulations are AI-driven).
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
 </ParamField>
 <ParamField body="sample" type="integer">
-Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching profile.
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
 </ParamField>
 <ParamField body="all_matching" type="boolean">
-Use every profile that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+Use every person that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
 </ParamField>
 <ParamField body="search" type="string">
 Case-insensitive substring match on the person's name.

@@ -194,10 +194,10 @@ Default: `180.0`.
 **Tier:** read-only · **Tags:** person, read
 
 Read people. Polymorphic on ``person_id``: omit to list, pass it to
-fetch one profile. See ``docs_get("concepts/people")`` for
+fetch one Person. See ``docs_get("concepts/people")`` for
 people-selection semantics.
 
-**List mode** (no ``person_id``): profiles in the workspace plus the
+**List mode** (no ``person_id``): people in the workspace plus the
 public pool. Within a dimension (``country`` / ``gender`` /
 ``occupation`` / each ``*_in`` enum) values OR; across dimensions they
 AND. Defaults to ``type="ai"`` (simulatable); ``"human"`` or ``"all"``
@@ -209,7 +209,7 @@ vocabulary with ``RoleCriteria``). If nothing matches, fall through to
 ``person_generate`` to mint matching people. Public-pool rows surface
 but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
 
-**Single mode** (with ``person_id``): that profile with workspace-scoped
+**Single mode** (with ``person_id``): that Person with workspace-scoped
 custom fields + usage stats. ``include_evidence=True`` attaches persisted
 ``EvidenceTrace`` rows (newest-first) under ``profile.evidence``;
 rejected in list mode (per-row evidence blows the token budget).
@@ -231,7 +231,7 @@ explicit ``occupation``. Pass an unknown key to see the full list in the
 `bio`: bio substring. `type`: ``ai`` (default) / ``human`` / ``all``.
 `limit` / `offset`: pagination. `include_bio`,
 `include_accessibility_profile`: default ``False`` (each is large per
-row; fetch a single profile for the full payload). `include_evidence`:
+row; fetch a single Person for the full payload). `include_evidence`:
 single mode only.
 `visibility`: narrows the list; default unions every scope, ordered
 workspace → platform → shared. Canonical values ``"workspace"`` (caller's
