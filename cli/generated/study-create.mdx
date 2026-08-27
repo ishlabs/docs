@@ -5,14 +5,14 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Source: ishlabs/ish-cli @ study (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
 
 ## `ish study create`
 
-Create a new study (the persistent shape: modality, tasks, questionnaire). Optionally creates iteration A inline when --content-text, --url, --image-urls, --content-url, or --endpoint is passed.
+Create a new study (the persistent shape: modality, tasks, questionnaire). Optionally creates iteration A inline when --content-text, --content-md, --content-html, --url, --image-urls, --content-url, or --endpoint is passed.
 
 Usage: `ish study create [options]`
 
@@ -26,16 +26,18 @@ Usage: `ish study create [options]`
 <ParamField path="--assignments-file <path>" type="string">JSON file with assignments array</ParamField>
 <ParamField path="--assignments <json>" type="string">Inline JSON array of assignments (escape hatch)</ParamField>
 <ParamField path="--question <text>" type="string">Add a text question to the questionnaire (repeatable; type=text, timing=after) Default: [].</ParamField>
+<ParamField path="--evaluation-dimension <dimension>" type="string">SSR dimension to measure, e.g. purchase_intent (repeatable). Auto-adds a 'Would you buy this?' question and reports an ish of purchase intent (a distribution + mean) on the results. Default: [].</ParamField>
 <ParamField path="--questionnaire <json|@file|path>" type="string">Questionnaire as inline JSON array, @file, or a JSON file path - supports text, slider, likert, single-choice, multiple-choice, number; timing=before|after</ParamField>
-<ParamField path="--content-text <text>" type="string">Text content to evaluate, or @filepath to read from file. Creates iteration A inline (text modality only)</ParamField>
+<ParamField path="--content-text <text>" type="string">Text content (treated as markdown → canonical content_doc), or @filepath to read from file. Creates iteration A inline (text modality only)</ParamField>
+<ParamField path="--content-md <md>" type="string">Markdown content, or @filepath to read from file. Parsed to the canonical content_doc block AST (ish.doc/1). Creates iteration A inline (text modality only). Mutually exclusive with --content-text.</ParamField>
 <ParamField path="--url <url>" type="string">URL to test. Creates iteration A inline (interactive modality only)</ParamField>
 <ParamField path="--screen-format <format>" type="string">Screen format for interactive iterations: desktop (default) or mobile_portrait (hyphen/underscore variants accepted)</ParamField>
-<ParamField path="--content-url <url>" type="string">Public URL of the media file. Creates iteration A inline (video, audio, document modalities). For local files, use the 2-step `iteration create` flow.</ParamField>
-<ParamField path="--image-urls <urls>" type="string">Comma-separated public image URLs. Creates iteration A inline (image modality). For local files, use the 2-step `iteration create` flow.</ParamField>
+<ParamField path="--content-url <url>" type="string">Public URL or local file path of the media file (local files are auto-uploaded). Creates iteration A (video, audio, document modalities).</ParamField>
+<ParamField path="--image-urls <urls>" type="string">Comma-separated image URLs or local file paths (local files are auto-uploaded; URLs and paths may be mixed). Creates iteration A (image modality).</ParamField>
 <ParamField path="--title <title>" type="string">Participant-facing content title - the headline participants read before the body (text + media modalities - image, video, audio, document; optional). With --content-type email it becomes the email Subject: line. Not an internal label. Not used for interactive / chat.</ParamField>
-<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON for the inline iteration A - time_based &#123;intervals_seconds, labels?&#125;, section_based &#123;sections[&#123;name,label,...&#125;]&#125;, or page_based &#123;&#125; (text + media). section_based sections are SEMANTIC: group related paragraphs into a few coherent sections (a long article is usually 3-6 sections, not one per paragraph). Lets one `study create` build a complete segmented iteration - no separate `iteration create` needed.</ParamField>
+<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON for the inline iteration A. Text (content_doc, ADR-0015) is block-id based: heading_based &#123;split_level&#125; auto-splits at headings (the default - author one `##` per section), or section_based &#123;sections[&#123;segment_id,name,label,start_block_id&#125;]&#125; for manual block-id boundaries. Video/audio: time_based &#123;intervals_seconds, labels?&#125;. Sections are SEMANTIC (a long article is usually 3-6, not one per block). The old paragraph_start/end form is DEAD on content_doc (errors every participant at run) - use heading_based or start_block_id. Lets one `study create` build a complete segmented iteration.</ParamField>
 <ParamField path="--content-config-json <json>" type="string">Content-config JSON for the inline iteration A (early_termination, selected_segment_indices) - text + media.</ParamField>
-<ParamField path="--content-html <html>" type="string">HTML version of the text, or @filepath - text modality (email rendering)</ParamField>
+<ParamField path="--content-html <html>" type="string">Paste-exact HTML (e.g. a branded email), or @filepath. Creates iteration A inline (text modality) as the ADR-0015 format:html carrier - rendered source-faithful, re-sanitized backend-side. Mutually exclusive with --content-md / --content-text.</ParamField>
 <ParamField path="--sender-name <name>" type="string">Email 'From' display name - text modality (email rendering)</ParamField>
 <ParamField path="--sender-email <email>" type="string">Email sender address - text modality (email rendering)</ParamField>
 <ParamField path="--featured-image-url <url>" type="string">Hero image URL - text modality (email rendering)</ParamField>
@@ -43,7 +45,7 @@ Usage: `ish study create [options]`
 <ParamField path="--endpoint-config <file>" type="string">ChatbotEndpointConfig JSON file (or `-` for stdin); embedded directly. Mutually exclusive with --endpoint (chat modality, external_chatbot mode)</ParamField>
 <ParamField path="--max-turns <n>" type="string">Maximum conversation turns per participant (chat modality only; default 12)</ParamField>
 <ParamField path="--chat-mode <mode>" type="string">Chat mode: external_chatbot (default) or participant_pair (two AI groups talk to each other) - chat modality only</ParamField>
-<ParamField path="--group-a <ids>" type="string">Person IDs/aliases for group A (comma-separated or repeatable). Pass a single profile and N on --group-b to broadcast (1×N rehearsal: fix side A, vary side B) - chat participant_pair mode Default: [].</ParamField>
+<ParamField path="--group-a <ids>" type="string">Person IDs/aliases for group A (comma-separated or repeatable). Pass a single person and N on --group-b to broadcast (1×N rehearsal: fix side A, vary side B) - chat participant_pair mode Default: [].</ParamField>
 <ParamField path="--group-b <ids>" type="string">Person IDs/aliases for group B. When both sides are explicit they must be equal length, BUT if either side is a singleton it's auto-broadcast to match the other (1×N rehearsal) - chat participant_pair mode Default: [].</ParamField>
 <ParamField path="--scenario-a <text-or-@file>" type="string">Side-A scenario + goal - chat participant_pair mode</ParamField>
 <ParamField path="--scenario-b <text-or-@file>" type="string">Side-B scenario + goal - chat participant_pair mode</ParamField>

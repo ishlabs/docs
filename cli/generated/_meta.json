@@ -1,6 +1,6 @@
 {
   "generator": "generate-docs-cli.mjs",
-  "cli_version": "0.28.2",
+  "cli_version": "0.32.0",
   "pages": [
     "index",
     "session",
@@ -23,5 +23,5 @@
     "check",
     "upgrade-feedback"
   ],
-  "command_count": 21
+  "command_count": 24
 }

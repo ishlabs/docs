@@ -6,12 +6,12 @@ mode: "how-to"
 
 You want a [person](/concepts/people) who fits a real audience: not a row pulled from the shared pool, but one built to your brief and grounded in evidence you already have. This guide generates that person from a description plus optional [sources](/concepts/source) (transcripts, emails, PDFs, images, audio), on either surface.
 
-Generation builds new personas; it does not turn the output into a real human. A person built from a real transcript is closer to the mark than one built from a prompt alone, but it is still simulation. Frame the findings the same way.
+Generation builds new AI People; it does not turn the output into a real human. A person built from a real transcript is closer to the mark than one built from a prompt alone, but it is still simulation. Frame the findings the same way.
 
 ## Before you start
 
 - An active workspace. The CLI reads it from your [active context](/concepts/active-context); MCP takes a `workspace_id`. Generated people land in that workspace.
-- A brief, a source, or both. You need at least one. A brief alone produces a plausible persona; a brief plus a source pins it to a reaction you have already seen.
+- A brief, a source, or both. You need at least one. A brief alone produces a plausible Person; a brief plus a source pins it to a reaction you have already seen.
 
 <Note>
 Generated people count toward your plan's custom-person cap, which is separate from the per-run credit pool. See [credits and limits](/concepts/credits-and-limits).
@@ -19,7 +19,7 @@ Generated people count toward your plan's custom-person cap, which is separate f
 
 ## Generate from a brief
 
-The fastest path: describe who you are building for and let ish build matching people. Generation runs as an async job, so the command enqueues it and waits (typically 30 to 60 seconds), then prints the resulting profiles.
+The fastest path: describe who you are building for and let ish build matching people. Generation runs as an async job, so the command enqueues it and waits (typically 30 to 60 seconds), then prints the resulting people.
 
 <CodeGroup>
 ```bash CLI
@@ -47,11 +47,11 @@ On MCP you can narrow generation with `age_range=(min, max)`, `country=["US"]`, 
 
 ## Ground a person in real evidence
 
-A source is the difference between a plausible persona and one tied to an actual reaction. Attach an interview transcript, a support email, a screenshot, or a call recording, and the generated person reflects the vocabulary, objections, and friction in that file.
+A source is the difference between a plausible Person and one tied to an actual reaction. Attach an interview transcript, a support email, a screenshot, or a call recording, and the generated person reflects the vocabulary, objections, and friction in that file.
 
 <Steps>
 <Step title="Point generation at a source">
-Pass a local file straight to generation. The CLI uploads and processes it inline before building the persona; MCP does the same through `source_paths`.
+Pass a local file straight to generation. The CLI uploads and processes it inline before building the Person; MCP does the same through `source_paths`.
 
 <CodeGroup>
 ```bash CLI
@@ -75,11 +75,11 @@ person_generate(
 </Step>
 
 <Step title="Add the reaction note">
-The note captures how a real person reacted to that file, and it rides along to generation so the persona reflects the reaction, not just the document. In the CLI it is `--source-description`, paired with each `--source` by position. In MCP it is `reaction_notes`, one entry per `source_paths` file in the same order; use `""` to skip a note for a file. The note is capped at 500 characters.
+The note captures how a real person reacted to that file, and it rides along to generation so the generated Person reflects the reaction, not just the document. In the CLI it is `--source-description`, paired with each `--source` by position. In MCP it is `reaction_notes`, one entry per `source_paths` file in the same order; use `""` to skip a note for a file. The note is capped at 500 characters.
 </Step>
 
 <Step title="Read the result">
-Generation prints the people it built. When sources are attached it also produces grounded scenarios: recorded reactions the persona carries into a simulation as past context. Pass `--no-scenarios` (CLI) or `generate_evidence=False` (MCP) to skip them.
+Generation prints the people it built. When sources are attached it also produces grounded scenarios: recorded reactions the Person carries into a simulation as past context. Pass `--no-scenarios` (CLI) or `generate_evidence=False` (MCP) to skip them.
 </Step>
 </Steps>
 
@@ -147,16 +147,16 @@ study_run(study_id="s-1a2", audience={"person_ids": ["p-d4e"]})
 ```
 </CodeGroup>
 
-To pin generation to exactly one persona for a pair-chat rehearsal, generate with a count of one per side and feed each returned id into the chat configuration.
+To pin generation to exactly one Person for a pair-chat rehearsal, generate with a count of one per side and feed each returned id into the chat configuration.
 
 ## When generation is not the right tool
 
 | You want | Reach for |
 |---|---|
 | New people that fit a brief or evidence | `ish person generate` / `person_generate` (this guide) |
-| One persona crafted through an iterative probe loop | [Build a person from notes](/cli/generated/person) (`suggest-scenarios` + `evidence`) |
-| An exact profile from a JSON spec, no model involved | `ish person create --file` |
-| People that already exist in a pool | Sample from the pool ([people and audiences](/concepts/people)) |
+| One Person crafted through an iterative probe loop | [Build a person from notes](/cli/generated/person) (`suggest-scenarios` + `evidence`) |
+| An exact Person from a JSON spec, no model involved | `ish person create --file` |
+| People that already exist in a pool | Sample from the pool ([people and panels](/concepts/people)) |
 
 ## Reference
 
@@ -167,7 +167,7 @@ To pin generation to exactly one persona for a pair-chat rehearsal, generate wit
   <Card title="MCP: person tools" href="/mcp/generated/tools-person" icon="/images/logos/mcp.svg">
     The full `person_generate` and `source_upload` parameter contract.
   </Card>
-  <Card title="People and audiences" href="/concepts/people" icon="users">
+  <Card title="People and panels" href="/concepts/people" icon="users">
     What a person is and how a generated audience feeds a run.
   </Card>
   <Card title="Sources" href="/concepts/source" icon="file-lines">

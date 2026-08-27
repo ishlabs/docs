@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Source: ishlabs/ish-cli @ study (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -32,7 +32,7 @@ Usage: `ish study participant create [options]`
 ### Options
 <ParamField path="--iteration <id>" type="string">Iteration ID (or use --study to pick the latest iteration on a study)</ParamField>
 <ParamField path="--study <id>" type="string">Study ID; resolves to the latest iteration on that study (alternative to --iteration)</ParamField>
-<ParamField path="--person <id>" type="string">Participant profile ID Required.</ParamField>
+<ParamField path="--person <id>" type="string">Person ID Required.</ParamField>
 <ParamField path="--language <lang>" type="string">Language code (e.g. en, sv)</ParamField>
 <ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code)</ParamField>
 <ParamField path="--participant-type <type>" type="string">Participant type (ai, human) Default: "ai".</ParamField>
@@ -47,7 +47,7 @@ Usage: `ish study participant batch-create [options]`
 ### Options
 <ParamField path="--iteration <id>" type="string">Iteration ID Required.</ParamField>
 <ParamField path="--file <path>" type="string">JSON file with participants array (alternative to --persons)</ParamField>
-<ParamField path="--persons <ids>" type="string">Comma-separated profile IDs/aliases; shortcut for --file with one participant per profile (mutually exclusive with --file)</ParamField>
+<ParamField path="--persons <ids>" type="string">Comma-separated Person IDs/aliases; shortcut for --file with one participant per person (mutually exclusive with --file)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish study participant delete`

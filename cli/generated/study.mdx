@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ study (v0.28.2).
+    Source: ishlabs/ish-cli @ study (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -29,6 +29,7 @@ Usage: `ish study generate [options]`
 <ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
 <ParamField path="--problem <description>" type="string">Problem description (what you want to understand) Required.</ParamField>
 <ParamField path="--target-url <url>" type="string">URL of the product to test</ParamField>
+<ParamField path="--evaluation-dimension <dimension>" type="string">SSR dimension to measure on the generated study, e.g. purchase_intent (repeatable) Default: [].</ParamField>
 
 ## `ish study get`
 
@@ -61,6 +62,7 @@ Usage: `ish study update <id> [options]`
 <ParamField path="--assignments-file <path>" type="string">JSON file with assignments array</ParamField>
 <ParamField path="--assignments <json>" type="string">Inline JSON array of assignments (escape hatch)</ParamField>
 <ParamField path="--question <text>" type="string">Replace the questionnaire with these text questions (repeatable) Default: [].</ParamField>
+<ParamField path="--evaluation-dimension <dimension>" type="string">Replace SSR dimensions to measure, e.g. purchase_intent (repeatable). Reconciles the auto-added buy-reaction question. Default: [].</ParamField>
 <ParamField path="--questionnaire <json|@file|path>" type="string">Replace the questionnaire from inline JSON, @file, or a JSON file path (full InterviewQuestion shape)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
@@ -89,6 +91,35 @@ Usage: `ish study use [id] [options]`
 ### Options
 <ParamField path="--clear" type="boolean">Remove the active study from config</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish study benchmark`
+
+Run a study's benchmark against one or more references. Clones the study onto each reference, appends a round, and dispatches simulations: RUNS and draws credits.
+
+Usage: `ish study benchmark [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--reference <id>" type="string">Reference id to benchmark against (repeatable; comma-separated accepted). At least one required. Default: []. Required.</ParamField>
+<ParamField path="--source-iteration <id>" type="string">Source-study iteration whose completed AI participant roster each round replicates. Required.</ParamField>
+<ParamField path="--screen <format>" type="string">Screen format for every round: desktop | mobile_portrait (default desktop)</ParamField>
+<ParamField path="--max-interactions <n>" type="string">Per-participant step cap (default: unlimited)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
+<ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
+
+## `ish study comparison`
+
+Read the aggregated benchmark comparison: the source study's iterations and each reference's rounds, with metrics and the synthesis when one exists.
+
+Usage: `ish study comparison [id] [options]`
+
+### Arguments
+<ParamField path="id">Study ID (defaults to active study) (optional)</ParamField>
+
+### Options
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
 
 ## Global flags
 

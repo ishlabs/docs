@@ -103,7 +103,7 @@ people, optionally with grounded scenarios). See
 ``docs_get("concepts/source")`` (artifacts as generation inputs).
 
 **Blocks by default** (``wait=True``): uploads artifacts, enqueues the
-job, polls to terminal, returns resolved personas + scenarios. Pass
+job, polls to terminal, returns resolved people + scenarios. Pass
 ``wait=False`` for the ``job_id`` immediately, then pick up results via
 ``person_get(workspace_id=..., type="ai")`` - see
 ``docs_get("reference/long-running-jobs")``. The three inputs
@@ -114,16 +114,19 @@ per-run credit pool) - see ``docs_get("reference/credits")``; on hit:
 ``[usage_limit_reached]``.
 
 **Single-person role-fitting (pair-mode use case).** Pair-mode chat
-rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one persona
+rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one person
 per side: call ``person_generate(count=1, description="...")`` per side;
 the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 `description`: free-text audience brief (>=20 chars when supplied).
-`source_paths`: file references - each a local file path read from the
-**MCP server's** filesystem (the MCP process must have read access), an
-``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a
-``data:`` URL. Supported MIME: ``audio/*``, ``image/*``, ``text/*``,
+`source_paths`: evidence references - prefer a ``data:`` URL or an
+``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap): those are
+portable and work against the hosted server. A local file path is read from
+the **MCP server's own** filesystem, so it only helps when you run the
+server yourself. To feed raw local bytes to the hosted server, upload them
+first with ``source_upload(inline_base64=...)`` and pass the returned id via
+``source_upload_ids``. Supported MIME: ``audio/*``, ``image/*``, ``text/*``,
 ``application/pdf``, ``application/json``, office-document types.
 `source_upload_ids`: reuse sources already uploaded via
 ``source_upload`` (or a prior partial build) without re-uploading.
@@ -203,7 +206,7 @@ widen it. Pagination via ``limit`` (max 200) + ``offset``. Returns a
 has_more}``); ``total`` is the match count, handy for pre-flighting a
 pair-mode side's pool (the ``*_in`` enums + a11y booleans share their
 vocabulary with ``RoleCriteria``). If nothing matches, fall through to
-``person_generate`` to mint matching personas. Public-pool rows surface
+``person_generate`` to mint matching people. Public-pool rows surface
 but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
 
 **Single mode** (with ``person_id``): that profile with workspace-scoped
@@ -355,20 +358,26 @@ real person reacted. Returns a ``source_upload_id`` to hand to
 ``person_generate(source_upload_ids=[...])``. See
 ``docs_get("concepts/source")``.
 
+Pass the bytes with ``inline_base64`` (or a ``data:`` URL) - that is the
+portable path and the only one that works against the hosted MCP server,
+which cannot see your filesystem. ``source_path`` reads a LOCAL file from
+the **MCP server's own** filesystem, so it only helps when you run the
+server yourself; an ``http(s)://`` URL is fetched server-side.
+
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`source_path`: where to read the evidence from - a local file path read
-from the **MCP server's** filesystem (the MCP process must have read
-access), an ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB
-cap), or a ``data:`` URL. Supported MIME: ``audio/*``, ``image/*``,
-``text/*``, ``application/pdf``, ``application/json``, office-document
-types. Omit when passing ``inline_base64``.
+`source_path`: read the evidence from the **MCP server's** filesystem (a
+local path only works when the server runs on your machine), an
+``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a
+``data:`` URL. Supported MIME: ``audio/*``, ``image/*``, ``text/*``,
+``application/pdf``, ``application/json``, office-document types. Omit when
+passing ``inline_base64``.
 `reaction`: researcher note on how the real person reacted to THIS
 artifact (e.g. "called this proposal lazy and low-effort"); rides along
 to the agent. Backend caps it at 500 chars.
-`inline_base64`: raw base64-encoded file bytes (no ``data:`` prefix) - for
-hosted MCP clients that can pass the bytes but not a path. ``file_name`` is
-REQUIRED with this (it carries no name or MIME). Mutually exclusive with a
-non-data ``source_path``.
+`inline_base64`: raw base64-encoded file bytes (no ``data:`` prefix) - the
+portable input for hosted MCP clients that can pass the bytes but not a
+server-visible path. ``file_name`` is REQUIRED with this (it carries no name
+or MIME). Mutually exclusive with a non-data ``source_path``.
 `file_name`: name to record for the upload; required with raw
 ``inline_base64``, optional otherwise (overrides the path/URL basename).
 `content_type`: MIME override; inferred from ``file_name`` / the remote

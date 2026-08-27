@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ workspace (v0.28.2).
+    Source: ishlabs/ish-cli @ workspace (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -135,6 +135,73 @@ Usage: `ish workspace site-access clear <method> [options]`
 
 ### Options
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace reference`
+
+Manage a workspace's references (competitors / alternatives to benchmark against)
+
+Usage: `ish workspace reference`
+
+## `ish workspace reference list`
+
+List a workspace's references
+
+Usage: `ish workspace reference list [workspaceId]`
+
+### Arguments
+<ParamField path="workspaceId">Workspace ID; defaults to active workspace (optional)</ParamField>
+
+## `ish workspace reference get`
+
+Get a single reference
+
+Usage: `ish workspace reference get <workspaceId> <referenceId>`
+
+### Arguments
+<ParamField path="workspaceId">Workspace ID (required)</ParamField>
+<ParamField path="referenceId">Reference ID (required)</ParamField>
+
+## `ish workspace reference create`
+
+Create a reference under a workspace
+
+Usage: `ish workspace reference create [workspaceId] [options]`
+
+### Arguments
+<ParamField path="workspaceId">Workspace ID; defaults to active workspace (optional)</ParamField>
+
+### Options
+<ParamField path="--name <name>" type="string">Reference name Required.</ParamField>
+<ParamField path="--description <description>" type="string">Reference description</ParamField>
+<ParamField path="--url <base_url>" type="string">Reference base URL (used as the default benchmark target)</ParamField>
+
+## `ish workspace reference update`
+
+Update a reference
+
+Usage: `ish workspace reference update <workspaceId> <referenceId> [options]`
+
+### Arguments
+<ParamField path="workspaceId">Workspace ID (required)</ParamField>
+<ParamField path="referenceId">Reference ID (required)</ParamField>
+
+### Options
+<ParamField path="--name <name>" type="string">Reference name</ParamField>
+<ParamField path="--description <description>" type="string">Reference description</ParamField>
+<ParamField path="--url <base_url>" type="string">Reference base URL</ParamField>
+
+## `ish workspace reference delete`
+
+Delete a reference (also permanently destroys its benchmark clone studies and their run history)
+
+Usage: `ish workspace reference delete <workspaceId> <referenceId> [options]`
+
+### Arguments
+<ParamField path="workspaceId">Workspace ID (required)</ParamField>
+<ParamField path="referenceId">Reference ID (required)</ParamField>
+
+### Options
+<ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
 
 ## `ish workspace info`
 

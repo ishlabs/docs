@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ command-tree (v0.28.2).
+    Source: ishlabs/ish-cli @ command-tree (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 Every top-level command. The global flags apply to all of them.
@@ -17,19 +17,22 @@ Every top-level command. The global flags apply to all of them.
 | [`ish status`](/cli/generated/session) | Show active session - user, workspace, study, ask | None |
 | [`ish connect`](/cli/generated/connect) | Expose your localhost to Ish via a Cloudflare tunnel | `status` |
 | [`ish disconnect`](/cli/generated/connect) | Stop the active detached tunnel (graceful SIGTERM + backend deregister) | None |
-| [`ish workspace`](/cli/generated/workspace) | Manage workspaces | `list`, `create`, `get`, `update`, `delete`, `site-access`, `info`, `use` |
-| [`ish study`](/cli/generated/study-run) | Manage and run studies | `list`, `create`, `generate`, `get`, `results`, `update`, `delete`, `use`, `run`, `poll`, `wait`, `cancel`, `extend`, `participant`, `analyze`, `insights`, `screenshots`, `share`, `unshare` |
+| [`ish workspace`](/cli/generated/workspace) | Manage workspaces | `list`, `create`, `get`, `update`, `delete`, `site-access`, `reference`, `info`, `use` |
+| [`ish study`](/cli/generated/study-run) | Manage and run studies | `list`, `create`, `generate`, `get`, `results`, `update`, `delete`, `use`, `run`, `poll`, `wait`, `cancel`, `extend`, `participant`, `analyze`, `insights`, `benchmark`, `comparison`, `screenshots`, `share`, `unshare` |
 | [`ish iteration`](/cli/generated/iteration) | Manage iterations of a study (a study's run-time configuration) | `list`, `create`, `get`, `update`, `delete` |
 | [`ish person`](/cli/generated/person) | Manage people, generation, and source uploads | `list`, `create`, `generate`, `get`, `update`, `delete`, `suggest-scenarios`, `evidence` |
 | [`ish source`](/cli/generated/source) | Upload and inspect participant attachments used as generation inputs (transcripts, audio, images) | `upload`, `get`, `delete` |
 | [`ish config`](/cli/generated/config) | Manage simulation configs | `list`, `create`, `get`, `schema`, `update`, `delete` |
 | [`ish ask`](/cli/generated/ask) | Create and run asks - quick variant comparisons with people | `run`, `list`, `create`, `dispatch`, `get`, `results`, `wait`, `add-round`, `add-questions`, `retry`, `add-people`, `update`, `archive`, `unarchive`, `delete`, `use` |
 | [`ish chat`](/cli/generated/chat) | Author chatbot endpoints and run chat-modality studies | `endpoint`, `config` |
-| [`ish docs`](/cli/generated/docs) | Offline docs for agents - mental model, concept pages, search | `overview`, `list`, `get-page`, `search` |
+| [`ish docs`](/cli/generated/docs) | Offline docs for agents - mental model, concept pages, search | `overview`, `intents`, `list`, `get-page`, `search` |
+| [`ish commands`]() | Print the entire command tree as one machine-readable JSON manifest | None |
 | [`ish init`](/cli/generated/mcp) | Install the ish Agent Skill into a project (Claude Code, Codex, Cursor, Cline, Roo Code) | None |
 | [`ish mcp`](/cli/generated/mcp) | Wire the ish MCP server into local AI clients (Cursor, VS Code, Claude Code, Claude Desktop, Windsurf) | `list`, `add`, `remove` |
 | [`ish secret`](/cli/generated/secret) | Manage workspace secrets used in &#123;&#123;secret:KEY&#125;&#125; placeholders | `list`, `set`, `delete` |
 | [`ish check`](/cli/generated/check) | Check your local simulation setup for a platform (ios | android | web), or everything | None |
 | [`ish setup`](/cli/generated/check) | Fetch/install local-simulation dependencies (Chromium, iOS runner, adb) and show what's left to do | None |
 | [`ish feedback`](/cli/generated/upgrade-feedback) | Report a bug or send feedback to the ish team | None |
+| [`ish account`]() | Account-level plan and credit usage | `usage` |
+| [`ish telemetry`]() | Inspect backend LLM-call telemetry instrumentation (read-only dev endpoint) | `instrumentation`, `doctor` |
 | [`ish upgrade`](/cli/generated/upgrade-feedback) | Update ish to the latest version | None |

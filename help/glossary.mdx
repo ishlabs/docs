@@ -41,8 +41,9 @@ parameters, and return shapes, follow the links into the [CLI](/cli/overview),
 
 | Term | Definition |
 | --- | --- |
-| [Person](/concepts/people) | A durable persona definition: structured demographics, universal enums, and a versioned accessibility profile. Alias prefix `p-`. |
-| [Participant](/concepts/people#a-person-is-a-reusable-persona) | One instance of a person inside a single run. The same person across two runs produces two participants reading from the same profile. |
+| [Person](/concepts/people) | A persistent Person record, explicitly `HUMAN` or `AI`. A HUMAN Person may participate directly or through a simulated self; an AI Person participates only through simulation. |
+| [Participant](/concepts/people#a-participant-is-one-run) | One run-scoped instance of a Person, explicitly `HUMAN` or `AI`. A HUMAN Person may participate directly or through a simulated self; an AI Person may participate only as AI. |
+| [contributor](/concepts/people#the-contributor) | The real person who supplies authorized evidence or corrections and controls how that contribution may be used. |
 | [Audience](/concepts/people#how-people-fit-a-run) | Deprecated. Use `panel` for the set of people a run dispatches. The word survives as the `audience:` parameter on `study_run` and `ask_run`, which is not renamed. |
 | [Panel](/concepts/ask-and-round) | The set of people a run dispatches: sampled from the pool, named explicitly, or generated to fit a brief. An ask's panel is fixed at creation so every round runs the same people. |
 | [Pool](/concepts/people#two-ways-to-get-the-people-you-need) | The people available to a workspace, filtered by demographic to assemble a panel. |

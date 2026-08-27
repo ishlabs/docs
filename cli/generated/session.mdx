@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ login+logout+status (v0.28.2).
+    Source: ishlabs/ish-cli @ login+logout+status (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -27,7 +27,11 @@ Alias: `ish whoami`.
 
 Show active session - user, workspace, study, ask
 
-Usage: `ish status`
+Usage: `ish status [options]`
+
+### Options
+<ParamField path="--verify" type="boolean">Verify the token against the backend (not just decode it locally), then report token_verified</ParamField>
+<ParamField path="--plan" type="boolean">Include plan tier + remaining studies/people headroom for the active workspace (best-effort)</ParamField>
 
 ## Global flags
 

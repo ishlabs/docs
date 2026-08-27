@@ -524,7 +524,10 @@ Read modes:
   ``workspace_get`` for workspaces). ``view`` / ``participant_id`` / ``lean``
   ignored.
 - ``study_id`` → single-study results, shaped by ``view``:
-  ``summary`` (default; counts + sentiment + per-participant rows),
+  ``summary`` (default; counts + sentiment + step pass-rate + per-participant
+  rows - for a MULTI-iteration study the headline is scoped to the LATEST
+  iteration, with an ``iteration_breakdown`` of the others; pass
+  ``filters=&#123;'iteration': [id]}`` to read an earlier one),
   ``full`` (typed ``Study``; iterations + flat participant graph, each
   participant carries ``iteration_id``), ``per_participant`` (one
   participant's run; needs ``participant_id``), ``transcripts``
@@ -575,7 +578,8 @@ can't read resources still reach them.
 ``transcripts``; ignored otherwise.
 `lean`: ``view="full"`` only - null iterations AND skip the participants
 fetch for a metadata-only payload (also the fix if ``full`` times out on a
-draft study).
+draft study). Passing it with any other ``view`` is a ``[validation_error]``
+(it would be a silent no-op - the other views are already trimmed).
 `filters`: ``StudyResultsFilter`` (see that model). Only with ``study_id`` +
 ``view`` in ``&#123;summary, full}``.
 `group_by`: ``iteration`` | ``frame`` | ``segment`` | ``turn`` |

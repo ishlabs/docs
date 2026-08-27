@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ iteration (v0.28.2).
+    Source: ishlabs/ish-cli @ iteration (v0.32.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -39,8 +39,9 @@ Usage: `ish iteration create [options]`
 <ParamField path="--file-key <key>" type="string">Figma file key - required when --platform=figma</ParamField>
 <ParamField path="--start-node-id <id>" type="string">Figma start node id - required when --platform=figma</ParamField>
 <ParamField path="--flow-name <name>" type="string">Figma flow name - interactive only</ParamField>
-<ParamField path="--content-text <text>" type="string">Text content to evaluate, or @filepath to read from file - text modality</ParamField>
-<ParamField path="--content-html <html>" type="string">HTML version of the text, or @filepath to read from file - text modality</ParamField>
+<ParamField path="--content-text <text>" type="string">Text content (treated as markdown → canonical content_doc), or @filepath to read from file - text modality</ParamField>
+<ParamField path="--content-html <html>" type="string">Paste-exact HTML (e.g. a branded email), or @filepath - text modality. Rides as the ADR-0015 format:html carrier (rendered source-faithful, re-sanitized backend-side). Mutually exclusive with --content-md / --content-text.</ParamField>
+<ParamField path="--content-md <md>" type="string">Markdown content, or @filepath to read from file - text modality. Parsed to the canonical content_doc block AST (ish.doc/1). Mutually exclusive with --content-text.</ParamField>
 <ParamField path="--sender-name <name>" type="string">Email 'From' display name - text modality (email rendering)</ParamField>
 <ParamField path="--sender-email <email>" type="string">Email sender address - text modality (email rendering)</ParamField>
 <ParamField path="--featured-image-url <url>" type="string">Hero image URL - text modality (email rendering)</ParamField>
@@ -52,7 +53,7 @@ Usage: `ish iteration create [options]`
 <ParamField path="--copy-html <html>" type="string">HTML version of copy text (or @filepath)</ParamField>
 <ParamField path="--social-platform <platform>" type="string">Social platform (instagram, tiktok, facebook, linkedin, x)</ParamField>
 <ParamField path="--copy-position <pos>" type="string">Copy position relative to media (before, after) Default: "after".</ParamField>
-<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON - time_based &#123;intervals_seconds, labels?&#125;, section_based &#123;sections[&#123;name,label,...&#125;]&#125;, or page_based &#123;&#125; - media modalities. section_based sections are SEMANTIC: group related paragraphs into a few coherent sections (a long article is usually 3-6 sections, not one per paragraph; paragraph_start/end just mark where each section begins and ends).</ParamField>
+<ParamField path="--segmentation-json <json>" type="string">Segmentation JSON. Text (content_doc, ADR-0015) is block-id based: heading_based &#123;split_level&#125; auto-splits at headings (the default - author one `##` per section), or section_based &#123;sections[&#123;segment_id,name,label,start_block_id&#125;]&#125; for manual block-id boundaries (first section may omit start_block_id). Video/audio: time_based &#123;intervals_seconds, labels?&#125;. Sections are SEMANTIC (a long article is usually 3-6, not one per block). NOTE: the old paragraph_start/end form is DEAD on content_doc - it errors every participant at run; use heading_based or start_block_id.</ParamField>
 <ParamField path="--content-config-json <json>" type="string">Content config JSON - &#123;early_termination, selected_segment_indices?&#125; - media modalities</ParamField>
 <ParamField path="--chat-mode <mode>" type="string">Chat mode: external_chatbot (default; probe a customer chatbot) or participant_pair (two AI people talk to each other)</ParamField>
 <ParamField path="--chat-endpoint-id <id>" type="string">Saved chatbot endpoint id - chat modality, external_chatbot mode (legacy; prefer --endpoint)</ParamField>
@@ -66,7 +67,7 @@ Usage: `ish iteration create [options]`
 <ParamField path="--scenario-a <text-or-@file>" type="string">Side-A scenario + goal text, or @filepath - chat participant_pair mode</ParamField>
 <ParamField path="--scenario-b <text-or-@file>" type="string">Side-B scenario + goal text, or @filepath - chat participant_pair mode</ParamField>
 <ParamField path="--initiator-side <a|b>" type="string">Which side speaks first (default: a) - chat participant_pair mode</ParamField>
-<ParamField path="--role-criteria-a <json-or-@file>" type="string">RoleCriteria filter for side A (inline JSON or @filepath). Keys: occupation[], min_age, max_age, gender[], country[], education_level_in[], household_in[], locale_type_in[], income_level_in[], employment_status_in[], requires_captions, uses_screen_reader, prefers_reduced_motion, prefers_high_contrast, has_any_accessibility_need. The five *_in arrays accept snake_case spec values; the five accessibility filters are booleans. Persona-first: filters the eligible profile pool without altering personas. Use INSTEAD of --group-a or alongside it (criteria then validates the explicit list). chat participant_pair mode.</ParamField>
+<ParamField path="--role-criteria-a <json-or-@file>" type="string">RoleCriteria filter for side A (inline JSON or @filepath). Keys: occupation[], min_age, max_age, gender[], country[], education_level_in[], household_in[], locale_type_in[], income_level_in[], employment_status_in[], requires_captions, uses_screen_reader, prefers_reduced_motion, prefers_high_contrast, has_any_accessibility_need. The five *_in arrays accept snake_case spec values; the five accessibility filters are booleans. Person-first: filters the eligible person pool without altering the people themselves. Use INSTEAD of --group-a or alongside it (criteria then validates the explicit list). chat participant_pair mode.</ParamField>
 <ParamField path="--role-criteria-b <json-or-@file>" type="string">RoleCriteria filter for side B - same shape as --role-criteria-a. chat participant_pair mode.</ParamField>
 <ParamField path="--details-json <json>" type="string">Raw iteration details JSON (overrides individual flags)</ParamField>
 
