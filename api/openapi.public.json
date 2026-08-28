@@ -1075,6 +1075,42 @@
         "title": "Error",
         "type": "object"
       },
+      "EventListResponse": {
+        "description": "One page of events, newest first.",
+        "properties": {
+          "has_more": {
+            "description": "True when more events exist beyond this page.",
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SessionEventResponse"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Opaque keyset cursor for the next page (pass as `after`); null on the last page. Treat it as opaque; its encoding is not part of this contract.",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "has_more",
+          "next_cursor"
+        ],
+        "title": "EventListResponse",
+        "type": "object"
+      },
       "FeltIntensity": {
         "description": "How strongly the person feels the labelled sentiment: `mild`, `moderate` or `strong`. An ordinal magnitude, reported alongside `sentiment` on every decision.\n\nOpen union: new values may be added over time; clients must tolerate unknown values rather than failing on them.",
         "enum": [
@@ -1618,6 +1654,21 @@
               }
             ],
             "default": null
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Interests"
           },
           "languages": {
             "anyOf": [
@@ -2979,6 +3030,146 @@
         "description": "Full session state + a page of the ordered decision trace (GET).\n\nExactly the create/close body plus the trace, so a caller never has to\nreconcile two differently-shaped views of one session.",
         "title": "SessionDetailResponse"
       },
+      "SessionEventData": {
+        "properties": {
+          "object": {
+            "$ref": "#/components/schemas/SessionEventObject"
+          }
+        },
+        "required": [
+          "object"
+        ],
+        "title": "SessionEventData",
+        "type": "object"
+      },
+      "SessionEventObject": {
+        "description": "The session this event describes.",
+        "properties": {
+          "ended_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Finer than `status` where the status is ambiguous. Two exhaustion kinds share `balance_exhausted`, and this is what separates `credits_exhausted` (top up) from `plan_allowance_exhausted` (the period allowance, which returns on renewal). Null for an ordinary ending.",
+            "title": "Ended Reason"
+          },
+          "livemode": {
+            "description": "False for a test session. Never act on a test session as though it were real.",
+            "title": "Livemode",
+            "type": "boolean"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "status": {
+            "description": "The precise terminal status the two coarse event types flatten: `completed`, `gave_up`, `closed`, `max_turns`, `spend_cap_reached`, `balance_exhausted`. Open union: treat an unfamiliar value as 'ended somehow' rather than failing.",
+            "title": "Status",
+            "type": "string"
+          },
+          "task": {
+            "$ref": "#/components/schemas/SessionEventTask"
+          },
+          "turn_count": {
+            "title": "Turn Count",
+            "type": "integer"
+          },
+          "url": {
+            "description": "Path to the session this event describes, relative to the API root, to be fetched under your own credentials. Relative on purpose: composed per response rather than frozen into the log, so a change of API host can never strand historical events holding a dead absolute link.",
+            "title": "Url",
+            "type": "string"
+          },
+          "workspace_id": {
+            "format": "uuid",
+            "title": "Workspace Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "workspace_id",
+          "status",
+          "ended_reason",
+          "turn_count",
+          "livemode",
+          "task",
+          "url"
+        ],
+        "title": "SessionEventObject",
+        "type": "object"
+      },
+      "SessionEventResponse": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SessionEventData"
+          },
+          "id": {
+            "description": "Stable id for this event; safe to dedupe on.",
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "type": {
+            "description": "`session.completed` or `session.failed`. The split is who ENDED the run, not whether the person succeeded: the person or caller ending it leaves a usable trace (including `gave_up`, which is a finding rather than a fault), while a limit cutting it short does not. Route on this; read `data.object.status` for precision. Open union; new types may be added.",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "created_at",
+          "data"
+        ],
+        "title": "SessionEventResponse",
+        "type": "object"
+      },
+      "SessionEventTask": {
+        "description": "The task the session ran, as identifiers only.",
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The registered task, or null when the session was opened with inline instructions. Null is a real answer, not a gap: an inline session's intent has no registry identity.",
+            "title": "Id"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The task's revision at bind time. Two runs of one task are only comparable within a single revision of its instructions.",
+            "title": "Revision"
+          }
+        },
+        "required": [
+          "id",
+          "revision"
+        ],
+        "title": "SessionEventTask",
+        "type": "object"
+      },
       "SessionListItem": {
         "allOf": [
           {
@@ -4324,7 +4515,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.7.0"
+    "version": "1.9.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -8109,6 +8300,237 @@
         "summary": "Create Environment",
         "tags": [
           "environments"
+        ]
+      }
+    },
+    "/api/v1/workspaces/{workspace_id}/events": {
+      "get": {
+        "description": "Events for one workspace, newest first.\n\nRetained for 30 days. The window is enforced on this read as well as by the\nsweep, so a late or un-scheduled sweep can never surface an event older than\nthe documented lifetime.\n\nAn unknown value in `types` is refused rather than silently matching\nnothing: a typo'd filter that returns an empty page reads exactly like \"your\nintegration produced no events\", which is the most expensive way for a\ncaller to lose a day.",
+        "operationId": "listEvents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "workspace_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Workspace Id",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter to these event types. Repeat the parameter to pass several. Omit for all types.",
+            "in": "query",
+            "name": "types",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter to these event types. Repeat the parameter to pass several. Omit for all types.",
+              "title": "Types"
+            }
+          },
+          {
+            "description": "Opaque cursor from `next_cursor`.",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Opaque cursor from `next_cursor`.",
+              "title": "After"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventListResponse"
+                }
+              }
+            },
+            "description": "Successful Response",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The bearer token is missing, malformed, unknown, or revoked (`detail.error_kind = 'invalid_api_key'`). One kind covers all four deliberately: distinguishing them would confirm which guesses are real keys.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key lacks the `events:read` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'events:read'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The workspace (`workspace_id`) was not found, or is not reachable with this credential. `detail.error_kind` is `workspace_not_found`.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/ValidationError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Error"
+                    }
+                  ]
+                }
+              }
+            },
+            "description": "Validation error. A request-shape failure uses the `ValidationError` envelope; a handler-raised domain-validation refusal uses the `Error` envelope.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "description": "The API key's request rate limit is exceeded (`detail.error_kind = 'rate_limited'`). Transient: retry after the `Retry-After` interval, also echoed as `detail.retry_after_seconds`. Not applied to user access tokens.",
+            "headers": {
+              "X-Request-Id": {
+                "$ref": "#/components/headers/XRequestId"
+              },
+              "x-ratelimit-limit": {
+                "$ref": "#/components/headers/XRateLimitLimit"
+              },
+              "x-ratelimit-remaining": {
+                "$ref": "#/components/headers/XRateLimitRemaining"
+              },
+              "x-ratelimit-reset": {
+                "$ref": "#/components/headers/XRateLimitReset"
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "summary": "List the workspace's events",
+        "tags": [
+          "events"
         ]
       }
     },
