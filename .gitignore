@@ -1,3 +1,19 @@
 .planning
 # Claude Code worktrees (sibling repos ignore the same path)
 .claude/worktrees/
+
+# Environment Configuration
+# Ignore EVERY env-shaped file by default, then re-admit the few that belong in
+# git by exact name. A denylist of guessed suffixes cannot cover the suffix
+# nobody guessed: that is how ish-backend committed .env.verify (2026-07-11) and
+# .env.bak-seatverify (2026-06-10) with live prod and dev credentials in them.
+# audit:security@2026-W37#backend-env-files-tracked
+.env
+.env.*
+.envrc
+*.env
+env.*
+# ...and files that only LOOK env-shaped: source and key-name manifests.
+!**/env.py
+!**/env.go
+!.github/deploy/env.*.keys
