@@ -183,7 +183,7 @@ Optional social-platform skin for the rendered post.
 &nbsp;
 <Expandable title="properties">
 <ParamField body="role_criteria_a" type="object">
-**Recommended** for side A. Demographic criteria (occupation, age, gender, country, plus the five enum list-filters `education_level_in` / `household_in` / `locale_type_in` / `income_level_in` / `employment_status_in` and the coarse accessibility booleans). Backend resolves to a profile pool at iteration create time. Use this whenever the agent doesn't already know the specific person ids. To pre-flight a side's pool size before committing the iteration, call `person_get(workspace_id, country=..., education_level_in=..., requires_captions=..., limit=10)` - `PaginatedList.total` is the match count for the same filter shape.
+**Recommended** for side A. Demographic criteria (occupation, age, gender, country, plus the five enum list-filters `education_level_in` / `household_in` / `locale_type_in` / `income_level_in` / `employment_status_in` and the coarse accessibility booleans). Backend resolves to a pool of people at iteration create time. Use this whenever the agent doesn't already know the specific person ids. To pre-flight a side's pool size before committing the iteration, call `person_get(workspace_id, country=..., education_level_in=..., requires_captions=..., limit=10)` - `PaginatedList.total` is the match count for the same filter shape.
 <Expandable title="properties">
 <ParamField body="occupation" type="string[]">
 Job titles to match (case-insensitive). Empty/null = no filter.

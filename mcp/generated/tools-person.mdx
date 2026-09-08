@@ -19,17 +19,17 @@ hand-tailored material to a single persona after the fact (vs.
 ``docs_get("guides/build-specific-person")`` for the evidence loop.
 
 - ``source=SourceAttachInput(path=..., description=...)`` runs the
-  profile-scoped 3-step attachment intake (initiate → signed-URL PUT →
+  Person-scoped 3-step attachment intake (initiate → signed-URL PUT →
   confirm) - a file you want this persona to react to.
 - ``evidence=[EvidenceTraceInput(...), ...]`` POSTs scenario answers the
   persona's simulation-time prompt reads as ``&lt;past_reactions>``.
 
-**Profile must be private** (``visibility="private"``): the backend
-rejects shared/published profiles (moderation gate); the MCP surfaces
+**The Person must be private** (``visibility="private"``): the backend
+rejects shared/published people (moderation gate); the MCP surfaces
 that as ``[validation_error]`` with a "must be private" message.
 
 `person_id`: UUID or short alias (e.g. ``p-d4e``); must be a
-caller-owned private profile.
+caller-owned private Person.
 `source`: file payload - exactly one of ``source`` / ``evidence``.
 `evidence`: 1..N ``EvidenceTraceInput`` rows (mutually exclusive with
 ``source``). Each carries ``text`` (persona answer), ``source`` enum
@@ -75,9 +75,9 @@ MIME override; inferred from ``file_name`` / the remote ``Content-Type`` when om
 
 Permanently delete a person. **DESTRUCTIVE**.
 
-Public-pool profiles cannot be deleted by individual workspaces; the
+Public-pool people cannot be deleted by individual workspaces; the
 backend rejects those with ``[auth_failed]`` (or ``[not_found]`` if
-the profile does not exist).
+the Person does not exist).
 
 `person_id`: UUID or short alias (e.g. ``p-d4e``) of the person
 to delete.
@@ -211,7 +211,7 @@ but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
 
 **Single mode** (with ``person_id``): that Person with workspace-scoped
 custom fields + usage stats. ``include_evidence=True`` attaches persisted
-``EvidenceTrace`` rows (newest-first) under ``profile.evidence``;
+``EvidenceTrace`` rows (newest-first) under the Person's ``evidence``;
 rejected in list mode (per-row evidence blows the token budget).
 
 Three text-search dimensions (each case-insensitive substring, AND'd):
