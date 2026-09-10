@@ -81,10 +81,11 @@ Default 10; capped server-side (the failure envelope names the bound).
 the rest of the run (e.g. "Stop browsing - switch to the German picker.").
 `wait`: when True, block until the new participant is terminal. Default
 False - return immediately with the dispatched id.
-`timeout`: seconds to wait when ``wait=True``. Default 600. On elapse a
-``wait_timeout`` envelope returns while the run continues server-side; the
-``next_action`` hint points at the resume poll. See
-``docs_get("reference/long-running-jobs")``.
+`timeout`: seconds to wait when ``wait=True``. Default 240 - under the
+~300 s idle limit at which Claude Code kills a silent call. On elapse a
+``wait_timeout`` envelope returns while the run continues server-side,
+carrying the ids and a ``next_action`` hint that points at the resume
+poll. See ``docs_get("reference/long-running-jobs")``.
 
 **Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``.
 On success (``ok=True``) ``dispatch.participant_ids`` carries the **new**
@@ -96,7 +97,7 @@ out), or a backend error code.
 
 ### Parameters
 <ParamField body="participant_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="additional_steps" type="integer">
 Default: `10`.
@@ -108,5 +109,5 @@ Default: `10`.
 Default: `false`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `600.0`.
+Default: `240.0`.
 </ParamField>

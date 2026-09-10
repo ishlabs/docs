@@ -32,7 +32,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="endpoint_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 
 ## `chatbot_delete_configuration`
@@ -50,7 +50,7 @@ cross-study aggregation link breaks. Check ``usage_count`` via
 
 ### Parameters
 <ParamField body="configuration_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 
 ## `chatbot_get`
@@ -86,7 +86,7 @@ not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="endpoint_id" type="string">
 &nbsp;
@@ -136,9 +136,11 @@ The smoke test draws no simulation credits; see
     call. Editing is not exposed - create a new one with a fresh
     ``version_label``.
 `is_configuration_default`: When ``configuration`` is set, mark it as
-    the endpoint default (used by ``study_add_iteration(modality="chat")``
-    when no explicit ``chatbot_configuration_id`` is given). Default
-    ``True``.
+    the endpoint default. ``study_add_iteration(modality="chat")``
+    references the endpoint by ``chatbot_endpoint_id`` and the
+    endpoint's stored default supplies the configuration, so leave
+    this ``True`` unless you are adding a non-default version.
+    Default ``True``.
 
 **Returns** ``ChatbotSetupResponse`` discriminated by ``ok``. On failure
 inspect ``error_kind`` ∈ the shared vocabulary (``validation_error`` /
@@ -153,7 +155,7 @@ endpoint is never persisted when ``smoke_test=True`` and the test fails.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="paste" type="string">
 &nbsp;
@@ -252,7 +254,7 @@ maintain a session.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="endpoint_id" type="string">
 &nbsp;

@@ -43,7 +43,7 @@ not_found, forbidden, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="source" type="object">
 &nbsp;
@@ -88,24 +88,29 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 
 ## `person_generate`
 
 **Tier:** long-running · **Tags:** dispatch, person
 
-Build a person (or cohort) "ish" from a description and/or real
-research artifacts, via the **agentic** generation pipeline (turns the
-brief plus uploaded evidence - emails, PDFs, text, images, audio - into
-people, optionally with grounded scenarios). See
+Mint new simulated people from a plain-English brief ("three skeptical
+indie hackers", "a head of product at a Series B") and optional research
+files, via the agentic generation pipeline. Returns the minted
+``person_ids``, which you pass as ``audience.person_ids`` on ``study_run``
+/ ``ask_run``.
+
+Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
+it mints, optionally with scenarios traced back to the real reactions. See
 ``docs_get("concepts/person")`` (generate vs manual) and
 ``docs_get("concepts/source")`` (artifacts as generation inputs).
 
 **Blocks by default** (``wait=True``): uploads artifacts, enqueues the
 job, polls to terminal, returns resolved people + scenarios. Pass
-``wait=False`` for the ``job_id`` immediately, then pick up results via
-``person_get(workspace_id=..., type="ai")`` - see
+``wait=False`` for the ``job_id`` immediately plus a ``next_action``
+naming the resume call - ``person_generate(workspace_id=..., job_id=...)``
+re-attaches to that same job and waits it out. See
 ``docs_get("reference/long-running-jobs")``. The three inputs
 (description, ``source_paths``, ``source_upload_ids``) freely combine.
 
@@ -139,13 +144,21 @@ codes. `gender`: list of gender labels.
 `generate_evidence`: also produce grounded ``EvidenceTrace`` rows.
 ``None`` (default) = auto (scenarios only when sources attached);
 ``True`` / ``False`` override.
+`job_id`: resume mode - poll an already-enqueued job instead of starting
+one. Returned in ``next_action`` by a ``wait=False`` call. Mutually
+exclusive with every generation input (``description``, ``source_paths``,
+``source_upload_ids``, ...): combining them is a ``validation_error``
+rather than a silent discard. If the job is already terminal and did not
+complete, you get the same ``ok=False`` envelope the blocking call would
+have returned, with no ``next_action``.
 `wait`: block until terminal (default True; runs take ~30-60s).
 `timeout`: seconds to wait when ``wait=True`` (default 180s).
 
 **Returns** a ``PersonGenerateResponse`` discriminated by ``ok``. With
 ``wait=True``, success populates ``people`` + ``person_ids``; with
-``wait=False``, ``job_id`` + ``status="queued"`` only. On failure inspect
-``error_kind`` ∈ ``&#123;validation_error, not_found, usage_limit_reached,
+``wait=False``, ``job_id`` + ``status="queued"`` + ``next_action``. On
+failure inspect ``error_kind`` ∈
+``&#123;validation_error, not_found, usage_limit_reached,
 generation_failed, timeout, rate_limited, server_error, network_error,
 http_error}``. **Partial-failure contract:** when upload(s) succeeded but
 enqueue failed, ``source_ids`` is still populated so agents can retry
@@ -153,7 +166,7 @@ against existing sources without re-uploading.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="description" type="string">
 &nbsp;
@@ -180,6 +193,9 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc')
 &nbsp;
 </ParamField>
 <ParamField body="generate_evidence" type="boolean">
+&nbsp;
+</ParamField>
+<ParamField body="job_id" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="wait" type="boolean">
@@ -235,7 +251,7 @@ row; fetch a single Person for the full payload). `include_evidence`:
 single mode only.
 `visibility`: narrows the list; default unions every scope, ordered
 workspace → platform → shared. Canonical values ``"workspace"`` (caller's
-own; required ahead of ``person_evidence_add``), ``"shared"``
+own; required ahead of ``person_attach``), ``"shared"``
 (community-published), ``"platform"`` (admin-curated). Pre-rollout
 ``"private"`` / ``"public"`` are accepted as deprecation aliases for
 ``"workspace"`` / ``"platform"``.
@@ -267,7 +283,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="person_id" type="string">
 &nbsp;
@@ -390,7 +406,7 @@ network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="source_path" type="string">
 &nbsp;

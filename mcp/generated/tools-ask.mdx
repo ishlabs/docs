@@ -28,7 +28,7 @@ not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="ask_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 
 ## `ask_get`
@@ -48,7 +48,7 @@ Read asks. Polymorphic - supply exactly one of ``ask_id`` / ``workspace_id``.
   top-level ``responses`` list (each tagged with ``round_index``) - not
   repeated per round. A lean ``participants`` roster
   (``&#123;participant_id, person_id, name, persona}`` per participant) maps the
-  ``t-…`` ids on responses to who they are; full Person detail is opt-in via
+  ``pt-…`` ids on responses to who they are; full Person detail is opt-in via
   ``person_get``. Top-level ``status`` is derived from the rounds. Asks with
   2+ rounds also carry ``cross_round_summary`` (a winner-tracking diff:
   ``&#123;round_count, winner_per_round[], winner_changed, picks_delta,
@@ -119,12 +119,15 @@ ask, use ``ask_get`` (the summary roster), not this.
 `backfill_prior_rounds`: ``True`` runs the new participants through prior
 rounds first; ``False`` (default) only the specified round forward.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
+Code kills a silent call; on elapse the envelope carries the ids and a
+``next_action``.
 
 **Returns** ``Ask``.
 
 ### Parameters
 <ParamField body="ask_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="round" type="integer | string" required>
 &nbsp;
@@ -170,8 +173,11 @@ Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that ex
 <ParamField body="max_age" type="integer">
 &nbsp;
 </ParamField>
+<ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
+Which pool `sample` / `all_matching` draw from. 'workspace' (default): this workspace's own people; 'platform': the admin-curated public pool (~13k generic people); 'all': every pool - workspace, platform, and other workspaces' community-published people. Ignored when person_ids is set. Default: `"workspace"`.
+</ParamField>
 <ParamField body="visibility" type="string">
-&nbsp;
+Raw backend visibility filter (workspace | shared | platform, or a comma-separated union). Prefer `scope`; when both are set this wins.
 </ParamField>
 </Expandable>
 </ParamField>
@@ -182,7 +188,7 @@ Default: `false`.
 Default: `false`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `600.0`.
+Default: `240.0`.
 </ParamField>
 
 ## `ask_questions`
@@ -202,12 +208,15 @@ one credit per successful participant (``docs_get("reference/credits")``).
 `redispatch_all`: ``False`` (default) is additive - only the new questions get
 answered, prior responses kept. ``True`` clears phase-1 outputs and re-runs the round.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
+Code kills a silent call; on elapse the envelope carries the ids and a
+``next_action``.
 
 **Returns** ``Ask``.
 
 ### Parameters
 <ParamField body="ask_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="round" type="integer | string" required>
 &nbsp;
@@ -222,7 +231,7 @@ Default: `false`.
 Default: `false`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `600.0`.
+Default: `240.0`.
 </ParamField>
 
 ## `ask_round`
@@ -249,6 +258,9 @@ prior round's ``aggregates.pick_buckets``). Omit to inherit the full audience;
 the backend 422s an unresolvable subset with
 ``error_kind="participant_subset_invalid"``.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
+Code kills a silent call; on elapse the envelope carries the ids and a
+``next_action``.
 
 **Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
 ``&#123;auth_failed, forbidden, not_found, validation_error,
@@ -256,7 +268,7 @@ participant_subset_invalid, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="ask_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="prompt" type="string" required>
 &nbsp;
@@ -288,14 +300,17 @@ The `id` of the variant on the prior round whose pickers should be inherited as 
 Default: `false`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `600.0`.
+Default: `240.0`.
 </ParamField>
 
 ## `ask_run`
 
 **Tier:** long-running · **Tags:** ask, dispatch
 
-Create an ask + dispatch round 1 in one call.
+Compare variants and get a pick - a headline, tagline, copy, image, ad,
+or any A/B / "which of these lands?" question. Creates the ask and
+dispatches round 1 in one call; with ``wait=True`` the return carries the
+verdict (``aggregates.winner``).
 
 ``wait=False`` (default) returns immediately with a ``next_action``
 pointing at ``ask_get`` to poll round 1; ``wait=True`` blocks until round 1
@@ -329,6 +344,9 @@ follow-up round via ``ask_round`` and keep its letter.
 `wants_ratings`: requires >=1 variant; collects per-variant ratings.
 `questions`: free-text follow-ups appended to round 1.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
+``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
+Code kills a silent call; on elapse the envelope carries the ids and a
+``next_action``.
 
 **Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
 ``&#123;auth_failed, forbidden, not_found, validation_error, empty_audience,
@@ -337,7 +355,7 @@ http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc')
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="name" type="string" required>
 &nbsp;
@@ -389,8 +407,11 @@ Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that ex
 <ParamField body="max_age" type="integer">
 &nbsp;
 </ParamField>
+<ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
+Which pool `sample` / `all_matching` draw from. 'workspace' (default): this workspace's own people; 'platform': the admin-curated public pool (~13k generic people); 'all': every pool - workspace, platform, and other workspaces' community-published people. Ignored when person_ids is set. Default: `"workspace"`.
+</ParamField>
 <ParamField body="visibility" type="string">
-&nbsp;
+Raw backend visibility filter (workspace | shared | platform, or a comma-separated union). Prefer `scope`; when both are set this wins.
 </ParamField>
 </Expandable>
 </ParamField>
@@ -410,5 +431,5 @@ Default: `false`.
 Default: `false`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `600.0`.
+Default: `240.0`.
 </ParamField>
