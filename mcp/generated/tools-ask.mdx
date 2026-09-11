@@ -13,7 +13,9 @@ mode: "reference"
 **Tier:** destructive · **Tags:** ask, delete
 
 Permanently delete an ask and all its rounds + responses.
-**DESTRUCTIVE** - irreversible; there is no soft-archive for asks.
+**DESTRUCTIVE** - irreversible. Archived asks exist (``ask_get`` hides them
+unless ``include_archived=True``), but this surface has no archive verb, so
+the only way to remove an ask here is to delete it.
 
 **When to use:** typically only when the user explicitly asks to
 remove an ask, or after an ask is confirmed obsolete. Confirm with
@@ -37,9 +39,12 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 
 Read asks. Polymorphic - supply exactly one of ``ask_id`` / ``workspace_id``.
 
-- **``workspace_id``** → paginated list of asks in the workspace.
+- **``workspace_id``** → every ask in the workspace in one response (no
+  page inputs; ``has_more`` is always false).
   ``include_archived`` (default ``False``) controls archived visibility;
-  ``view`` / ``round`` / ``participant_id`` are ignored.
+  ``view`` / ``round`` / ``participant_id`` are ignored. There is no
+  account-wide ask listing: enumerating every ask is one call per row of
+  ``workspace_list``.
 - **``ask_id``, no ``participant_id``** → results for one ask.
   ``view="summary"`` (default) returns the projected envelope: per-round
   ``aggregates`` (``pick_counts``; ``winner`` = &#123;label, variant_id, count,

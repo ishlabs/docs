@@ -69,8 +69,9 @@ Read workspaces. Polymorphic on ``workspace_id``.
   the full quota counters and credit pool.
 - **With ``workspace_id``** → that workspace's details plus plan-limit
   usage counters (studies/people used + cap, tier) and the
-  simulation-credit pool drawn on dispatch. A ``None`` cap means
-  "unlimited"; treat ``None`` and ``0`` differently. When
+  simulation-credit pool drawn on dispatch. An unlimited cap is OMITTED
+  from the response (the shaper drops nulls), so an absent ``*_cap`` key
+  means unlimited and ``0`` means none allowed. When
   ``credits.unlimited`` is True, skip the headroom check - balances are
   untracked (``None``), not empty. See ``docs_get("concepts/workspace")``.
 
@@ -119,8 +120,10 @@ to stay lean. For account-wide plan + credits, call ``account_usage()``.
 `name`: optional case-insensitive substring filter on the workspace name,
 applied after the fetch (e.g. ``workspace_list(name="Acme")``).
 
-**Returns** a list of ``WorkspaceListItem`` (``id`` / ``alias`` / ``name``),
-ordered case-insensitively by name. On failure raises ``ToolError`` with
+**Returns** a list of ``WorkspaceListItem`` rows (``alias`` / ``name``; no
+``id`` - read one workspace with ``workspace_get`` for its UUID), ordered
+case-insensitively by name; ``workspace_get()`` with no arguments lists the
+same workspaces most-recently-active first. On failure raises ``ToolError`` with
 ``error_kind`` in ``&#123;auth_failed, forbidden, server_error, network_error,
 http_error}``.
 

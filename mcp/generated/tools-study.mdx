@@ -420,7 +420,7 @@ True = any non-default accessibility leaf; False = a fully-default profile.
 </Expandable>
 </ParamField>
 <ParamField body="group_a" type="string[]">
-Side A person ids (UUIDs or 'tp-' aliases). Use this when you already have specific participants in mind; otherwise leave empty and pass ``role_criteria_a`` instead.
+Side A person ids (UUIDs or 'p-' aliases). Use this when you already have specific participants in mind; otherwise leave empty and pass ``role_criteria_a`` instead.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="group_b" type="string[]">
@@ -695,8 +695,8 @@ results. Pass exactly one of ``workspace_id`` (browse/list) / ``study_id``
 Read modes:
 
 - ``workspace_id`` → **browse**: paginated list of every study in that
-  workspace, each row carrying alias, name, modality, ``status`` /
-  ``runtime_status``, and participant counts - this is how you discover
+  workspace, each row carrying alias, name, modality, ``status`` (the
+  authoring label), ``has_results``, and participant counts - this is how you discover
   study IDs and inspect what exists (the browse layer for studies, mirroring
   ``workspace_get`` for workspaces). ``view`` / ``participant_id`` / ``lean``
   ignored.
@@ -868,8 +868,10 @@ Pass exactly one of ``url`` (interactive: a public page or prototype),
 image | document). ``task`` becomes the assignment; ``questions`` the
 interview. ``people`` as on ``study_run`` (default scope: this
 workspace's people). ``max_interactions`` caps steps per participant
-(default 20; use 5 for a smoke probe). Credits: one per completed
-participant. ``wait`` / ``timeout`` as on ``study_run``.
+(default 20; use 5 for a smoke probe). Credits: per participant
+``max(1, round(steps * rate))`` - interactive 1 credit a step, media
+0.1-0.5 - so the cap bounds spend (``docs_get("reference/credits")``).
+``wait`` / ``timeout`` as on ``study_run``.
 
 `name`: human-readable study name.
 `people`: required - a launch always creates a fresh study, so there is
@@ -1048,8 +1050,12 @@ research across my workspaces and what each concluded" is:
    then ``study_list(workspace_id=...)`` per workspace to stay narrow.
 2. Pick the studies worth reading from the returned ``studies`` rows
    (each carries ``alias`` / ``workspace_id`` / ``name`` / ``modality`` /
-   ``status`` / ``participant_count`` / ``updated_at``; rows carry the alias
-   only, the UUID comes with ``study_get``).
+   ``status`` / ``participant_count``; rows carry the alias only, the UUID
+   comes with ``study_get``, and rows carry NO timestamps - they arrive
+   most-recently-updated first, and that order is the recency signal).
+   ``status`` is the authoring label and stays ``draft`` after a run;
+   ``participant_count > 0`` is the row-level sign a study has results, and
+   ``study_get``'s ``runtime_status`` is the real one.
 3. Read one study's findings with ``study_get(study_id, view="insights")``:
    the AI summary plus key-insight text and citation ids. For counts +
    sentiment use ``view="summary"``. To read the findings of several studies
@@ -1183,11 +1189,16 @@ of 3 after ``study_create`` and ``study_add_iteration``: resolve ``people``
 modality-appropriate batch. Verb choice (study vs ask):
 ``docs_get("concepts/run-verbs")``.
 
-**Credit cost:** each successfully-completed participant debits the
-workspace's plan credit pool - subscription-funded, so no per-dispatch
-approval is needed; pre-flight failures (CSP refusals, NXDOMAIN, chatbot
-smoke-test failures, etc.) cost zero and are retryable. Confirm the pool via
-``workspace_get(...).credits`` (empty → ``[insufficient_credits]``). Model:
+**Credit cost:** per successful participant, ``max(1, round(steps * rate))`` where
+``steps`` is what the participant actually took (capped by
+``max_interactions``) and ``rate`` is per modality - interactive 1 credit a
+step, video 0.5, audio 0.3, document 0.3, image 0.2, chat 0.2 a turn (pair
+chat bills both sides), text 0.1. So ten interactive people at the default
+cap of 20 can cost up to 200 credits; ``max_interactions`` bounds spend, not
+just duration. The pool is subscription-funded, so no per-dispatch approval
+is needed; pre-flight failures (CSP refusals, NXDOMAIN, chatbot smoke-test
+failures, etc.) cost zero and are retryable. Confirm the pool via
+``workspace_get(...).credits`` (empty → ``[insufficient_credits]``). Rates:
 ``docs_get("reference/credits")``.
 
 Three modes:

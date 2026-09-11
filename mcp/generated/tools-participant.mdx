@@ -76,6 +76,9 @@ branched from the source's last interaction; the source row is untouched.
 
 `participant_id`: UUID or alias (``pt-...``) of the source participant.
 `additional_steps`: more interactions to allow past the original cap.
+Credit cost: ``max(1, round(additional_steps * rate))`` at the study's
+modality rate (interactive 1 credit a step, media 0.1-0.5), drawn on
+completion; ``docs_get("reference/credits")`` has the table.
 Default 10; capped server-side (the failure envelope names the bound).
 `instruction`: optional user message injected as overriding direction for
 the rest of the run (e.g. "Stop browsing - switch to the German picker.").

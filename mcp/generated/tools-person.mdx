@@ -141,8 +141,10 @@ re-attaches to that same job and waits it out. See
 ``docs_get("reference/long-running-jobs")``. The three inputs
 (description, ``source_paths``, ``source_upload_ids``) freely combine.
 
-Counts toward the plan's custom-person entity cap (independent of the
-per-run credit pool) - see ``docs_get("reference/credits")``; on hit:
+**Credit cost:** 2 credits per person actually produced (+1 each when
+avatars are generated); a run asked for five that delivers three bills
+three. Also counts toward the plan's custom-person entity cap (independent
+of the credit pool) - see ``docs_get("reference/credits")``; on hit:
 ``[usage_limit_reached]``.
 
 **Single-person role-fitting (pair-mode use case).** Pair-mode chat
