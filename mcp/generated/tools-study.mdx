@@ -135,10 +135,62 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="segmentation" type="object">
 &nbsp;
+<Expandable title="properties (variant 1)">
+Time-based segmentation for video/audio iterations.
+<ParamField body="type" type="string">
+Default: `"time_based"`.
+</ParamField>
+<ParamField body="intervals_seconds" type="number[]" required>
+Segment boundaries in seconds; include 0 as the start of segment 0.
+</ParamField>
+<ParamField body="labels" type="string[]">
+Per-segment labels for the participant UI; align with intervals_seconds.
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 2)">
+Section-based segmentation for text/document iterations.
+<ParamField body="type" type="string">
+Default: `"section_based"`.
+</ParamField>
+<ParamField body="sections" type="object[]" required>
+Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article).
+<Expandable title="item properties">
+One section in a section-based segmentation.
+
+Use either the marker fields (``start_marker`` / ``end_marker``) or the
+paragraph fields (``paragraph_start`` / ``paragraph_end``), not both.
+<ParamField body="name" type="string" required>
+Stable section identifier (e.g. ``'section-1'``).
+</ParamField>
+<ParamField body="label" type="string" required>
+Human-readable label shown in the participant UI (required, non-empty).
+</ParamField>
+<ParamField body="start_marker" type="string">
+Inclusive start marker text.
+</ParamField>
+<ParamField body="end_marker" type="string">
+Exclusive end marker text.
+</ParamField>
+<ParamField body="paragraph_start" type="integer">
+Zero-based first paragraph.
+</ParamField>
+<ParamField body="paragraph_end" type="integer">
+Zero-based last paragraph (exclusive).
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 3)">
+Page-based segmentation for documents - pages are auto-derived.
+<ParamField body="type" type="string">
+Default: `"page_based"`.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="content_config" type="object">
 &nbsp;
 <Expandable title="properties">
+Per-iteration evaluation settings layered on top of segmentation.
 <ParamField body="early_termination" type="boolean">
 If true, end the participant session once all selected segments are seen. Default: `false`.
 </ParamField>
@@ -150,6 +202,10 @@ Subset of segment indices to include; ``None`` (default) means all.
 <ParamField body="copy_content" type="object">
 &nbsp;
 <Expandable title="properties">
+Caption / surrounding-copy block for video, audio, and image iterations.
+
+Models the social-post pattern where media is paired with a caption, which
+can itself be sub-segmented for paragraph-by-paragraph reactions.
 <ParamField body="text" type="string" required>
 Caption body as markdown; the canonical source per ADR-0015.
 </ParamField>
@@ -158,6 +214,57 @@ Optional format:html projection of text (ADR-0015); never canonical.
 </ParamField>
 <ParamField body="segmentation" type="object">
 Optional per-section split of the copy; see Segmentation.
+<Expandable title="properties (variant 1)">
+Time-based segmentation for video/audio iterations.
+<ParamField body="type" type="string">
+Default: `"time_based"`.
+</ParamField>
+<ParamField body="intervals_seconds" type="number[]" required>
+Segment boundaries in seconds; include 0 as the start of segment 0.
+</ParamField>
+<ParamField body="labels" type="string[]">
+Per-segment labels for the participant UI; align with intervals_seconds.
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 2)">
+Section-based segmentation for text/document iterations.
+<ParamField body="type" type="string">
+Default: `"section_based"`.
+</ParamField>
+<ParamField body="sections" type="object[]" required>
+Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article).
+<Expandable title="item properties">
+One section in a section-based segmentation.
+
+Use either the marker fields (``start_marker`` / ``end_marker``) or the
+paragraph fields (``paragraph_start`` / ``paragraph_end``), not both.
+<ParamField body="name" type="string" required>
+Stable section identifier (e.g. ``'section-1'``).
+</ParamField>
+<ParamField body="label" type="string" required>
+Human-readable label shown in the participant UI (required, non-empty).
+</ParamField>
+<ParamField body="start_marker" type="string">
+Inclusive start marker text.
+</ParamField>
+<ParamField body="end_marker" type="string">
+Exclusive end marker text.
+</ParamField>
+<ParamField body="paragraph_start" type="integer">
+Zero-based first paragraph.
+</ParamField>
+<ParamField body="paragraph_end" type="integer">
+Zero-based last paragraph (exclusive).
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 3)">
+Page-based segmentation for documents - pages are auto-derived.
+<ParamField body="type" type="string">
+Default: `"page_based"`.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="position" type="&quot;before&quot; | &quot;after&quot;">
 Whether the copy is shown before or after the media. Default: `"after"`.
@@ -182,9 +289,30 @@ Optional social-platform skin for the rendered post.
 <ParamField body="chat_pair" type="object">
 &nbsp;
 <Expandable title="properties">
+Input shape for the AI ↔ AI participant-pair chat mode.
+
+Prefer ``role_criteria_a`` / ``role_criteria_b`` and let the backend
+resolve each side's pool at create time. Pass ``group_a`` / ``group_b``
+(person ids or aliases) only for a hand-picked panel; combining both is
+allowed and the explicit list is then validated against the criteria.
+
+With both groups non-empty: equal counts zip 1:1 by index, and a side of
+exactly 1 broadcasts across the other. Any other mismatch is rejected.
+``initiator_side`` picks who speaks turn 0; the two scenarios are never
+cross-leaked. To persist a goal beside the scenario in a frontend-editable
+way, write it onto the study's side-tagged ``Assignment.test_context``.
 <ParamField body="role_criteria_a" type="object">
 Side A demographic criteria; the backend resolves a pool at create time. Pre-flight the pool size with person_get(...) using the same filters.
 <Expandable title="properties">
+Demographic filter for picking who plays one side of a pair scenario.
+
+Each non-null field is an AND-leaf in the eligibility rule the backend
+resolves to a pool of people at iteration create time; the matched
+Person's persona is never altered. The enum vocabularies and the
+accessibility booleans are documented once, on ``person_get``.
+
+No ``person_ids`` / ``sample`` / ``all_matching`` - those say how to draw a
+panel, not who is eligible.
 <ParamField body="occupation" type="string[]">
 Substring match against occupation text; no role-key expansion here.
 </ParamField>
@@ -235,6 +363,15 @@ True = any non-default accessibility leaf; False = a fully-default profile.
 <ParamField body="role_criteria_b" type="object">
 Side B criteria; see role_criteria_a.
 <Expandable title="properties">
+Demographic filter for picking who plays one side of a pair scenario.
+
+Each non-null field is an AND-leaf in the eligibility rule the backend
+resolves to a pool of people at iteration create time; the matched
+Person's persona is never altered. The enum vocabularies and the
+accessibility booleans are documented once, on ``person_get``.
+
+No ``person_ids`` / ``sample`` / ``all_matching`` - those say how to draw a
+panel, not who is eligible.
 <ParamField body="occupation" type="string[]">
 Substring match against occupation text; no role-key expansion here.
 </ParamField>
@@ -284,9 +421,11 @@ True = any non-default accessibility leaf; False = a fully-default profile.
 </ParamField>
 <ParamField body="group_a" type="string[]">
 Side A person ids (UUIDs or 'tp-' aliases). Use this when you already have specific participants in mind; otherwise leave empty and pass ``role_criteria_a`` instead.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="group_b" type="string[]">
 Side B person ids. When both sides are explicit, counts must match (zip) or one side must be exactly 1 (broadcast). Leave empty to resolve from ``role_criteria_b``.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="scenario_a" type="string" required>
 Side A's scenario + goal. Side B never sees this.
@@ -363,7 +502,7 @@ the source study's parent workspace. Each reference's target URL defaults to
 its ``base_url``; a reference with no URL is reported under ``failed`` with
 ``stage="no_url"``.
 
-Read the results with ``study_comparison(source_study_id)`` once the
+Read the results with ``study_comparison(study_id)`` once the
 dispatched rounds finish.
 
 `source_study_id`: UUID or alias (e.g. ``s-b2c``) of the source study.
@@ -386,7 +525,7 @@ start_simulations``. ``skipped`` covers references skipped before any work
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="reference_ids" type="string[]" required>
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="source_iteration_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
@@ -494,6 +633,33 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="assignments" type="object | string[]">
 &nbsp;
+<Expandable title="item properties">
+One task participants attempt, as sent on ``study_create`` / ``study_revise``.
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="instructions" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="test_context" type="string">
+Optional goal / background context. For pair chat: what success looks like for this role. The backend folds it into the persona prompt.
+</ParamField>
+<ParamField body="side" type="&quot;a&quot; | &quot;b&quot;">
+Pair-chat discriminator: 'a' or 'b'. Required when the parent study is ``chat_mode='participant_pair'``; omit for every other modality and for external_chatbot chat.
+</ParamField>
+<ParamField body="steps" type="object[]">
+Optional checklist of steps to complete. Interactive / external_chatbot chat only.
+<Expandable title="item properties">
+One atomic action in an assignment's checklist ("steps to complete").
+<ParamField body="name" type="string" required>
+Short label for the step (e.g. ``"Add to cart"``).
+</ParamField>
+<ParamField body="description" type="string">
+Optional longer description of what completing the step means.
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="questions" type="string[]">
 &nbsp;
@@ -529,7 +695,7 @@ results. Pass exactly one of ``workspace_id`` (browse/list) / ``study_id``
 Read modes:
 
 - ``workspace_id`` → **browse**: paginated list of every study in that
-  workspace, each row carrying id, alias, name, modality, ``status`` /
+  workspace, each row carrying alias, name, modality, ``status`` /
   ``runtime_status``, and participant counts - this is how you discover
   study IDs and inspect what exists (the browse layer for studies, mirroring
   ``workspace_get`` for workspaces). ``view`` / ``participant_id`` / ``lean``
@@ -612,19 +778,19 @@ transcripts envelopes expose rows on ``response.rows``.
 
 ### Parameters
 <ParamField body="study_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="study_ids" type="string[]">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="workspace_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="view" type="&quot;summary&quot; | &quot;full&quot; | &quot;per_participant&quot; | &quot;transcripts&quot; | &quot;insights&quot;">
 Default: `"summary"`.
 </ParamField>
 <ParamField body="participant_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="lean" type="boolean">
 Default: `false`.
@@ -632,6 +798,13 @@ Default: `false`.
 <ParamField body="filters" type="object">
 &nbsp;
 <Expandable title="properties">
+Typed filter over a study's participants and interactions.
+
+Composition: AND across fields, OR within a multi-valued field.
+Pass exactly the dimensions you care about; omit the rest. Filters
+that don't apply to the current modality (e.g. ``turn`` on a video
+study) emit a warning and are silently ignored - they never error.
+Only ``group_by`` hard-errors on modality mismatch.
 <ParamField body="frame" type="string[]">
 Interactive only. Each entry is a Frame UUID, a frame_version_id UUID, an ``f-...`` alias, or a case-insensitive substring of the Frame's name. Ambiguous name matches raise ``[validation_error]`` with the candidate list.
 </ParamField>
@@ -680,6 +853,187 @@ Default: `50`.
 Default: `0`.
 </ParamField>
 
+## `study_launch`
+
+**Tier:** long-running · **Tags:** dispatch, study
+
+Test a landing page, web flow, prototype, video, document or text draft
+with simulated people in ONE call: creates the study, adds the content as
+its first iteration, and dispatches the run (the ``study_create`` →
+``study_add_iteration`` → ``study_run`` chain). Use the primitives for chat
+studies, Figma files, multiple iterations, or edits.
+
+Pass exactly one of ``url`` (interactive: a public page or prototype),
+``content_md`` (text) or ``content_url`` (+ ``modality`` = video | audio |
+image | document). ``task`` becomes the assignment; ``questions`` the
+interview. ``people`` as on ``study_run`` (default scope: this
+workspace's people). ``max_interactions`` caps steps per participant
+(default 20; use 5 for a smoke probe). Credits: one per completed
+participant. ``wait`` / ``timeout`` as on ``study_run``.
+
+`name`: human-readable study name.
+`people`: required - a launch always creates a fresh study, so there is
+never a panel to reuse. ``&#123;"sample": N}`` (this workspace's people by
+default), ``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description":
+..., "count": N}}`` to mint new people first, which is what a workspace
+with no people needs.
+`workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive with ``workspace_name``.
+`workspace_name`: case-insensitive name; an exact match wins over a substring
+one, and an ambiguous name is a ``[validation_error]`` naming the candidates
+rather than a guess.
+`url`: the public page / prototype participants visit. Must load WITHOUT your
+session - see ``study_add_iteration`` for the share-link and ``site_access_set``
+rules.
+`content_url`: hosted file (or local path) for a video / audio / image /
+document study; needs ``modality``. One file - a multi-image study needs
+``study_add_iteration``, which takes the list.
+`content_md`: markdown body (inline, or ``@file.md``) for a text study.
+`modality`: only for ``content_url``; inferred otherwise.
+`task`: what participants attempt, as one assignment. Omit for a
+read-and-react study.
+`questions`: free-text interview questions asked after the run.
+`config_id`: simulation-config override (alias ``c-...``). Required for the
+file and text modalities unless every resolved person already has a
+simulation config assigned; optional for interactive.
+`max_interactions`: per-participant step cap (interactive / media).
+`screen_format`: applies to ``url`` launches only - ``desktop`` (default) or
+``mobile_portrait``; ignored for ``content_url`` / ``content_md``.
+`analyze`: as on ``study_run`` - with ``wait=True``, run ``study_analyze``
+once the participants finish and return it in ``run.analysis``.
+`wait` / `timeout`: as on ``study_run``; the default returns after dispatch
+with a ``next_action`` poll hint.
+
+**Returns** ``StudyLaunchResponse``: ``study``, ``iteration``, ``run``,
+``next_action`` (mirrors ``run.next_action`` - the one place to look for
+what to call next), plus ``notes`` and ``suggestions``. Branch on ``ok``
+first, then on ``error_kind`` - on a mid-chain failure ``ok`` is False,
+``error_kind`` carries the failing primitive's machine-readable code,
+``error_message`` names the step, and the rows created so far are returned
+so you can continue with the primitives. Argument errors raise
+``[validation_error]`` before anything is created.
+
+### Parameters
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="people" type="object" required>
+Mutually-exclusive ways to pick the people for a run.
+
+Pass exactly one of:
+  - ``generate`` - mint fresh people for this run and use exactly them.
+  - ``person_ids`` - explicit IDs, returned verbatim.
+  - ``sample`` (with optional filters) - randomly sample N from the pool.
+  - ``all_matching`` (with optional filters) - every match in the pool.
+  - filters only - treated as ``all_matching``.
+
+Always sends ``type=ai`` to the backend (simulations are AI-driven).
+<Expandable title="properties">
+<ParamField body="person_ids" type="string[]">
+Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="generate" type="object">
+Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+<Expandable title="properties">
+Mint people as part of a run instead of calling ``person_generate`` first.
+<ParamField body="description" type="string" required>
+Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="count" type="integer">
+How many people to mint (1-10). Default: `3`.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Free-text gender labels, e.g. male / female / non-binary.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower age bound.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper age bound.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="sample" type="integer">
+Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
+</ParamField>
+<ParamField body="all_matching" type="boolean">
+Use every person that matches the filters. Mutually exclusive with ``sample`` and with ``person_ids``. Default: `false`.
+</ParamField>
+<ParamField body="search" type="string">
+Case-insensitive substring match on the person's name.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Exact match on one of: ``male``, ``female``, ``non-binary``, ``prefer_not_to_say`` (case-insensitive). Multiple values OR-combine. Any other value matches no one.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes, e.g. ``"US"``, ``"AU"``, ``"GB"`` - NOT country names like ``"United States"`` (the pool stores two-letter codes and matches them exactly). Multiple codes OR-combine.
+</ParamField>
+<ParamField body="occupation" type="string[]">
+Free-text, case-insensitive substring match on the person's occupation; multiple values OR-combine. For reliable role targeting prefer ``role_in`` (the canonical role filter).
+</ParamField>
+<ParamField body="role_in" type="string[]">
+Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that expand to many free-text ``occupation`` substrings under the hood - a best-effort convenience over the backend's free-text occupation field. OR-combines with any explicit ``occupation`` filter (the expanded substrings are merged into the occupation dimension). Pass an unknown key to see the full canonical list in the resulting ``[validation_error]``.
+</ParamField>
+<ParamField body="min_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="max_age" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
+Which pool `sample` / `all_matching` draw from. 'workspace' (default): this workspace's own people; 'platform': the admin-curated public pool (~13k generic people); 'all': every pool - workspace, platform, and other workspaces' community-published people. Ignored when person_ids is set. Default: `"workspace"`.
+</ParamField>
+<ParamField body="visibility" type="string">
+Raw backend visibility filter (workspace | shared | platform, or a comma-separated union). Prefer `scope`; when both are set this wins.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="workspace_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="workspace_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="content_md" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="modality" type="&quot;interactive&quot; | &quot;text&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;image&quot; | &quot;document&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="task" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="config_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="max_interactions" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="screen_format" type="&quot;mobile_portrait&quot; | &quot;desktop&quot;">
+Default: `"desktop"`.
+</ParamField>
+<ParamField body="analyze" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="wait" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="timeout" type="number">
+Default: `240.0`.
+</ParamField>
+
 ## `study_list`
 
 **Tier:** read-only · **Tags:** read, study
@@ -693,8 +1047,9 @@ research across my workspaces and what each concluded" is:
    workspace, most-recently-updated first. Or ``workspace_list()`` first,
    then ``study_list(workspace_id=...)`` per workspace to stay narrow.
 2. Pick the studies worth reading from the returned ``studies`` rows
-   (each carries ``id`` / ``alias`` / ``workspace_id`` / ``name`` /
-   ``modality`` / ``status`` / ``participant_count`` / ``updated_at``).
+   (each carries ``alias`` / ``workspace_id`` / ``name`` / ``modality`` /
+   ``status`` / ``participant_count`` / ``updated_at``; rows carry the alias
+   only, the UUID comes with ``study_get``).
 3. Read one study's findings with ``study_get(study_id, view="insights")``:
    the AI summary plus key-insight text and citation ids. For counts +
    sentiment use ``view="summary"``. To read the findings of several studies
@@ -730,7 +1085,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="status" type="string">
 &nbsp;
@@ -782,6 +1137,33 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="assignments" type="object | string[]">
 &nbsp;
+<Expandable title="item properties">
+One task participants attempt, as sent on ``study_create`` / ``study_revise``.
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="instructions" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="test_context" type="string">
+Optional goal / background context. For pair chat: what success looks like for this role. The backend folds it into the persona prompt.
+</ParamField>
+<ParamField body="side" type="&quot;a&quot; | &quot;b&quot;">
+Pair-chat discriminator: 'a' or 'b'. Required when the parent study is ``chat_mode='participant_pair'``; omit for every other modality and for external_chatbot chat.
+</ParamField>
+<ParamField body="steps" type="object[]">
+Optional checklist of steps to complete. Interactive / external_chatbot chat only.
+<Expandable title="item properties">
+One atomic action in an assignment's checklist ("steps to complete").
+<ParamField body="name" type="string" required>
+Short label for the step (e.g. ``"Add to cart"``).
+</ParamField>
+<ParamField body="description" type="string">
+Optional longer description of what completing the step means.
+</ParamField>
+</Expandable>
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="questions" type="string[]">
 &nbsp;
@@ -796,7 +1178,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 
 Dispatch simulated people through a study's iteration (a URL, prototype,
 media or chatbot) and, with ``wait=True``, wait until they finish. Step 3
-of 3 after ``study_create`` and ``study_add_iteration``: resolve an audience
+of 3 after ``study_create`` and ``study_add_iteration``: resolve ``people``
 (or reuse the staged panel), create participants, dispatch the
 modality-appropriate batch. Verb choice (study vs ask):
 ``docs_get("concepts/run-verbs")``.
@@ -810,18 +1192,19 @@ smoke-test failures, etc.) cost zero and are retryable. Confirm the pool via
 
 Three modes:
 
-1. Materialize + dispatch (default): ``audience`` + ``dispatch=True``.
-2. Stage only: ``audience`` + ``dispatch=False`` - creates participants but
+1. Materialize + dispatch (default): ``people`` + ``dispatch=True``.
+2. Stage only: ``people`` + ``dispatch=False`` - creates participants but
    does NOT dispatch (review checkpoint before drawing credits). Run later
-   with ``audience=None``.
-3. Reuse panel: ``audience=None`` - dispatches whatever participants already
+   with ``people=None``.
+3. Reuse panel: ``people=None`` - dispatches whatever participants already
    exist on the iteration.
 
 `study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
 `iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest.
-`audience`: ``AudienceFilter`` (``person_ids``, or ``sample=N`` /
-``all_matching=True`` + demographic filters). ``None`` reuses the iteration's
-panel. See ``docs_get("concepts/people")``.
+`people`: who runs through it - ``person_ids``, or ``sample=N`` /
+``all_matching=True`` + demographic filters, or ``generate`` to mint them
+inline. ``None`` reuses the iteration's panel. See
+``docs_get("concepts/people")``.
 `config_id`: simulation-config override (alias ``c-...``). Required for media
 and chat studies unless every resolved person already has a simulation config
 assigned.
@@ -832,6 +1215,14 @@ For ``participant_pair`` chat, omitting it auto-infers from the first
 to 20; caps runaway spend on a stuck participant. Ignored for chat. Must be ≥1.
 `max_turns`: per-participant turn cap (chat / chat_pair). Omitted → backend
 uses request > iteration's stored value > 14. Ignored otherwise. Must be ≥1.
+`analyze`: with ``wait=True``, run ``study_analyze`` once every participant is
+terminal and return its result in ``analysis`` (one call instead of run →
+analyze → insights). Not available for chat studies, which the analysis does
+not cover. A failed analysis does NOT fail the run: ``ok`` stays True,
+``analysis_error`` carries the bracketed reason and ``next_action`` names
+the retry. Both legs share the one ``timeout``, so the call still returns
+inside it; if the participants used the whole budget the analysis is
+skipped rather than started, again via ``analysis_error``.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
 ``wait=True`` polls every participant to terminal or ``timeout``; default
 returns the post-dispatch snapshot with a ``next_action`` poll hint.
@@ -852,7 +1243,7 @@ app-builder editor preview - Lovable / Replit / Bolt / v0) passes this check
 yet still fails for ish's cloud testers: point the iteration at a published /
 share-preview link, or register a login with ``site_access_set``. See
 ``docs_get("concepts/site-access")``.
-``participant_pair`` chat rejects ``audience`` (audiences live in the
+``participant_pair`` chat rejects ``people`` (both sides live in the
 iteration's ``mode_details``).
 
 **Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``. Success →
@@ -867,13 +1258,48 @@ via ``study_get(view="summary")``.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="iteration_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="audience" type="object">
+<ParamField body="people" type="object">
 &nbsp;
 <Expandable title="properties">
+Mutually-exclusive ways to pick the people for a run.
+
+Pass exactly one of:
+  - ``generate`` - mint fresh people for this run and use exactly them.
+  - ``person_ids`` - explicit IDs, returned verbatim.
+  - ``sample`` (with optional filters) - randomly sample N from the pool.
+  - ``all_matching`` (with optional filters) - every match in the pool.
+  - filters only - treated as ``all_matching``.
+
+Always sends ``type=ai`` to the backend (simulations are AI-driven).
 <ParamField body="person_ids" type="string[]">
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="generate" type="object">
+Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+<Expandable title="properties">
+Mint people as part of a run instead of calling ``person_generate`` first.
+<ParamField body="description" type="string" required>
+Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="count" type="integer">
+How many people to mint (1-10). Default: `3`.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Free-text gender labels, e.g. male / female / non-binary.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower age bound.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper age bound.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="sample" type="integer">
 Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
@@ -911,7 +1337,7 @@ Raw backend visibility filter (workspace | shared | platform, or a comma-separat
 </Expandable>
 </ParamField>
 <ParamField body="config_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="dispatch" type="boolean">
 Default: `true`.
@@ -927,6 +1353,9 @@ Default: `240.0`.
 </ParamField>
 <ParamField body="max_turns" type="integer">
 &nbsp;
+</ParamField>
+<ParamField body="analyze" type="boolean">
+Default: `false`.
 </ParamField>
 
 ## `study_update_iteration`

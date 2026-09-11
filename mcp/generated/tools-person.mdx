@@ -48,6 +48,13 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="source" type="object">
 &nbsp;
 <Expandable title="properties">
+File payload for ``person_attach(source=...)``.
+
+The MCP resolves ``path`` (local path, ``http(s)://`` URL, or ``data:``
+URL) - or decodes ``inline_base64`` - and uploads via the backend's
+person-scoped 3-step intake. ``description`` is the optional researcher
+note that lands in ``Attachment.description`` (max 500 chars per the
+backend ``ConfirmProfileAttachmentRequest``).
 <ParamField body="path" type="string">
 Where to read the file from - a local path read from the **MCP server's** filesystem (the MCP process must have read access), an ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a ``data:`` URL. Supported MIME types: ``audio/*``, ``image/*``, ``text/*``, ``application/pdf``, ``application/json``, and office-document types. Omit when passing ``inline_base64``.
 </ParamField>
@@ -67,6 +74,26 @@ MIME override; inferred from ``file_name`` / the remote ``Content-Type`` when om
 </ParamField>
 <ParamField body="evidence" type="object[]">
 &nbsp;
+<Expandable title="item properties">
+One scenario answer to persist on a person.
+
+Wire-shape mirror of the backend's ``EvidenceTraceInput``
+(``app/api/participant/me/scenarios/models.py``). Each row carries the
+persona's in-character answer (``text``), which scenario shape it
+answers (``source``), and the prompt the agent posed (``scenario_prompt``).
+<ParamField body="text" type="string" required>
+The persona's in-character answer / observation. Free text.
+</ParamField>
+<ParamField body="source" type="&quot;situation&quot; | &quot;voice&quot; | &quot;binary&quot; | &quot;micro-story&quot;" required>
+Which of the four scenario shapes this row answers: ``situation`` (concrete moment + 2-4 plausible reactions), ``voice`` (same situation, first-person utterances), ``binary`` (A vs B forced choice), ``micro-story`` (open-ended one-paragraph response).
+</ParamField>
+<ParamField body="scenario_prompt" type="string">
+The prompt the agent posed. Surfaces in the simulation-time persona prompt next to ``text`` so the simulated participant sees both question and answer as past context.
+</ParamField>
+<ParamField body="raw_response" type="object">
+Optional structured echo of the original LLM response.
+</ParamField>
+</Expandable>
 </ParamField>
 
 ## `person_delete`
@@ -98,7 +125,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 Mint new simulated people from a plain-English brief ("three skeptical
 indie hackers", "a head of product at a Series B") and optional research
 files, via the agentic generation pipeline. Returns the minted
-``person_ids``, which you pass as ``audience.person_ids`` on ``study_run``
+``person_ids``, which you pass as ``people.person_ids`` on ``study_run``
 / ``ask_run``.
 
 Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
@@ -124,7 +151,8 @@ per side: call ``person_generate(count=1, description="...")`` per side;
 the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`description`: free-text audience brief (>=20 chars when supplied).
+`description`: free-text brief for the people to mint (>=20 chars when
+supplied).
 `source_paths`: evidence references - prefer a ``data:`` URL or an
 ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap): those are
 portable and work against the hosted server. A local file path is read from
@@ -138,7 +166,7 @@ first with ``source_upload(inline_base64=...)`` and pass the returned id via
 `reaction_notes`: one researcher note per ``source_paths`` entry (same
 order, same length) describing how the real person reacted to THAT
 artifact; ``""`` skips a note for that file.
-`count`: pin audience size to [1, 10]; omit to let the agent propose.
+`count`: pin how many to mint, [1, 10]; omit to let the agent propose.
 `age_range`: ``(min, max)`` inclusive. `country`: ISO-3166-alpha-2
 codes. `gender`: list of gender labels.
 `generate_evidence`: also produce grounded ``EvidenceTrace`` rows.
@@ -175,7 +203,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 &nbsp;
 </ParamField>
 <ParamField body="source_upload_ids" type="string[]">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="reaction_notes" type="string[]">
 &nbsp;
@@ -213,9 +241,11 @@ Read people. Polymorphic on ``person_id``: omit to list, pass it to
 fetch one Person. See ``docs_get("concepts/people")`` for
 people-selection semantics.
 
-**List mode** (no ``person_id``): people in the workspace plus the
-public pool. Within a dimension (``country`` / ``gender`` /
-``occupation`` / each ``*_in`` enum) values OR; across dimensions they
+**List mode** (no ``person_id``): this workspace's own people by default -
+the same pool a bare ``people=&#123;sample: N}`` draws from, so what you list
+here is what a run can draw. Widen with ``scope``. Within a dimension
+(``country`` / ``gender`` / ``occupation`` / each ``*_in`` enum) values
+OR; across dimensions they
 AND. Defaults to ``type="ai"`` (simulatable); ``"human"`` or ``"all"``
 widen it. Pagination via ``limit`` (max 200) + ``offset``. Returns a
 ``PaginatedList[Person]`` (``&#123;items, total, returned, limit, offset,
@@ -249,12 +279,16 @@ explicit ``occupation``. Pass an unknown key to see the full list in the
 `include_accessibility_profile`: default ``False`` (each is large per
 row; fetch a single Person for the full payload). `include_evidence`:
 single mode only.
-`visibility`: narrows the list; default unions every scope, ordered
-workspace → platform → shared. Canonical values ``"workspace"`` (caller's
-own; required ahead of ``person_attach``), ``"shared"``
-(community-published), ``"platform"`` (admin-curated). Pre-rollout
-``"private"`` / ``"public"`` are accepted as deprecation aliases for
-``"workspace"`` / ``"platform"``.
+`scope`: which pool to list - the same default and the same three values
+as the run verbs' ``people.scope``, so this listing and a run's people describe
+one pool. ``"workspace"`` (default): this workspace's own people;
+``"platform"``: the admin-curated public pool; ``"all"``: every pool,
+ordered workspace → platform → shared.
+`visibility`: raw backend filter; wins over ``scope`` when both are set.
+Canonical values ``"workspace"`` (caller's own; required ahead of
+``person_attach``), ``"shared"`` (community-published), ``"platform"``
+(admin-curated). Pre-rollout ``"private"`` / ``"public"`` are accepted as
+deprecation aliases for ``"workspace"`` / ``"platform"``.
 
 **Extended demographic enums** (snake_case, must match
 ``spec/profile-enums.v1.json``):
@@ -286,7 +320,7 @@ forbidden, not_found, server_error, network_error, http_error}``.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="person_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="country" type="string[]">
 &nbsp;
@@ -359,6 +393,9 @@ Default: `false`.
 </ParamField>
 <ParamField body="has_any_accessibility_need" type="boolean">
 &nbsp;
+</ParamField>
+<ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
+Default: `"workspace"`.
 </ParamField>
 <ParamField body="visibility" type="&quot;workspace&quot; | &quot;shared&quot; | &quot;platform&quot; | &quot;private&quot; | &quot;public&quot;">
 &nbsp;

@@ -1,6 +1,6 @@
 {
   "generator": "generate_docs_mcp.py",
-  "tool_count": 45,
+  "tool_count": 46,
   "resource_count": 10,
   "tags": [
     "account",
@@ -11,10 +11,10 @@
     "delete",
     "dispatch",
     "docs",
+    "participant",
     "person",
     "read",
     "reference",
-    "simulation",
     "site_access",
     "study",
     "upload",
@@ -27,11 +27,12 @@
     "tools-person",
     "tools-workspace",
     "tools-chatbot",
-    "tools-simulation",
+    "tools-participant",
     "tools-site-access",
     "tools-connect",
     "tools-upload",
     "tools-reference",
-    "tools-docs"
+    "tools-docs",
+    "tools-account"
   ]
 }

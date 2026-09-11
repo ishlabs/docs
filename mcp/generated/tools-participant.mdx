@@ -1,6 +1,6 @@
 ---
-title: "simulation tools"
-description: "MCP tool reference for the simulation domain."
+title: "participant tools"
+description: "MCP tool reference for the participant domain."
 mode: "reference"
 ---
 
@@ -8,13 +8,13 @@ mode: "reference"
     Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
     Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
 
-## `simulation_cancel`
+## `participant_cancel`
 
-**Tier:** write · **Tags:** simulation, write
+**Tier:** write · **Tags:** participant, write
 
 Cancel queued or running simulations - the reversible "stop" half of
 the cancel/extend pair; a cancelled run can be resumed from its last
-interaction via ``simulation_extend`` (``docs_get("concepts/extending-a-simulation")``).
+interaction via ``participant_extend`` (``docs_get("concepts/extending-a-simulation")``).
 
 Walks each affected participant to ``cancelled``. Persisted artifacts
 (participant rows, interactions, transcripts) survive - a status flip,
@@ -35,7 +35,7 @@ Set exactly one scope of ``participant_id`` / ``study_id`` /
 `participant_id`: UUID or alias (``pt-...``) of one participant.
 `study_id`: UUID or alias (``s-...``) - fans out across all iterations.
 `iteration_id`: UUID or alias (``i-...``) - fans out across one iteration.
-`ask_id`: UUID or alias (``a-...``) - fans out across the ask audience.
+`ask_id`: UUID or alias (``a-...``) - fans out across the ask's people.
 `round`: 1-indexed round filter (only meaningful with ``ask_id``).
 
 **Returns** ``&#123;"cancelled": [&#123;"participant_id", "success", "status"?}, ...],
@@ -47,27 +47,27 @@ participants (``"already_terminal"``).
 
 ### Parameters
 <ParamField body="participant_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="study_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="iteration_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="ask_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="round" type="integer">
 &nbsp;
 </ParamField>
 
-## `simulation_extend`
+## `participant_extend`
 
-**Tier:** long-running · **Tags:** dispatch, simulation
+**Tier:** long-running · **Tags:** dispatch, participant
 
 Resume a terminal participant with ``additional_steps`` more turns - the
-reversible "start" half of the ``simulation_cancel`` + extend pair
+reversible "start" half of the ``participant_cancel`` + extend pair
 (``docs_get("concepts/extending-a-simulation")``).
 
 The source must be terminal (``completed`` / ``failed`` / ``cancelled``).

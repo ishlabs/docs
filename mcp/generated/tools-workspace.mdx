@@ -42,7 +42,7 @@ usage_limit_reached, server_error, network_error, http_error}``.
 **Tier:** destructive · **Tags:** delete, workspace
 
 Permanently delete a workspace. **DESTRUCTIVE** - cascades to every
-study, ask, person, audience source, reference, and chatbot endpoint inside
+study, ask, person, source, reference, and chatbot endpoint inside
 it, and is irreversible (no soft-archive). Confirm with the user first.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) to delete.
@@ -92,7 +92,7 @@ network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="name" type="string">
 &nbsp;
@@ -102,7 +102,7 @@ network_error, http_error}``.
 
 **Tier:** read-only · **Tags:** read, workspace
 
-List every workspace you can access as a lean id / alias / name array.
+List every workspace you can access as a lean alias / name array.
 
 The cheap enumeration primitive for cross-workspace work. To review
 research across all your workspaces: ``workspace_list`` → ``study_list``

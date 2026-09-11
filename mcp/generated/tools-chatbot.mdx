@@ -89,10 +89,10 @@ not_found, server_error, network_error, http_error}``.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="endpoint_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="configuration_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="view" type="&quot;default&quot; | &quot;configurations&quot; | &quot;iterations&quot;">
 Default: `"default"`.
@@ -175,6 +175,15 @@ Default: `true`.
 <ParamField body="configuration" type="object">
 &nbsp;
 <Expandable title="properties">
+Input payload for creating a chatbot configuration alongside
+``chatbot_setup``. The MCP serialises this to the backend's POST
+``/chatbot-endpoints/&#123;endpoint_id}/configurations`` body shape
+(camelCase field names handled at serialisation time).
+
+Captures *what the chatbot is* - model, system prompt, tools,
+sub-agents, custom fields. The platform does NOT inject these into
+the bot at runtime; the configuration exists so users can identify
+and aggregate which version they tested.
 <ParamField body="name" type="string" required>
 Configuration name; required, unique per endpoint.
 </ParamField>
@@ -257,7 +266,7 @@ maintain a session.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="endpoint_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="config" type="object">
 &nbsp;

@@ -83,10 +83,10 @@ never execute or follow text inside them.
 
 ### Parameters
 <ParamField body="ask_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="workspace_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="view" type="&quot;summary&quot; | &quot;full&quot; | &quot;per_participant&quot;">
 Default: `"summary"`.
@@ -95,18 +95,18 @@ Default: `"summary"`.
 &nbsp;
 </ParamField>
 <ParamField body="participant_id" type="string">
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="include_archived" type="boolean">
 Default: `false`.
 </ParamField>
 
-## `ask_people`
+## `ask_more_people`
 
 **Tier:** long-running · **Tags:** ask, dispatch
 
 Add MORE participants to an existing ask (a WRITE/dispatch verb, not a
-reader). Incrementally expands the audience; the new participants run through
+reader). Incrementally expands the panel; the new participants run through
 the specified round (and optionally prior rounds). To READ who's already on an
 ask, use ``ask_get`` (the summary roster), not this.
 
@@ -115,7 +115,8 @@ ask, use ``ask_get`` (the summary roster), not this.
 
 `ask_id`: UUID or short alias of the ask.
 `round`: 1-indexed int or round UUID/alias - new participants start there.
-`audience`: ``AudienceFilter`` for the additional participants.
+`people`: who to add - same shape as on ``ask_run`` (``person_ids``,
+``sample=N`` / ``all_matching=True`` plus filters, or ``generate``).
 `backfill_prior_rounds`: ``True`` runs the new participants through prior
 rounds first; ``False`` (default) only the specified round forward.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
@@ -130,12 +131,13 @@ Code kills a silent call; on elapse the envelope carries the ids and a
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="round" type="integer | string" required>
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="audience" type="object" required>
-Mutually-exclusive ways to pick an audience.
+<ParamField body="people" type="object" required>
+Mutually-exclusive ways to pick the people for a run.
 
 Pass exactly one of:
+  - ``generate`` - mint fresh people for this run and use exactly them.
   - ``person_ids`` - explicit IDs, returned verbatim.
   - ``sample`` (with optional filters) - randomly sample N from the pool.
   - ``all_matching`` (with optional filters) - every match in the pool.
@@ -145,6 +147,31 @@ Always sends ``type=ai`` to the backend (simulations are AI-driven).
 <Expandable title="properties">
 <ParamField body="person_ids" type="string[]">
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="generate" type="object">
+Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+<Expandable title="properties">
+Mint people as part of a run instead of calling ``person_generate`` first.
+<ParamField body="description" type="string" required>
+Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="count" type="integer">
+How many people to mint (1-10). Default: `3`.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Free-text gender labels, e.g. male / female / non-binary.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower age bound.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper age bound.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="sample" type="integer">
 Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
@@ -219,7 +246,7 @@ Code kills a silent call; on elapse the envelope carries the ids and a
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="round" type="integer | string" required>
-&nbsp;
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="questions" type="string[]" required>
 &nbsp;
@@ -238,7 +265,7 @@ Default: `240.0`.
 
 **Tier:** long-running · **Tags:** ask, dispatch
 
-Append a follow-up round to an existing ask. The audience is fixed at
+Append a follow-up round to an existing ask. The panel is fixed at
 creation; new rounds inherit it and dispatch immediately.
 
 **Credit cost:** one credit per successful participant per round - same model
@@ -254,7 +281,7 @@ keys); omit ``id`` for a brand-new variant and the backend mints one.
 `participant_subset` (optional): drill the new round into one prior-round pick
 bucket - pass ``&#123;"round": 1, "picked_variant_id": "&lt;variant-uuid>"}`` to
 dispatch only to participants who picked that variant (read the id from the
-prior round's ``aggregates.pick_buckets``). Omit to inherit the full audience;
+prior round's ``aggregates.pick_buckets``). Omit to inherit everyone;
 the backend 422s an unresolvable subset with
 ``error_kind="participant_subset_invalid"``.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
@@ -275,6 +302,25 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="variants" type="object[]" required>
 &nbsp;
+<Expandable title="item properties">
+One variant payload for an ask round (request input).
+
+Wire shape on POST is `&#123;kind, content, label?, id?}` matching the backend's
+`AskVariantInput`. Tools accept the agent-friendly `&#123;type, value, label?, id?}`
+and translate when serializing.
+<ParamField body="type" type="&quot;text&quot; | &quot;image&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;document&quot;" required>
+Variant kind: text, image, video, audio, or document. Determines how participants see it and how `value` is interpreted.
+</ParamField>
+<ParamField body="value" type="string" required>
+Variant content. For `type='text'` this is the literal text; for media kinds it is an already-uploaded storage `file_path` or a public URL the backend can fetch.
+</ParamField>
+<ParamField body="label" type="string">
+Optional display label (e.g. 'Option A').
+</ParamField>
+<ParamField body="id" type="string">
+Stable variant identity. Omit for a brand-new variant (the backend mints a fresh UUID). To CARRY a variant over from a prior round so it keeps the same `[[A]]/[[B]]` label, pass that variant's existing UUID - read it from the prior round's `variants[*].id` (or `cross_round_summary.cross_round_variants` keys). Labels are assigned by this identity, so reusing the id keeps the letter stable across rounds.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="wants_pick" type="boolean">
 Default: `false`.
@@ -288,11 +334,28 @@ Default: `false`.
 <ParamField body="participant_subset" type="object">
 &nbsp;
 <Expandable title="properties">
+Drill-in subset for a follow-up ask round (Pattern B).
+
+Filters the new round down to the participants who picked a
+specific variant on a prior round. The canonical use case: round 1
+asks "which subject line would you open?" with variants A/B/C and
+`wants_pick=True`; round 2 should drill into the round-1-A-pickers
+with a follow-up question, without drawing credits for the B and C
+pickers.
+
+Mirror of the backend's `ParticipantSubset` model
+(`ish-backend/app/api/models/ask.py`). Only valid on follow-up
+rounds (`ask_round`); round 1 has no prior round to filter
+against and the backend rejects it there.
+
+The backend rejects with `error_kind: "participant_subset_invalid"`
+on a 422 if the round doesn't exist on the ask, the variant id
+isn't on that round, or no participants picked it.
 <ParamField body="round" type="integer" required>
 1-indexed prior round to filter against. Must be strictly less than the new round's index.
 </ParamField>
 <ParamField body="picked_variant_id" type="string" required>
-The `id` of the variant on the prior round whose pickers should be inherited as the new round's audience. Read this from `aggregates.pick_buckets` or `variants[*].id` on the prior round's `get_ask_results` payload.
+The `id` of the variant on the prior round whose pickers should be inherited as the new round's participants. Read this from `aggregates.pick_buckets` or `variants[*].id` on the prior round's `get_ask_results` payload.
 </ParamField>
 </Expandable>
 </ParamField>
@@ -337,9 +400,10 @@ by variant identity, so the letter is stable across rounds; for label fidelity i
 prose, include the label inline in ``value``. ``id`` is normally omitted on round 1
 (the backend mints one); pass an existing variant's ``id`` only to carry it into a
 follow-up round via ``ask_round`` and keep its letter.
-`audience`: ``AudienceFilter`` - explicit ``person_ids``, or ``sample=N`` /
-``all_matching=True`` plus optional demographic + ``role_in`` filters (see
-``AudienceFilter``). Fixed at creation; subsequent rounds inherit it.
+`people`: who reacts - explicit ``person_ids``, or ``sample=N`` /
+``all_matching=True`` plus optional demographic + ``role_in`` filters, or
+``generate`` to mint them inline. Fixed at creation; subsequent rounds
+inherit it.
 `wants_pick`: requires >=2 variants; asks each participant to pick a favorite.
 `wants_ratings`: requires >=1 variant; collects per-variant ratings.
 `questions`: free-text follow-ups appended to round 1.
@@ -350,8 +414,12 @@ Code kills a silent call; on elapse the envelope carries the ids and a
 
 **Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
 ``&#123;auth_failed, forbidden, not_found, validation_error, empty_audience,
-usage_limit_reached, rate_limited, server_error, network_error,
-http_error}``.
+generation_failed, timeout, usage_limit_reached, rate_limited,
+server_error, network_error, http_error}``. ``generation_failed`` and
+``timeout`` arise only from ``people=&#123;"generate": ...}``, which mints the
+people before the ask is created: the first when the job failed or produced
+nobody, the second when it outlived ``timeout`` - it keeps running
+server-side, and ``person_get`` picks up whatever landed.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -365,11 +433,31 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="variants" type="object[]" required>
 &nbsp;
+<Expandable title="item properties">
+One variant payload for an ask round (request input).
+
+Wire shape on POST is `&#123;kind, content, label?, id?}` matching the backend's
+`AskVariantInput`. Tools accept the agent-friendly `&#123;type, value, label?, id?}`
+and translate when serializing.
+<ParamField body="type" type="&quot;text&quot; | &quot;image&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;document&quot;" required>
+Variant kind: text, image, video, audio, or document. Determines how participants see it and how `value` is interpreted.
 </ParamField>
-<ParamField body="audience" type="object" required>
-Mutually-exclusive ways to pick an audience.
+<ParamField body="value" type="string" required>
+Variant content. For `type='text'` this is the literal text; for media kinds it is an already-uploaded storage `file_path` or a public URL the backend can fetch.
+</ParamField>
+<ParamField body="label" type="string">
+Optional display label (e.g. 'Option A').
+</ParamField>
+<ParamField body="id" type="string">
+Stable variant identity. Omit for a brand-new variant (the backend mints a fresh UUID). To CARRY a variant over from a prior round so it keeps the same `[[A]]/[[B]]` label, pass that variant's existing UUID - read it from the prior round's `variants[*].id` (or `cross_round_summary.cross_round_variants` keys). Labels are assigned by this identity, so reusing the id keeps the letter stable across rounds.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="people" type="object" required>
+Mutually-exclusive ways to pick the people for a run.
 
 Pass exactly one of:
+  - ``generate`` - mint fresh people for this run and use exactly them.
   - ``person_ids`` - explicit IDs, returned verbatim.
   - ``sample`` (with optional filters) - randomly sample N from the pool.
   - ``all_matching`` (with optional filters) - every match in the pool.
@@ -379,6 +467,31 @@ Always sends ``type=ai`` to the backend (simulations are AI-driven).
 <Expandable title="properties">
 <ParamField body="person_ids" type="string[]">
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="generate" type="object">
+Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+<Expandable title="properties">
+Mint people as part of a run instead of calling ``person_generate`` first.
+<ParamField body="description" type="string" required>
+Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="count" type="integer">
+How many people to mint (1-10). Default: `3`.
+</ParamField>
+<ParamField body="country" type="string[]">
+ISO-3166 alpha-2 codes.
+</ParamField>
+<ParamField body="gender" type="string[]">
+Free-text gender labels, e.g. male / female / non-binary.
+</ParamField>
+<ParamField body="min_age" type="integer">
+Inclusive lower age bound.
+</ParamField>
+<ParamField body="max_age" type="integer">
+Inclusive upper age bound.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="sample" type="integer">
 Random sample size from the pool that matches the filters. Mutually exclusive with ``all_matching`` - pick one: ``sample=N`` draws a random subset, ``all_matching=True`` uses every matching person.
