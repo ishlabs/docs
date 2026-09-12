@@ -18,56 +18,63 @@ modality's fields. A study has 1..N iterations; ``study_run`` defaults to the
 latest. This *creates* a version; it does NOT re-run the study
 (``study_run``), edit an existing iteration in place
 (``study_update_iteration``), or change study-level metadata
-(``study_revise``). Concept: ``docs_get("concepts/iteration")``.
+(``study_revise``).
 
-- ``interactive``: ``url``, ``platform`` (browser / android / figma / code),
-  ``screen_format`` (mobile_portrait / desktop). Optional ``locale``,
-  ``flow_name``. ``platform="figma"`` also needs ``file_key`` +
-  ``start_node_id``. The ``url`` is reached by ish's cloud testers, so it
-  must load WITHOUT your session: use a published / share-preview link, not
-  a login-gated editor preview (Lovable / Replit / Bolt / v0 previews are
-  session-gated) - localhost needs ``ish connect``. You set this once per
-  study; later runs reuse the iteration. Credentialed pages: register a
-  login once with ``site_access_set``. Builder clients get a tailored
-  ``notes`` hint on the response.
-- ``video`` / ``audio`` / ``document``: ``content_url`` (local path or hosted
-  URL). Optional ``segmentation``, ``content_config``, ``copy_content``
-  (video/audio), ``title``, ``mime_type``.
-- ``text``: ``content_md`` - markdown body (inline, or ``@file.md`` for a
-  local file); it is the canonical truth, parsed server-side into the
-  content_doc block AST (ADR-0015). ``content_text`` (inline, or ``@path``)
-  is accepted as a legacy alias and is itself treated as markdown.
-  ``content_html`` (inline, or ``@file.html``) authors paste-exact branded
-  email as the ADR-0015 ``format:html`` carrier - rendered source-faithful,
-  re-sanitized server-side. The body fields are mutually exclusive: pass
-  markdown (``content_md`` / ``content_text``) OR ``content_html``, not both.
-  Optional ``sender_name`` / ``sender_email``, ``featured_image_url``,
-  ``segmentation``, ``content_config``, ``title``.
-- ``image``: ``image_urls`` (non-empty; local paths and/or hosted URLs).
-  Optional ``copy_content``, ``segmentation``, ``content_config``, ``title``.
-- ``chat``, two mutually-exclusive sub-modes:
-  * ``external_chatbot`` - pass ``chatbot_endpoint_id`` (saved) OR an inline
-    ``endpoint`` dict.
-  * ``participant_pair`` (AI ↔ AI) - pass ``chat_pair=ChatPairConfig(...)``.
-    Drive each side from ``role_criteria_a`` / ``role_criteria_b`` (backend
-    resolves pools at create time) or from explicit ``group_a`` / ``group_b``
-    (equal counts zip 1:1, or one side of 1 broadcasts). Scenarios on
-    ``scenario_a``/``scenario_b``. RoleCriteria enum/accessibility fields:
-    ``docs_get("guides/chat-pair")``.
-  ``chat_pair`` with ``endpoint``/``chatbot_endpoint_id`` is a validation
-  error. Optional ``max_turns``, ``early_termination`` on both sub-modes.
+Every modality: `study_id` (UUID or alias, e.g. ``s-b2c``), `name` (this
+version's label), `modality`, optional `description` (free text about this
+version).
+
+- ``interactive``: `url`, `platform` (browser / android / figma / code),
+  `screen_format` (mobile_portrait / desktop). Optional `locale`,
+  `flow_name`. ``platform="figma"`` also needs `file_key` +
+  `start_node_id`. The ``url`` must load WITHOUT your session - see
+  "Reaching your URL" below.
+- ``video`` / ``audio`` / ``document``: `content_url` (local path or hosted
+  URL). Optional `segmentation`, `content_config`, `copy_content`
+  (video/audio), `title`, `mime_type`.
+- ``text``: `content_md` - markdown body (inline, or ``@file.md``), the
+  canonical truth. `content_text` is a legacy markdown alias; `content_html`
+  (inline, or ``@file.html``) is the paste-exact branded-email carrier. The
+  body fields are mutually exclusive: markdown OR html, not both. Optional
+  `sender_name` / `sender_email`, `featured_image_url`, `segmentation`,
+  `content_config`, `title`.
+- ``image``: `image_urls` (non-empty; local paths and/or hosted URLs).
+  Optional `copy_content`, `segmentation`, `content_config`, `title`.
+- ``chat``, two mutually-exclusive sub-modes: `chatbot_endpoint_id` (a saved
+  endpoint) OR an inline `endpoint` dict for ``external_chatbot``; or
+  `chat_pair=ChatPairConfig(...)` for ``participant_pair`` (AI to AI).
+  ``chat_pair`` with either of the other two is a validation error. Optional
+  `max_turns`, `early_termination` on both sub-modes.
+
+**Returns** an ``IterationCreateResponse`` envelope discriminated by ``ok``;
+branch on it and read ``error_kind`` / ``suggestions`` on failure. Media
+pre-flight and argument errors come back as ``ok=False`` (not exceptions) -
+same shape as ``chatbot_test``. Concept: ``docs_get("concepts/iteration")``.
+
+**Reaching your URL.** The ``url`` is reached by ish's cloud testers, so it
+must load WITHOUT your session: use a published / share-preview link, not a
+login-gated editor preview (Lovable / Replit / Bolt / v0 previews are
+session-gated) - localhost needs ``ish connect``. You set this once per
+study; later runs reuse the iteration. Credentialed pages: register a login
+once with ``site_access_set``. Builder clients get a tailored ``notes`` hint
+on the response.
+
+**Text bodies.** ``content_md`` is parsed server-side into the content_doc
+block AST (ADR-0015). ``content_text`` (inline, or ``@path``) is accepted as
+a legacy alias and is itself treated as markdown. ``content_html`` authors
+paste-exact branded email as the ADR-0015 ``format:html`` carrier - rendered
+source-faithful, re-sanitized server-side.
+
+**Pair chat.** Drive each side of ``chat_pair`` from ``role_criteria_a`` /
+``role_criteria_b`` (backend resolves pools at create time) or from explicit
+``group_a`` / ``group_b`` (equal counts zip 1:1, or one side of 1
+broadcasts). Scenarios on ``scenario_a``/``scenario_b``. RoleCriteria
+enum/accessibility fields: ``docs_get("guides/chat-pair")``.
 
 Local uploads: ``content_url`` / ``image_urls`` accept local paths (uploaded
 and resolved to hosted URLs); ``content_md`` accepts ``@file.md`` (markdown)
 or ``@file.html`` (routed to the format:html email carrier); ``content_text``
 accepts ``@path``; ``content_html`` accepts inline HTML or ``@file.html``.
-
-`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
-
-**Returns** an ``IterationCreateResponse`` envelope discriminated by ``ok``;
-branch on it and read ``error_kind`` / ``suggestions`` on failure. Media
-pre-flight and argument errors come back as ``ok=False`` (not exceptions) -
-same shape as ``chatbot_test``.
 
 ### Parameters
 <ParamField body="study_id" type="string" required>
@@ -573,11 +580,28 @@ Start a study: simulated people experience one artifact end to end - a
 landing page, a web flow, a prototype, a video, a document, text or a
 chatbot - and report the journey. Step 1 of 3: then ``study_add_iteration``
 (the URL / content), then ``study_run``. ``modality`` picks the artifact kind.
-Concept: ``docs_get("concepts/study")``.
 
-Returns a ``StudyCreateResponse`` - ``study`` (id / alias / workspace_id /
+`workspace_id`: UUID or alias (e.g. ``w-6ec``) of the workspace.
+`name`: human-readable study name.
+`modality`: interactive | text | video | audio | image | document | chat.
+`content_type`: refines media modalities only (e.g. modality="video",
+content_type="ad"); raises a preflight error for interactive / chat.
+`chat_mode`: external_chatbot | participant_pair; required iff modality="chat".
+`assignments`: the tasks participants attempt - bare strings or
+``AssignmentInput`` dicts; ``participant_pair`` chat requires two
+side-tagged objects. Shapes below.
+`questions`: free-text interview questions, asked after the run.
+`evaluation_dimensions`: SSR dimensions to measure, e.g. ``["purchase_intent"]``
+- auto-adds a "Would you buy this? Why or why not?" question and reports an
+ish of purchase intent (a distribution + mean) on the results. Omit for none.
+
+Authoring only: nobody runs and no credits are spent until ``study_run``,
+so there is nothing to wait for and no ``wait`` parameter here.
+
+**Returns** a ``StudyCreateResponse`` - ``study`` (id / alias / workspace_id /
 status all ride on it) plus ``notes`` naming the next steps. To clone for
-benchmarking, see ``study_benchmark``.
+benchmarking, see ``study_benchmark``. Concept:
+``docs_get("concepts/study")``.
 
 ``assignments`` (the tasks participants attempt) accepts:
 
@@ -602,18 +626,6 @@ defer iteration creation to ``study_add_iteration``.
 Each ``questions`` entry becomes a free-text post-sim interview question; for
 richer questionnaire shapes refine via ``study_revise``.
 See ``docs_get("concepts/questionnaire")``.
-
-`workspace_id`: UUID or alias (e.g. ``w-6ec``) of the workspace.
-`name`: human-readable study name.
-`modality`: interactive | text | video | audio | image | document | chat.
-`content_type`: refines media modalities only (e.g. modality="video",
-content_type="ad"); raises a preflight error for interactive / chat.
-`chat_mode`: external_chatbot | participant_pair; required iff modality="chat".
-`assignments`: see above.
-`questions`: free-text interview questions.
-`evaluation_dimensions`: SSR dimensions to measure, e.g. ``["purchase_intent"]``
-- auto-adds a "Would you buy this? Why or why not?" question and reports an
-ish of purchase intent (a distribution + mean) on the results. Omit for none.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -692,6 +704,34 @@ Read studies - **browse** a workspace's studies or **read** one study's
 results. Pass exactly one of ``workspace_id`` (browse/list) / ``study_id``
 (one study) / ``study_ids`` (benchmark cross-read).
 
+`study_id`: UUID or alias (e.g. ``s-b2c``). Exclusive with the other two.
+`study_ids`: list of UUIDs/aliases for benchmark cross-read. Exclusive.
+`workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive; browse mode.
+`view`: ``summary`` (default) | ``full`` | ``per_participant`` |
+``transcripts`` | ``insights``. Ignored in browse mode.
+`participant_id`: required for ``per_participant``; optional scope for
+``transcripts``; ignored otherwise. Passed ALONE (no study id) it resolves
+its own study and PROMOTES ``view`` to ``per_participant``.
+`lean`: bool, default ``False``. ``view="full"`` only - null iterations AND
+skip the participants fetch for a metadata-only payload (also the fix if
+``full`` times out). Ignored on every other view; the one hard conflict is
+``lean`` with ``filters`` / ``group_by`` on ``full``, where there are no
+participants left to slice.
+`filters`: ``StudyResultsFilter`` (see that model). Only with ``study_id`` +
+``view`` in ``&#123;summary, full}``.
+`group_by`: ``iteration`` | ``frame`` | ``segment`` | ``turn`` |
+``assignment`` | ``step``. Reprojects onto the axis; returns a
+``SliceResponse``. Only with ``study_id`` + default ``view="summary"``.
+`limit`: int, default 50 - browse mode only, rows per page.
+`offset`: int, default 0 - browse mode only, rows to skip. Both are ignored
+on every single-study read: those are never paginated.
+
+**Returns** ``PaginatedList[Study]`` (browse), ``Study`` (``full``),
+``StudyResultsSummary`` (``summary``), ``dict`` (``per_participant``),
+``TranscriptsResponse`` or ``ChatTranscript`` (``transcripts``),
+``SliceResponse`` (``group_by`` set), or a list of these (benchmark). Slice /
+transcripts envelopes expose rows on ``response.rows``.
+
 Read modes:
 
 - ``workspace_id`` → **browse**: paginated list of every study in that
@@ -710,7 +750,9 @@ Read modes:
   participant's run; needs ``participant_id``), ``transcripts``
   (chat-only; all transcripts, or one when ``participant_id`` set),
   ``insights`` (AI summary + ``KeyInsight`` list from ``study_analyze``
-  runs; ``&#123;latest, history}`` newest-first).
+  runs; ``&#123;latest, history}`` where ``latest`` is the most recent analysis
+  and ``history`` holds the EARLIER ones only, newest-first - it no longer
+  repeats ``latest``, so a study analyzed once returns ``history: []``).
 - ``study_ids`` → benchmark cross-read; list of per-study results in
   order, each shaped by ``view`` (pass source + ``study_benchmark`` clones).
 
@@ -751,30 +793,6 @@ step outcomes roll up via ``group_by='step'``. Screenshots and transcripts
 are also exposed as ``ish://`` resources, with inline ``screenshots_resource``
 / ``transcripts_resource`` pointers on the ``summary`` view so clients that
 can't read resources still reach them.
-
-`study_id`: UUID or alias (e.g. ``s-b2c``). Exclusive with the other two.
-`study_ids`: list of UUIDs/aliases for benchmark cross-read. Exclusive.
-`workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive.
-`view`: ``summary`` (default) | ``full`` | ``per_participant`` |
-``transcripts`` | ``insights``. Ignored in list mode.
-`participant_id`: required for ``per_participant``; optional scope for
-``transcripts``; ignored otherwise.
-`lean`: ``view="full"`` only - null iterations AND skip the participants
-fetch for a metadata-only payload (also the fix if ``full`` times out).
-Ignored on every other view; the one hard conflict is ``lean`` with
-``filters`` / ``group_by`` on ``full``, where there are no participants left
-to slice.
-`filters`: ``StudyResultsFilter`` (see that model). Only with ``study_id`` +
-``view`` in ``&#123;summary, full}``.
-`group_by`: ``iteration`` | ``frame`` | ``segment`` | ``turn`` |
-``assignment`` | ``step``. Reprojects onto the axis; returns a
-``SliceResponse``. Only with ``study_id`` + default ``view="summary"``.
-
-**Returns** ``PaginatedList[Study]`` (list), ``Study`` (``full``),
-``StudyResultsSummary`` (``summary``), ``dict`` (``per_participant``),
-``TranscriptsResponse`` or ``ChatTranscript`` (``transcripts``),
-``SliceResponse`` (``group_by`` set), or a list of these (benchmark). Slice /
-transcripts envelopes expose rows on ``response.rows``.
 
 ### Parameters
 <ParamField body="study_id" type="string">
@@ -860,50 +878,54 @@ Default: `0`.
 Test a landing page, web flow, prototype, video, document or text draft
 with simulated people in ONE call: creates the study, adds the content as
 its first iteration, and dispatches the run (the ``study_create`` →
-``study_add_iteration`` → ``study_run`` chain). Use the primitives for chat
-studies, Figma files, multiple iterations, or edits.
+``study_add_iteration`` → ``study_run`` chain).
 
-Pass exactly one of ``url`` (interactive: a public page or prototype),
-``content_md`` (text) or ``content_url`` (+ ``modality`` = video | audio |
-image | document). ``task`` becomes the assignment; ``questions`` the
-interview. ``people`` as on ``study_run`` (default scope: this
-workspace's people). ``max_interactions`` caps steps per participant
-(default 20; use 5 for a smoke probe). Credits: per participant
-``max(1, round(steps * rate))`` - interactive 1 credit a step, media
-0.1-0.5 - so the cap bounds spend (``docs_get("reference/credits")``).
-``wait`` / ``timeout`` as on ``study_run``.
+Pass exactly one of ``url`` / ``content_md`` / ``content_url``.
 
 `name`: human-readable study name.
-`people`: required - a launch always creates a fresh study, so there is
-never a panel to reuse. ``&#123;"sample": N}`` (this workspace's people by
-default), ``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description":
-..., "count": N}}`` to mint new people first, which is what a workspace
-with no people needs.
+`people`: required - a fresh study has no panel to reuse. ``&#123;"sample": N}``
+(this workspace's people), ``&#123;"person_ids": [...]}``, or ``&#123;"generate":
+&#123;"description": ..., "count": N}}`` to mint new people first.
 `workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive with ``workspace_name``.
-`workspace_name`: case-insensitive name; an exact match wins over a substring
-one, and an ambiguous name is a ``[validation_error]`` naming the candidates
-rather than a guess.
-`url`: the public page / prototype participants visit. Must load WITHOUT your
-session - see ``study_add_iteration`` for the share-link and ``site_access_set``
-rules.
-`content_url`: hosted file (or local path) for a video / audio / image /
-document study; needs ``modality``. One file - a multi-image study needs
-``study_add_iteration``, which takes the list.
+`workspace_name`: case-insensitive; an ambiguous name is a
+``[validation_error]`` naming the candidates.
+`url`: interactive - the public page / prototype participants visit; must
+load WITHOUT your session.
+`content_url`: ONE hosted file or local path - video / audio / image /
+document; needs ``modality``.
 `content_md`: markdown body (inline, or ``@file.md``) for a text study.
 `modality`: only for ``content_url``; inferred otherwise.
 `task`: what participants attempt, as one assignment. Omit for a
 read-and-react study.
 `questions`: free-text interview questions asked after the run.
-`config_id`: simulation-config override (alias ``c-...``). Required for the
-file and text modalities unless every resolved person already has a
-simulation config assigned; optional for interactive.
-`max_interactions`: per-participant step cap (interactive / media).
-`screen_format`: applies to ``url`` launches only - ``desktop`` (default) or
-``mobile_portrait``; ignored for ``content_url`` / ``content_md``.
-`analyze`: as on ``study_run`` - with ``wait=True``, run ``study_analyze``
-once the participants finish and return it in ``run.analysis``.
-`wait` / `timeout`: as on ``study_run``; the default returns after dispatch
-with a ``next_action`` poll hint.
+`config_id`: simulation-config override (alias ``c-...``). Required for file
+and text modalities unless every resolved person already has one.
+`max_interactions`: int, default 20 - per-participant step cap; 5 for a
+smoke probe. Bounds credits, not just duration.
+`screen_format`: ``url`` only - ``desktop`` (default) | ``mobile_portrait``.
+`analyze`: bool, default ``False``. With ``wait=True``, runs
+``study_analyze`` and returns it in ``run.analysis``.
+`wait`: bool, default ``False``; ``True`` blocks until the run is terminal.
+`timeout`: float seconds, default 240. Both as on ``study_run``.
+
+**Credit cost:** per successful participant ``max(1, round(steps * rate))``
+- interactive 1 credit a step, media 0.1-0.5 - so ``max_interactions``
+bounds spend; subscription-funded, no per-dispatch approval, pre-flight
+failures cost zero (``docs_get("reference/credits")``).
+
+Use the primitives for chat studies, Figma files, multiple iterations, or
+edits. ``task`` becomes the study's one assignment; ``questions`` the
+interview. ``people`` behaves as on ``study_run`` (default scope: this
+workspace's people) - its four mutually-exclusive modes are in
+``docs_get("concepts/people-selector")``. On ``workspace_name`` an exact match wins over a
+substring one, rather than a guess. ``screen_format`` is ignored for
+``content_url`` / ``content_md``, and ``config_id`` is optional for
+interactive. ``wait`` / ``timeout`` carry ``study_run``'s client-transport
+caveat: many clients cut a tool call at ~30 s whatever ``timeout`` says.
+A multi-image study needs ``study_add_iteration``, which takes the list;
+the ``url`` share-link and credentialed-page rules (a published /
+share-preview link, or a login registered with ``site_access_set``) are
+written out there.
 
 **Returns** ``StudyLaunchResponse``: ``study``, ``iteration``, ``run``,
 ``next_action`` (mirrors ``run.next_action`` - the one place to look for
@@ -1042,20 +1064,39 @@ Default: `240.0`.
 
 Browse studies as lean rows: one workspace, or every workspace at once.
 
+`workspace_id`: UUID or alias (e.g. ``w-6ec``) to list one workspace's
+studies; omit (``None``) to fan out over every accessible workspace.
+`status`: optional authoring-lifecycle filter: ``draft`` / ``running`` /
+``completed`` / ``cancelled`` (case-insensitive exact match). Note this is
+the lazily-updated authoring field, not a run-state signal (see
+``StudyListItem.status``).
+`limit`: max rows per workspace (default 50, must be >= 1).
+
+**Returns** a ``StudyListResponse``: ``studies`` (the rows),
+``total``, ``workspaces_scanned``, ``truncated``, ``truncation_note``. On
+failure raises ``ToolError`` with ``error_kind`` in ``&#123;auth_failed,
+forbidden, not_found, server_error, network_error, http_error}``.
+
+**Rows carry ``updated_at`` and ``has_results``** (D17), so you can rank by
+recency and skip empty studies without a read per candidate. ``has_results``
+is derived from ``participant_count > 0`` - the list endpoint carries no
+``completed_count``, so it means "anyone ran on it at all", not "anyone
+finished"; for finished data read ``study_get``'s ``completed_count`` /
+``runtime_status``. ``status`` is the authoring label and stays ``draft``
+after a run, so do not rank on it.
+
 This is the cross-study discovery layer. The traversal for "review the
 research across my workspaces and what each concluded" is:
 
 1. ``study_list()`` (no ``workspace_id``) → every study across every
    workspace, most-recently-updated first. Or ``workspace_list()`` first,
    then ``study_list(workspace_id=...)`` per workspace to stay narrow.
-2. Pick the studies worth reading from the returned ``studies`` rows
-   (each carries ``alias`` / ``workspace_id`` / ``name`` / ``modality`` /
-   ``status`` / ``participant_count``; rows carry the alias only, the UUID
-   comes with ``study_get``, and rows carry NO timestamps - they arrive
-   most-recently-updated first, and that order is the recency signal).
-   ``status`` is the authoring label and stays ``draft`` after a run;
-   ``participant_count > 0`` is the row-level sign a study has results, and
-   ``study_get``'s ``runtime_status`` is the real one.
+2. Pick the studies worth reading from the returned ``studies`` rows: each
+   carries ``alias`` / ``workspace_id`` / ``name`` / ``modality`` /
+   ``status`` / ``participant_count`` / ``has_results`` / ``updated_at``.
+   Rows carry the alias only; the UUID comes with ``study_get``. They also
+   arrive most-recently-updated first, so the order says what
+   ``updated_at`` says.
 3. Read one study's findings with ``study_get(study_id, view="insights")``:
    the AI summary plus key-insight text and citation ids. For counts +
    sentiment use ``view="summary"``. To read the findings of several studies
@@ -1075,19 +1116,6 @@ and ``truncation_note`` says exactly what was dropped and how to see it.
 Reference/child products are excluded from the workspace enumeration by
 design (same as ``workspace_list``), so benchmark clone studies are reached
 via their parent workspace, never listed as their own workspace.
-
-`workspace_id`: UUID or alias (e.g. ``w-6ec``) to list one workspace's
-studies; omit (``None``) to fan out over every accessible workspace.
-`status`: optional authoring-lifecycle filter: ``draft`` / ``running`` /
-``completed`` / ``cancelled`` (case-insensitive exact match). Note this is
-the lazily-updated authoring field, not a run-state signal (see
-``StudyListItem.status``).
-`limit`: max rows per workspace (default 50, must be >= 1).
-
-**Returns** a ``StudyListResponse``: ``studies`` (the rows),
-``total``, ``workspaces_scanned``, ``truncated``, ``truncation_note``. On
-failure raises ``ToolError`` with ``error_kind`` in ``&#123;auth_failed,
-forbidden, not_found, server_error, network_error, http_error}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string">
@@ -1186,8 +1214,34 @@ Dispatch simulated people through a study's iteration (a URL, prototype,
 media or chatbot) and, with ``wait=True``, wait until they finish. Step 3
 of 3 after ``study_create`` and ``study_add_iteration``: resolve ``people``
 (or reuse the staged panel), create participants, dispatch the
-modality-appropriate batch. Verb choice (study vs ask):
-``docs_get("concepts/run-verbs")``.
+modality-appropriate batch.
+
+`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
+`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest.
+`people`: who runs through it - ``person_ids``, or ``sample=N`` /
+``all_matching=True`` + demographic filters, or ``generate`` to mint them
+inline. ``None`` reuses the iteration's panel.
+`config_id`: simulation-config override (alias ``c-...``). Required for media
+and chat studies unless every resolved person already has one assigned;
+optional for interactive. Pair-chat note below.
+`dispatch`: bool, default ``True``. ``False`` stages the participants
+without drawing credits - a review checkpoint; run later with
+``people=None``.
+`wait`: bool, default ``False``. ``True`` polls every participant to
+terminal or ``timeout``; ``False`` returns the post-dispatch snapshot with a
+``next_action`` poll hint.
+`timeout`: float seconds, default 240 - under the ~300 s idle limit at which
+Claude Code kills a silent call. On elapse the envelope carries the ids and
+a ``next_action``. Read the client-ceiling caveat below before raising it.
+`max_interactions`: int, default 20 - per-participant step cap (interactive
+/ media). Bounds SPEND, not just duration. Ignored for chat. Must be >= 1.
+`max_turns`: int - per-participant turn cap (chat / chat_pair). Omitted →
+backend uses request > iteration's stored value > 14. Ignored otherwise.
+Must be >= 1.
+`analyze`: bool, default ``False``. With ``wait=True``, runs
+``study_analyze`` once every participant is terminal and returns its result
+in ``analysis`` - one call instead of run → analyze → insights. Not
+available for chat studies. Failure contract below.
 
 **Credit cost:** per successful participant, ``max(1, round(steps * rate))`` where
 ``steps`` is what the participant actually took (capped by
@@ -1201,6 +1255,13 @@ failures, etc.) cost zero and are retryable. Confirm the pool via
 ``workspace_get(...).credits`` (empty → ``[insufficient_credits]``). Rates:
 ``docs_get("reference/credits")``.
 
+**Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``. Success →
+``response.dispatch`` (``SimulationDispatchResult``); ``dispatch=False`` leaves
+it ``None`` with ``participant_ids`` populated. Failure → ``error_kind`` +
+``error_message``; a wait that runs out of budget gives
+``error_kind="wait_timeout"`` with ``participant_ids`` set so you can resume
+via ``study_get(view="summary")``.
+
 Three modes:
 
 1. Materialize + dispatch (default): ``people`` + ``dispatch=True``.
@@ -1210,36 +1271,21 @@ Three modes:
 3. Reuse panel: ``people=None`` - dispatches whatever participants already
    exist on the iteration.
 
-`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
-`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest.
-`people`: who runs through it - ``person_ids``, or ``sample=N`` /
-``all_matching=True`` + demographic filters, or ``generate`` to mint them
-inline. ``None`` reuses the iteration's panel. See
-``docs_get("concepts/people")``.
-`config_id`: simulation-config override (alias ``c-...``). Required for media
-and chat studies unless every resolved person already has a simulation config
-assigned.
-For ``participant_pair`` chat, omitting it auto-infers from the first
-``group_a`` person; missing → ``validation_error``. Optional for interactive.
-`dispatch`: see modes above.
-`max_interactions`: per-participant step cap (interactive / media). Defaults
-to 20; caps runaway spend on a stuck participant. Ignored for chat. Must be ≥1.
-`max_turns`: per-participant turn cap (chat / chat_pair). Omitted → backend
-uses request > iteration's stored value > 14. Ignored otherwise. Must be ≥1.
-`analyze`: with ``wait=True``, run ``study_analyze`` once every participant is
-terminal and return its result in ``analysis`` (one call instead of run →
-analyze → insights). Not available for chat studies, which the analysis does
-not cover. A failed analysis does NOT fail the run: ``ok`` stays True,
-``analysis_error`` carries the bracketed reason and ``next_action`` names
-the retry. Both legs share the one ``timeout``, so the call still returns
-inside it; if the participants used the whole budget the analysis is
-skipped rather than started, again via ``analysis_error``.
-`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
-``wait=True`` polls every participant to terminal or ``timeout``; default
-returns the post-dispatch snapshot with a ``next_action`` poll hint.
-``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
-Code kills a silent call; on elapse the envelope carries the ids and a
-``next_action``.
+Verb choice (study vs ask): ``docs_get("concepts/run-verbs")``. Who runs
+through it: ``docs_get("concepts/people")``. The ``people`` selector's four
+mutually-exclusive modes: ``docs_get("concepts/people-selector")``.
+
+``config_id`` and ``participant_pair`` chat: omitting it auto-infers from the
+first ``group_a`` person; missing → ``validation_error``.
+
+``analyze`` failure contract: a failed analysis does NOT fail the run. ``ok``
+stays True, ``analysis_error`` carries the bracketed reason and
+``next_action`` names the retry. Both legs share the one ``timeout``, so the
+call still returns inside it; if the participants used the whole budget the
+analysis is skipped rather than started, again via ``analysis_error``. Chat
+studies are not covered by the analysis at all.
+
+Blocking contract: ``docs_get("reference/long-running-jobs")``.
 **Caveat - client transport ceiling:** many MCP clients cap a single tool
 call at ~30s (e.g. Cursor/Replit), and that ceiling overrides ``timeout``:
 ``wait=True, timeout=240`` still aborts at the client's ~30s with no result.
@@ -1256,13 +1302,6 @@ share-preview link, or register a login with ``site_access_set``. See
 ``docs_get("concepts/site-access")``.
 ``participant_pair`` chat rejects ``people`` (both sides live in the
 iteration's ``mode_details``).
-
-**Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``. Success →
-``response.dispatch`` (``SimulationDispatchResult``); ``dispatch=False`` leaves
-it ``None`` with ``participant_ids`` populated. Failure → ``error_kind`` +
-``error_message``; a wait that runs out of budget gives
-``error_kind="wait_timeout"`` with ``participant_ids`` set so you can resume
-via ``study_get(view="summary")``.
 
 ### Parameters
 <ParamField body="study_id" type="string" required>

@@ -128,43 +128,15 @@ files, via the agentic generation pipeline. Returns the minted
 ``person_ids``, which you pass as ``people.person_ids`` on ``study_run``
 / ``ask_run``.
 
-Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
-it mints, optionally with scenarios traced back to the real reactions. See
-``docs_get("concepts/person")`` (generate vs manual) and
-``docs_get("concepts/source")`` (artifacts as generation inputs).
-
-**Blocks by default** (``wait=True``): uploads artifacts, enqueues the
-job, polls to terminal, returns resolved people + scenarios. Pass
-``wait=False`` for the ``job_id`` immediately plus a ``next_action``
-naming the resume call - ``person_generate(workspace_id=..., job_id=...)``
-re-attaches to that same job and waits it out. See
-``docs_get("reference/long-running-jobs")``. The three inputs
-(description, ``source_paths``, ``source_upload_ids``) freely combine.
-
-**Credit cost:** 2 credits per person actually produced (+1 each when
-avatars are generated); a run asked for five that delivers three bills
-three. Also counts toward the plan's custom-person entity cap (independent
-of the credit pool) - see ``docs_get("reference/credits")``; on hit:
-``[usage_limit_reached]``.
-
-**Single-person role-fitting (pair-mode use case).** Pair-mode chat
-rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one person
-per side: call ``person_generate(count=1, description="...")`` per side;
-the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
-
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 `description`: free-text brief for the people to mint (>=20 chars when
 supplied).
 `source_paths`: evidence references - prefer a ``data:`` URL or an
-``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap): those are
-portable and work against the hosted server. A local file path is read from
-the **MCP server's own** filesystem, so it only helps when you run the
-server yourself. To feed raw local bytes to the hosted server, upload them
-first with ``source_upload(inline_base64=...)`` and pass the returned id via
-``source_upload_ids``. Supported MIME: ``audio/*``, ``image/*``, ``text/*``,
-``application/pdf``, ``application/json``, office-document types.
-`source_upload_ids`: reuse sources already uploaded via
-``source_upload`` (or a prior partial build) without re-uploading.
+``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap). A local
+file path is read from the **MCP server's own** filesystem, so it only helps
+when you run the server yourself. Full rules below.
+`source_upload_ids`: reuse sources already uploaded via ``source_upload``
+(or a prior partial build) without re-uploading.
 `reaction_notes`: one researcher note per ``source_paths`` entry (same
 order, same length) describing how the real person reacted to THAT
 artifact; ``""`` skips a note for that file.
@@ -176,13 +148,44 @@ codes. `gender`: list of gender labels.
 ``True`` / ``False`` override.
 `job_id`: resume mode - poll an already-enqueued job instead of starting
 one. Returned in ``next_action`` by a ``wait=False`` call. Mutually
-exclusive with every generation input (``description``, ``source_paths``,
-``source_upload_ids``, ...): combining them is a ``validation_error``
-rather than a silent discard. If the job is already terminal and did not
+exclusive with every generation input; contract below.
+`wait`: bool, default ``True`` - blocks until terminal (runs take ~30-60 s).
+``False`` returns the ``job_id`` immediately plus a ``next_action`` naming
+the resume call.
+`timeout`: float seconds to wait when ``wait=True``; default 180.
+
+**Credit cost:** 2 credits per person actually produced (+1 each when
+avatars are generated); a run asked for five that delivers three bills
+three. Also counts toward the plan's custom-person entity cap (independent
+of the credit pool) - see ``docs_get("reference/credits")``; on hit:
+``[usage_limit_reached]``.
+
+Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
+it mints, optionally with scenarios traced back to the real reactions. See
+``docs_get("concepts/person")`` (generate vs manual) and
+``docs_get("concepts/source")`` (artifacts as generation inputs).
+
+**Blocking and resume.** ``wait=True`` uploads artifacts, enqueues the job,
+polls to terminal, returns resolved people + scenarios.
+``person_generate(workspace_id=..., job_id=...)`` re-attaches to that same
+job and waits it out. See ``docs_get("reference/long-running-jobs")``. The
+three inputs (description, ``source_paths``, ``source_upload_ids``) freely
+combine. Combining ``job_id`` with any of them is a ``validation_error``
+rather than a silent discard; if the job is already terminal and did not
 complete, you get the same ``ok=False`` envelope the blocking call would
 have returned, with no ``next_action``.
-`wait`: block until terminal (default True; runs take ~30-60s).
-`timeout`: seconds to wait when ``wait=True`` (default 180s).
+
+**``source_paths`` in full.** ``data:`` and ``http(s)://`` URLs are portable
+and work against the hosted server. To feed raw local bytes to the hosted
+server, upload them first with ``source_upload(inline_base64=...)`` and pass
+the returned id via ``source_upload_ids``. Supported MIME: ``audio/*``,
+``image/*``, ``text/*``, ``application/pdf``, ``application/json``,
+office-document types.
+
+**Single-person role-fitting (pair-mode use case).** Pair-mode chat
+rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one person
+per side: call ``person_generate(count=1, description="...")`` per side;
+the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
 
 **Returns** a ``PersonGenerateResponse`` discriminated by ``ok``. With
 ``wait=True``, success populates ``people`` + ``person_ids``; with
@@ -240,16 +243,44 @@ Default: `180.0`.
 **Tier:** read-only · **Tags:** person, read
 
 Read people. Polymorphic on ``person_id``: omit to list, pass it to
-fetch one Person. See ``docs_get("concepts/people")`` for
-people-selection semantics.
+fetch one Person.
+
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`person_id`: UUID or short alias (e.g. ``p-d4e``); omit to list.
+`scope`: which pool to list - ``"workspace"`` (default, this workspace's own
+people), ``"platform"`` (the admin-curated public pool), or ``"all"``. The
+same three values as the run verbs' ``people.scope``.
+`visibility`: raw backend filter; wins over ``scope`` when both are set.
+``"workspace"`` | ``"shared"`` | ``"platform"``; ``"private"`` / ``"public"``
+are accepted deprecation aliases for the first and third.
+`type`: ``"ai"`` (default, simulatable) | ``"human"`` | ``"all"``.
+`limit`: int, default 50, max 200. `offset`: int, default 0.
+`search`: name substring. `bio`: bio substring.
+`country`: ISO-3166-alpha-2 codes. `gender`: gender labels.
+`occupation`: free-text occupation substrings.
+`role_in`: canonical role keys (``founder``, ``product_leader``,
+``engineer``, ...) that OR-expand into many ``occupation`` substrings, and
+merge with any explicit ``occupation``. Pass an unknown key to see the full
+list in the ``[validation_error]``.
+`age_min` / `age_max`: inclusive age bounds.
+`education_level_in`, `household_in`, `locale_type_in`, `income_level_in`,
+`employment_status_in`: extended demographic enums; legal values below.
+`requires_captions`, `uses_screen_reader`, `prefers_reduced_motion`,
+`prefers_high_contrast`, `has_any_accessibility_need`: bool filters over the
+``accessibility_profile`` JSONB.
+`include_bio`, `include_accessibility_profile`: default ``False`` (each is
+large per row; fetch a single Person for the full payload).
+`include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
+rows (newest-first) under the Person's ``evidence``; rejected in list mode,
+where per-row evidence would blow the token budget.
+
+Within a dimension (``country`` / ``gender`` / ``occupation`` / each
+``*_in`` enum) values OR; across dimensions they AND. See
+``docs_get("concepts/people")`` for people-selection semantics.
 
 **List mode** (no ``person_id``): this workspace's own people by default -
 the same pool a bare ``people=&#123;sample: N}`` draws from, so what you list
-here is what a run can draw. Widen with ``scope``. Within a dimension
-(``country`` / ``gender`` / ``occupation`` / each ``*_in`` enum) values
-OR; across dimensions they
-AND. Defaults to ``type="ai"`` (simulatable); ``"human"`` or ``"all"``
-widen it. Pagination via ``limit`` (max 200) + ``offset``. Returns a
+here is what a run can draw. Widen with ``scope``. Returns a
 ``PaginatedList[Person]`` (``&#123;items, total, returned, limit, offset,
 has_more}``); ``total`` is the match count, handy for pre-flighting a
 pair-mode side's pool (the ``*_in`` enums + a11y booleans share their
@@ -258,39 +289,17 @@ vocabulary with ``RoleCriteria``). If nothing matches, fall through to
 but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
 
 **Single mode** (with ``person_id``): that Person with workspace-scoped
-custom fields + usage stats. ``include_evidence=True`` attaches persisted
-``EvidenceTrace`` rows (newest-first) under the Person's ``evidence``;
-rejected in list mode (per-row evidence blows the token budget).
+custom fields + usage stats.
 
 Three text-search dimensions (each case-insensitive substring, AND'd):
 ``search`` → name; ``bio`` → narrative bio; ``occupation=[...]`` →
-occupation (OR'd within the dimension).
+occupation (OR'd within the dimension). ``role_in`` is a best-effort
+convenience over free-text occupation, not an indexed taxonomy.
 
-`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`person_id`: UUID or short alias (e.g. ``p-d4e``); omit to list.
-`country`: ISO-3166-alpha-2 codes. `gender`: gender labels.
-`occupation`: free-text occupation substrings (OR'd).
-`role_in`: canonical role keys (``founder``, ``product_leader``,
-``engineer``, ...) that OR-expand into many ``occupation`` substrings -
-a best-effort convenience over free-text occupation; merged with any
-explicit ``occupation``. Pass an unknown key to see the full list in the
-``[validation_error]``.
-`age_min` / `age_max`: inclusive age bounds. `search`: name substring.
-`bio`: bio substring. `type`: ``ai`` (default) / ``human`` / ``all``.
-`limit` / `offset`: pagination. `include_bio`,
-`include_accessibility_profile`: default ``False`` (each is large per
-row; fetch a single Person for the full payload). `include_evidence`:
-single mode only.
-`scope`: which pool to list - the same default and the same three values
-as the run verbs' ``people.scope``, so this listing and a run's people describe
-one pool. ``"workspace"`` (default): this workspace's own people;
-``"platform"``: the admin-curated public pool; ``"all"``: every pool,
-ordered workspace → platform → shared.
-`visibility`: raw backend filter; wins over ``scope`` when both are set.
-Canonical values ``"workspace"`` (caller's own; required ahead of
-``person_attach``), ``"shared"`` (community-published), ``"platform"``
-(admin-curated). Pre-rollout ``"private"`` / ``"public"`` are accepted as
-deprecation aliases for ``"workspace"`` / ``"platform"``.
+``scope="all"`` orders every pool workspace → platform → shared.
+``visibility="workspace"`` (the caller's own people) is what
+``person_attach`` requires ahead of itself; ``"shared"`` is
+community-published and ``"platform"`` admin-curated.
 
 **Extended demographic enums** (snake_case, must match
 ``spec/profile-enums.v1.json``):

@@ -380,10 +380,31 @@ or any A/B / "which of these lands?" question. Creates the ask and
 dispatches round 1 in one call; with ``wait=True`` the return carries the
 verdict (``aggregates.winner``).
 
-``wait=False`` (default) returns immediately with a ``next_action``
-pointing at ``ask_get`` to poll round 1; ``wait=True`` blocks until round 1
-is terminal (summary included) or returns the in-flight envelope on
-``timeout``. Round 1 always dispatches - there is no draft/stage primitive.
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
+`name`: human-readable ask name.
+`prompt`: the question participants respond to on round 1.
+`description`: optional free text stored on the ask as metadata; participants
+answer ``prompt``, never this.
+`variants`: list of ``&#123;type, value, label?, id?}`` (kinds: text, image, video,
+audio, document). Prose references variants as ``[[A]]/[[B]]/[[C]]``, assigned
+by variant identity, so the letter is stable across rounds. ``id`` is normally
+omitted on round 1 (the backend mints one); details below.
+`people`: who reacts - explicit ``person_ids``, or ``sample=N`` /
+``all_matching=True`` plus optional demographic + ``role_in`` filters, or
+``generate`` to mint them inline. Fixed at creation; subsequent rounds
+inherit it.
+`wants_pick`: bool, default ``False``; requires >=2 variants. Asks each
+participant to pick a favorite, which is what fills ``aggregates.winner``.
+`wants_ratings`: bool, default ``False``; requires >=1 variant. Collects
+per-variant ratings.
+`questions`: free-text follow-ups appended to round 1.
+`wait`: bool, default ``False`` - returns immediately with a ``next_action``
+pointing at ``ask_get`` to poll round 1. ``True`` blocks until round 1 is
+terminal (summary included), or returns the in-flight envelope on ``timeout``.
+`timeout`: float seconds, default 240 - under the ~300 s idle limit at which
+Claude Code kills a silent call; on elapse the envelope carries the ids and a
+``next_action``. Blocking contract:
+``docs_get("reference/long-running-jobs")``.
 
 **Credit cost:** one credit per successfully completed participant per round
 (extra ``questions`` add no cost); pre-flight failures bill nothing; credits
@@ -391,31 +412,18 @@ are subscription-funded, so no per-dispatch approval is needed. Confirm the
 pool via ``workspace_get(...).credits`` - full model in
 ``docs_get("reference/credits")``.
 
+Round 1 always dispatches - there is no draft/stage primitive. The
+``people`` selector's four mutually-exclusive modes:
+``docs_get("concepts/people-selector")``.
+
+On ``variants``: for label fidelity in prose, include the label inline in
+``value``; pass an existing variant's ``id`` only to carry it into a
+follow-up round via ``ask_round`` and keep its letter.
+
 Pick an **ask** for "which of these lands?" (one prompt + 0..N variants + a
 small panel, optional follow-up rounds); pick a **study** for "how do people
 experience this end-to-end?" (see ``study_create``). Concept:
 ``docs_get("concepts/ask")``.
-
-`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`name`: human-readable ask name.
-`prompt`: the question participants respond to on round 1.
-`variants`: list of ``&#123;type, value, label?, id?}`` (kinds: text, image, video,
-audio, document). Prose references variants as ``[[A]]/[[B]]/[[C]]`` - assigned
-by variant identity, so the letter is stable across rounds; for label fidelity in
-prose, include the label inline in ``value``. ``id`` is normally omitted on round 1
-(the backend mints one); pass an existing variant's ``id`` only to carry it into a
-follow-up round via ``ask_round`` and keep its letter.
-`people`: who reacts - explicit ``person_ids``, or ``sample=N`` /
-``all_matching=True`` plus optional demographic + ``role_in`` filters, or
-``generate`` to mint them inline. Fixed at creation; subsequent rounds
-inherit it.
-`wants_pick`: requires >=2 variants; asks each participant to pick a favorite.
-`wants_ratings`: requires >=1 variant; collects per-variant ratings.
-`questions`: free-text follow-ups appended to round 1.
-`wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
-``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
-Code kills a silent call; on elapse the envelope carries the ids and a
-``next_action``.
 
 **Returns** ``Ask``; on failure raises ``ToolError`` with ``error_kind`` ∈
 ``&#123;auth_failed, forbidden, not_found, validation_error, empty_audience,

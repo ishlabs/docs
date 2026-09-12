@@ -23,13 +23,18 @@ True the balance is UNTRACKED (billing disabled or no default org resolved),
 so there is no numeric cap to check; it is not an 'unlimited plan' signal
 (an enterprise account reports a large numeric balance with unlimited=false).
 
+``rates`` is the live per-modality table the backend bills with (cached 5
+min); quote a study as ``max(1, round(steps * rate)) * people``. Read the
+number from it rather than from prose - the rates move. On a rates outage
+``rates`` is absent and ``notes`` names the fallback page.
+
 Credits are account-wide (shared across all your workspaces). For one
 workspace's entity caps (studies / people stored) plus the same credit pool,
 use ``workspace_get(workspace_id)`` instead.
 
 **Returns** an ``AccountUsage``: ``plan`` / ``credits_remaining`` /
-``credits_monthly`` / ``period_reset_at`` / ``unlimited``. On failure raises
-``ToolError`` with ``error_kind`` in ``&#123;auth_failed, forbidden,
-server_error, network_error, http_error}``.
+``credits_monthly`` / ``period_reset_at`` / ``unlimited`` / ``rates`` /
+``notes``. On failure raises ``ToolError`` with ``error_kind`` in
+``&#123;auth_failed, forbidden, server_error, network_error, http_error}``.
 
 _No parameters._
