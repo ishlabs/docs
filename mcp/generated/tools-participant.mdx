@@ -38,12 +38,14 @@ Set exactly one scope of ``participant_id`` / ``study_id`` /
 `ask_id`: UUID or alias (``a-...``) - fans out across the ask's people.
 `round`: 1-indexed round filter (only meaningful with ``ask_id``).
 
-**Returns** ``&#123;"cancelled": [&#123;"participant_id", "success", "status"?}, ...],
-"skipped": [&#123;"participant_id", "reason"}, ...], "summary": &#123;"total",
-"cancelled_count", "skipped_count"}}``. ``cancelled[*].success`` is
-``False`` when the per-participant endpoint returned an error envelope; the
-error text lands in ``status``. Skipped reasons cover terminal-state
-participants (``"already_terminal"``).
+Each cancelled row carries ``participant_id`` / ``success``; each skipped
+row ``participant_id`` / ``reason`` (``"already_terminal"`` for one that
+was terminal before the call); the ``summary`` carries ``total`` /
+``cancelled_count`` / ``skipped_count``.
+
+**Returns** ``&#123;"cancelled": [...], "skipped": [...], "summary": &#123;...}}``.
+``cancelled[*].success`` is ``False`` when the per-participant endpoint
+returned an error envelope, the text in the row's optional ``status``.
 
 ### Parameters
 <ParamField body="participant_id" type="string">
@@ -74,11 +76,11 @@ The source must be terminal (``completed`` / ``failed`` / ``cancelled``).
 The backend spawns a **new** participant under the same iteration,
 branched from the source's last interaction; the source row is untouched.
 
+Bills credits per completed added step; live rates in
+``account_usage().rates``.
+
 `participant_id`: UUID or alias (``pt-...``) of the source participant.
 `additional_steps`: more interactions to allow past the original cap.
-Credit cost: ``max(1, round(additional_steps * rate))`` at the study's
-modality rate (interactive 1 credit a step, media 0.1-0.5), drawn on
-completion; ``docs_get("reference/credits")`` has the table.
 Default 10; capped server-side (the failure envelope names the bound).
 `instruction`: optional user message injected as overriding direction for
 the rest of the run (e.g. "Stop browsing - switch to the German picker.").
@@ -90,13 +92,10 @@ False - return immediately with the dispatched id.
 carrying the ids and a ``next_action`` hint that points at the resume
 poll. See ``docs_get("reference/long-running-jobs")``.
 
-**Returns** a ``RunStudyResponse`` envelope discriminated by ``ok``.
-On success (``ok=True``) ``dispatch.participant_ids`` carries the **new**
-participant id (one entry); the source participant id is the input. On failure
-(``ok=False``) ``error_kind`` is one of ``validation_error`` (source
-not terminal, bad additional_steps), ``not_found`` (unknown
-participant_id), ``wait_timeout`` (dispatch fine but the wait poll ran
-out), or a backend error code.
+**Returns** a ``RunStudyResponse`` keyed by ``ok``;
+``dispatch.participant_ids`` carries the new participant id, and
+``wait_timeout`` means the dispatch worked but the wait poll ran out.
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="participant_id" type="string" required>

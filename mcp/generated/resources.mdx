@@ -9,13 +9,11 @@ mode: "reference"
     Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
 
 Resources are read via the MCP `read_resource` call. Some clients (ChatGPT)
-do not read resources; the `docs_get` tool mirrors the docs resources for them.
+do not read resources; every doc page is reachable through the `docs_get` tool.
 
 | URI | Returns | Description |
 | --- | --- | --- |
-| `ish://docs` | application/json | Index of every Ish concept, reference, and guide doc. Returns JSON [&#123;slug, title, description}, ...]; fetch any page by reading ish://docs/&lt;slug>. |
 | `ish://identity/me` | application/json | Currently-authenticated user, decoded from the validated JWT. Returns JSON &#123;user_id, email, role}. role is either 'admin' or 'user'. Use this once at session start to confirm whose workspaces the agent is acting on. |
-| `ish://docs/{slug*}` | text/markdown | Markdown body of one Ish doc page. Slugs use forward-slashes (e.g. 'overview', 'concepts/study', 'reference/aliases'). List every available slug via the ish://docs index resource. |
 | `ish://reference/content-types/{modality}` | application/json | Legal content_type values for a study modality. Returns JSON &#123;modality, values: [...]}. Read before study_create when the modality is video / image / document / audio / text; interactive and chat return an empty list. |
 | `ish://study/{study_id}/screenshots` | application/json | JSON index of every screenshot on a study, grouped by frame. Each screenshot entry carries a `resource_uri` (`ish://study/&lt;sid>/screenshot/&lt;scid>`) - read that to fetch the image bytes. Use this before pulling individual screenshots so the agent can pick representative frames rather than reading every one. |
 | `ish://study/{study_id}/transcripts` | application/json | JSON list of flattened chat transcripts for a chat study - one per completed participant on external-chatbot iterations, or one per conversation on participant-pair iterations. Same shape as `study_get(view='transcripts')`. Errors on non-chat studies (no transcripts to surface). |

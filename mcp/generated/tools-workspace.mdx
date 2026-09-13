@@ -14,17 +14,14 @@ mode: "reference"
 
 Create a new top-level container for studies, asks, and people.
 
-On a saturated account this returns ``[usage_limit_reached]``; inspect
-existing workspaces and reuse one instead - see
-``docs_get("guides/cold-start")``.
+A saturated account refuses the create; inspect existing workspaces and
+reuse one instead - see ``docs_get("guides/cold-start")``.
 
 `name`: human-readable workspace name (required).
 `description`: optional description.
 `base_url`: optional default URL studies in this workspace target.
 
-**Returns** ``Workspace``; on failure raises ``ToolError`` with
-``error_kind`` ∈ ``&#123;auth_failed, forbidden, validation_error,
-usage_limit_reached, server_error, network_error, http_error}``.
+**Returns** ``Workspace``. Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="name" type="string" required>
@@ -47,9 +44,7 @@ it, and is irreversible (no soft-archive). Confirm with the user first.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) to delete.
 
-**Returns** ``&#123;"deleted": True, "workspace_id": &lt;id>}``; on failure
-raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
-not_found, server_error, network_error, http_error}``.
+**Returns** ``&#123;"deleted": True, "workspace_id": &lt;id>}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -70,13 +65,14 @@ Read workspaces. Polymorphic on ``workspace_id``.
 - **With ``workspace_id``** → that workspace's details plus plan-limit
   usage counters (studies/people used + cap, tier) and the
   simulation-credit pool drawn on dispatch. An unlimited cap is OMITTED
-  from the response (the shaper drops nulls), so an absent ``*_cap`` key
-  means unlimited and ``0`` means none allowed. When
-  ``credits.unlimited`` is True, skip the headroom check - balances are
-  untracked (``None``), not empty. See ``docs_get("concepts/workspace")``.
+  from the response (the shaper drops nulls), so an absent ``*_max`` key
+  means unlimited and ``0`` means none allowed. A workspace whose pool
+  reports ``credits.unlimited`` is UNTRACKED (``None``) rather than
+  empty, so skip the headroom check on it. See
+  ``docs_get("concepts/workspace")``.
 
 Use the list form to discover workspace IDs, or an id to branch on plan
-caps before a create that would return ``[usage_limit_reached]`` (see
+caps before a create that a saturated account would refuse (see
 ``docs_get("guides/cold-start")``) or to check credits before dispatch.
 References are separate; use ``reference_get(workspace_id)``.
 
@@ -87,9 +83,7 @@ the "list all then scan" round-trip (e.g. ``workspace_get(name="Test")``).
 Ignored when ``workspace_id`` is set.
 
 **Returns** ``PaginatedList[Workspace]`` (iterate ``.items``) when no id,
-else ``WorkspaceInfo``; on failure raises ``ToolError`` with
-``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found, server_error,
-network_error, http_error}``.
+else ``WorkspaceInfo``. Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="workspace_id" type="string">
@@ -120,12 +114,12 @@ to stay lean. For account-wide plan + credits, call ``account_usage()``.
 `name`: optional case-insensitive substring filter on the workspace name,
 applied after the fetch (e.g. ``workspace_list(name="Acme")``).
 
-**Returns** a list of ``WorkspaceListItem`` rows (``alias`` / ``name``; no
-``id`` - read one workspace with ``workspace_get`` for its UUID), ordered
-case-insensitively by name; ``workspace_get()`` with no arguments lists the
-same workspaces most-recently-active first. On failure raises ``ToolError`` with
-``error_kind`` in ``&#123;auth_failed, forbidden, server_error, network_error,
-http_error}``.
+Rows carry no ``id`` - read one workspace with ``workspace_get`` for its
+UUID - and are ordered case-insensitively by name; ``workspace_get()``
+with no arguments lists the same workspaces most-recently-active first.
+
+**Returns** a list of ``WorkspaceListItem`` rows (``alias`` / ``name``).
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="name" type="string">

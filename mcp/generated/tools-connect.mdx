@@ -22,12 +22,11 @@ RFC1918 URL): a missing tunnel makes the run fail fast rather than
 stalling on a connection refused inside the cloud browser. See
 ``docs_get("guides/mcp-add")``.
 
-**Returns**:
-- tunnel active → ``&#123;"active": True, "tunnel_url": &lt;str>,
-  "local_port": &lt;int>, "last_heartbeat": &lt;iso>, "created_at": &lt;iso>}``
-- no tunnel → ``&#123;"active": False}``
-
 Other backend errors (auth, network, 5xx) propagate as the normal
 ``IshApiError`` envelope.
+
+**Returns** ``&#123;"active": True, "tunnel_url", "local_port",
+"last_heartbeat", "created_at"}`` when a tunnel is registered, else
+``&#123;"active": False}``.
 
 _No parameters._

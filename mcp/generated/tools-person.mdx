@@ -36,10 +36,9 @@ caller-owned private Person.
 (``situation`` / ``voice`` / ``binary`` / ``micro-story``),
 ``scenario_prompt`` (the question), optional ``raw_response``.
 
-**Returns** a ``PersonAttachResponse``. With ``source``, success sets
-``attachment_id``; with ``evidence``, ``evidence_traces`` lists the
-persisted rows. On failure inspect ``error_kind`` ∈ ``&#123;validation_error,
-not_found, forbidden, server_error, network_error, http_error}``.
+**Returns** ``PersonAttachResponse``: with ``source``, success sets
+``attachment_id``; with ``evidence``, ``evidence_traces`` lists the persisted
+rows. Full shape: ``docs_get("reference/responses")``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
@@ -109,9 +108,7 @@ the Person does not exist).
 `person_id`: UUID or short alias (e.g. ``p-d4e``) of the person
 to delete.
 
-**Returns** ``&#123;"deleted": True, "person_id": &lt;id>}`` on success; on
-failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
-forbidden, not_found, server_error, network_error, http_error}``.
+**Returns** ``&#123;"deleted": True, "person_id": &lt;id>}``.
 
 ### Parameters
 <ParamField body="person_id" type="string" required>
@@ -128,13 +125,16 @@ files, via the agentic generation pipeline. Returns the minted
 ``person_ids``, which you pass as ``people.person_ids`` on ``study_run``
 / ``ask_run``.
 
+Bills credits per person actually produced, more with avatars; live rates in
+``account_usage().rates``.
+
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 `description`: free-text brief for the people to mint (>=20 chars when
 supplied).
 `source_paths`: evidence references - prefer a ``data:`` URL or an
 ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap). A local
 file path is read from the **MCP server's own** filesystem, so it only helps
-when you run the server yourself. Full rules below.
+when you run the server yourself.
 `source_upload_ids`: reuse sources already uploaded via ``source_upload``
 (or a prior partial build) without re-uploading.
 `reaction_notes`: one researcher note per ``source_paths`` entry (same
@@ -148,17 +148,15 @@ codes. `gender`: list of gender labels.
 ``True`` / ``False`` override.
 `job_id`: resume mode - poll an already-enqueued job instead of starting
 one. Returned in ``next_action`` by a ``wait=False`` call. Mutually
-exclusive with every generation input; contract below.
+exclusive with every generation input: combining them is a
+``validation_error``, never a silent discard.
 `wait`: bool, default ``True`` - blocks until terminal (runs take ~30-60 s).
 ``False`` returns the ``job_id`` immediately plus a ``next_action`` naming
 the resume call.
 `timeout`: float seconds to wait when ``wait=True``; default 180.
 
-**Credit cost:** 2 credits per person actually produced (+1 each when
-avatars are generated); a run asked for five that delivers three bills
-three. Also counts toward the plan's custom-person entity cap (independent
-of the credit pool) - see ``docs_get("reference/credits")``; on hit:
-``[usage_limit_reached]``.
+Minting also counts toward the plan's custom-person entity cap, which is
+independent of the credit pool; on hit, ``[usage_limit_reached]``.
 
 Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
 it mints, optionally with scenarios traced back to the real reactions. See
@@ -187,15 +185,15 @@ rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one person
 per side: call ``person_generate(count=1, description="...")`` per side;
 the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
 
-**Returns** a ``PersonGenerateResponse`` discriminated by ``ok``. With
-``wait=True``, success populates ``people`` + ``person_ids``; with
-``wait=False``, ``job_id`` + ``status="queued"`` + ``next_action``. On
-failure inspect ``error_kind`` ∈
-``&#123;validation_error, not_found, usage_limit_reached,
-generation_failed, timeout, rate_limited, server_error, network_error,
-http_error}``. **Partial-failure contract:** when upload(s) succeeded but
+Pipeline-specific failures come back as ``generation_failed`` or
+``timeout``. **Partial-failure contract:** when upload(s) succeeded but
 enqueue failed, ``source_ids`` is still populated so agents can retry
 against existing sources without re-uploading.
+
+**Returns** ``PersonGenerateResponse`` keyed by ``ok``: ``wait=True``
+populates ``people`` + ``person_ids``, ``wait=False`` ``job_id`` +
+``status="queued"`` + ``next_action``. Full shape:
+``docs_get("reference/responses")``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -264,7 +262,8 @@ merge with any explicit ``occupation``. Pass an unknown key to see the full
 list in the ``[validation_error]``.
 `age_min` / `age_max`: inclusive age bounds.
 `education_level_in`, `household_in`, `locale_type_in`, `income_level_in`,
-`employment_status_in`: extended demographic enums; legal values below.
+`employment_status_in`: extended demographic enums, snake_case; the legal
+values are in ``docs_get("concepts/person")``.
 `requires_captions`, `uses_screen_reader`, `prefers_reduced_motion`,
 `prefers_high_contrast`, `has_any_accessibility_need`: bool filters over the
 ``accessibility_profile`` JSONB.
@@ -296,10 +295,15 @@ Three text-search dimensions (each case-insensitive substring, AND'd):
 occupation (OR'd within the dimension). ``role_in`` is a best-effort
 convenience over free-text occupation, not an indexed taxonomy.
 
-``scope="all"`` orders every pool workspace → platform → shared.
-``visibility="workspace"`` (the caller's own people) is what
-``person_attach`` requires ahead of itself; ``"shared"`` is
-community-published and ``"platform"`` admin-curated.
+``scope="all"`` orders every pool private → platform → published.
+
+Two vocabularies meet here. This FILTER takes ``workspace`` / ``shared`` /
+``platform`` (plus the aliases ``private`` / ``public``); a returned
+``Person.visibility`` reads ``private`` / ``published`` / ``platform``.
+``private`` is workspace-only, ``published`` community-visible,
+``platform`` admin-curated. So ``person_attach`` needs a Person whose
+``visibility`` is ``private``; filter for that pool with
+``visibility="private"``.
 
 **Extended demographic enums** (snake_case, must match
 ``spec/profile-enums.v1.json``):
@@ -322,9 +326,8 @@ JSONB): ``requires_captions``, ``uses_screen_reader``,
 ``prefers_reduced_motion``, ``prefers_high_contrast``,
 ``has_any_accessibility_need``.
 
-**Returns** ``PaginatedList[Person]`` (no id) or ``Person`` (with id);
-on failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
-forbidden, not_found, server_error, network_error, http_error}``.
+**Returns** ``PaginatedList[Person]`` without ``person_id``, or one
+``Person`` with it. Full shape: ``docs_get("reference/responses")``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -447,10 +450,9 @@ or MIME). Mutually exclusive with a non-data ``source_path``.
 `content_type`: MIME override; inferred from ``file_name`` / the remote
 ``Content-Type`` when omitted.
 
-**Returns** a ``SourceUploadResponse`` discriminated by ``ok``. On
-success ``source_upload_id`` is the new source's ID. On failure inspect
-``error_kind`` ∈ ``&#123;validation_error, not_found, server_error,
-network_error, http_error}``.
+**Returns** ``SourceUploadResponse`` discriminated by ``ok``; on success
+``source_upload_id`` is the new source's ID. Full shape:
+``docs_get("reference/responses")``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>

@@ -26,9 +26,7 @@ the user before calling.
 `endpoint_id`: UUID or short alias (e.g. ``ep-abc``) of the endpoint
 to delete.
 
-**Returns** ``&#123;"deleted": True, "endpoint_id": &lt;id>}`` on success; on
-failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed,
-forbidden, not_found, server_error, network_error, http_error}``.
+**Returns** ``&#123;"deleted": True, "endpoint_id": &lt;id>}``.
 
 ### Parameters
 <ParamField body="endpoint_id" type="string" required>
@@ -47,6 +45,8 @@ cross-study aggregation link breaks. Check ``usage_count`` via
 ``chatbot_get(view="configurations", endpoint_id=...)`` first.
 
 `configuration_id`: UUID or short alias (e.g. ``cc-...``) to delete.
+
+**Returns** ``&#123;"deleted": True, "configuration_id": &lt;id>}``.
 
 ### Parameters
 <ParamField body="configuration_id" type="string" required>
@@ -80,9 +80,10 @@ the optional id parameters. **READ_ONLY**.
     under one endpoint), or ``"iterations"`` (cross-study aggregation
     for a single configuration).
 
-**Returns** the appropriate envelope per view; on failure raises
-``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden,
-not_found, server_error, network_error, http_error}``.
+**Returns** the envelope for the requested ``view``:
+``PaginatedList[X]`` / ``X`` for ``ChatbotEndpoint`` and
+``ChatbotConfiguration``, or iteration rows.
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -112,8 +113,11 @@ persisted and the response carries ``error_kind`` + ``raw_excerpt`` to
 adjust and retry. Use ``chatbot_test`` instead to probe without saving.
 See ``docs_get("guides/chat")``.
 
-The smoke test draws no simulation credits; see
-``docs_get("reference/credits")``.
+Auto-detect failures on the ``paste`` path carry ``LLMError`` /
+``UnreachableUrl`` / ``UnknownError``; ``chatbot_test`` lists the smoke
+probe's own kinds.
+
+The smoke test draws no simulation credits.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 `paste`: Raw curl command, JSON sample, or freeform docs (mutex with
@@ -142,16 +146,10 @@ The smoke test draws no simulation credits; see
     this ``True`` unless you are adding a non-default version.
     Default ``True``.
 
-**Returns** ``ChatbotSetupResponse`` discriminated by ``ok``. On failure
-inspect ``error_kind`` ∈ the shared vocabulary (``validation_error`` /
-``not_found`` / ``usage_limit_reached`` / ``rate_limited`` /
-``server_error`` / ``network_error`` / ``http_error``) PLUS the
-chat-specific kinds from the smoke probe (``TunnelInactive`` /
-``BotUnreachable`` / ``BotResponseError`` / ``BotEnvelopeError`` /
-``BotInvalidResponseError`` / ``BotAuthError`` / ``BotTimeoutError`` /
-``BotRetryExhaustedError`` / ``ChatReactionInvalid``) and auto-detect
-kinds (``LLMError`` / ``UnreachableUrl`` / ``UnknownError``). The
-endpoint is never persisted when ``smoke_test=True`` and the test fails.
+**Returns** ``ChatbotSetupResponse`` discriminated by ``ok``; the saved
+row is ``endpoint``; chat-specific kinds such as ``TunnelInactive`` /
+``BotUnreachable`` come from the smoke probe.
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -242,7 +240,8 @@ Branch on ``error_kind`` (backend-classified), not the message:
   reaction shape (rare on the smoke probe).
 
 For stateful bots, thread ``conversation_id`` across invocations to
-maintain a session.
+maintain a session. The reply is slots-only: ``slots[]`` carries the
+interactive containers, ``references[]`` the passive ones.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 `endpoint_id`: UUID or short alias (e.g. ``ep-abc``) of a saved
@@ -256,10 +255,9 @@ maintain a session.
     ``&#123;"name": "Ada", "locale": "en"}``) exposed via ``&#123;&#123;participant.*}}``
     placeholders in the request template.
 
-**Returns** ``TestEndpointResult``; on success ``ok=True`` plus
-``bot_reply`` (slots-only - ``slots[]`` for interactive containers,
-``references[]`` for passive ones); on failure ``ok=False`` plus
-``error_kind`` from the chat-specific vocabulary above.
+**Returns** ``TestEndpointResult`` keyed by ``ok``: ``bot_reply`` on
+success, ``error_kind`` from the list above on failure.
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>

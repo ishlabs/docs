@@ -36,12 +36,12 @@ confirms. On ``wait=True`` timeout the PENDING session is returned (the
 link is still live; poll ``upload_status`` later).
 `timeout`: seconds to poll when ``wait=True`` (default 120s).
 
-**Returns** an ``UploadSession``. On success (``ok=True``), ``upload_url``
-is the link to relay, ``token`` polls status, and ``instruction`` is the
-ready-to-relay copy. On failure (``ok=False``), ``error_kind`` ∈
-``&#123;not_enabled, validation_error, not_found, auth_failed, server_error,
-network_error, http_error}`` - ``not_enabled`` means this backend lacks
-hosted-upload endpoints, so fall back to a local file path.
+On success ``upload_url`` is the link to relay, ``token`` polls status, and
+``instruction`` is the ready-to-relay copy.
+
+**Returns** an ``UploadSession`` keyed by ``ok``; ``not_enabled`` means
+this backend lacks hosted uploads, so fall back to a local path.
+Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -72,14 +72,15 @@ reusable handle(s) and ``suggestions`` names the exact downstream call:
 ``study_add_iteration(content_url=… / image_urls=[…])``. On ``status='expired'``
 the link lapsed unused - mint a fresh one.
 
+A failed read means the token is unknown, expired, or not yours: re-mint
+via ``upload_create`` rather than falling back to a local path, since
+holding a token already proves the feature is enabled here.
+
 `token`: the opaque session token from ``upload_create``.
 
-**Returns** an ``UploadStatusResponse``. On failure (``ok=False``),
-``error_kind`` ∈ ``&#123;not_found, validation_error, auth_failed,
-server_error, network_error, http_error}`` - ``not_found`` (a 404) means
-the token is unknown / expired / not-yours; re-mint via ``upload_create``
-rather than falling back to a local path (the feature is provably enabled
-since you already minted a token).
+**Returns** an ``UploadStatusResponse`` keyed by ``ok``, with ``status``
+(``pending`` / ``completed`` / ``expired``), ``result`` and
+``next_action``. Full shape: docs_get("reference/responses").
 
 ### Parameters
 <ParamField body="token" type="string" required>

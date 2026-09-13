@@ -14,25 +14,16 @@ mode: "reference"
 
 Read the Ish docs - index of pages or one page body.
 
-Returns the same content as the ``ish://docs`` and ``ish://docs/&lt;slug>``
-MCP resources. Use this if your harness doesn't surface MCP resources
-(e.g. most spawned-agent contexts in Claude Code as of 2026-05).
-
-With no arg, returns the index of available pages. With ``slug``, returns
-the markdown body of that one page.
+With no argument returns the page index (``pages`` plus ``by_category``);
+with ``slug`` returns that page's markdown body.
 
 `slug`: optional doc slug, forward-slashed (e.g. ``"overview"``,
     ``"overview-mcp"``, ``"concepts/study"``, ``"reference/aliases"``).
-    Omit to list every slug.
+    Omit to list every slug; a path-traversal-shaped slug is refused.
 
-**Returns** when ``slug`` is omitted: ``&#123;"pages": [&#123;"slug", "title",
-"description"}, ...], "by_category": &#123;"overview": [...], "concepts":
-[...], "guides": [...], "reference": [...]}}`` - the flat list plus
-the same entries bucketed by namespace prefix so agents can scan one
-category at a time. When ``slug`` is set: ``&#123;"slug": str, "body":
-str}`` where ``body`` is the page's markdown. Errors:
-[validation_error] for path-traversal-shaped slugs; [not_found] when the
-slug doesn't match any page (the message lists available slugs).
+**Returns** ``&#123;"pages": [...], "by_category": &#123;...}}`` or
+``&#123;"slug", "body"}``; an unknown slug is ``[not_found]`` and the message
+lists the slugs.
 
 ### Parameters
 <ParamField body="slug" type="string">

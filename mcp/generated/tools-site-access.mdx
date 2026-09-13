@@ -21,9 +21,7 @@ in one transaction, since the per-item delete rejects partial pair states).
     ``"all"`` also clears the public-affirmed flag.
 
 **Returns** ``&#123;"method": &lt;method>, "deleted": &lt;int>}`` (``0`` when nothing
-was configured for that method). On failure raises ``ToolError`` with
-``error_kind`` ∈ ``&#123;validation_error, auth_failed, forbidden, not_found,
-server_error, network_error, http_error}``.
+was configured for that method).
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -46,16 +44,15 @@ Configure it with ``site_access_set``. This read mirrors
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 
-**Returns** ``&#123;"basic_auth": &#123;"configured": bool, "origin": str | None},
-"session_cookie": &#123;"configured": bool, "origin": str | None},
-"login": &#123;"configured": bool}, "public_affirmed": &#123;"affirmed": bool,
-"origin": str | None}}``. ``configured`` is True only when BOTH keys of a
-pair are present. ``origin`` (the bound ``https://host`` for basic-auth /
-cookie / the affirmed-public origin) is revealed best-effort; a transient
-reveal failure surfaces as ``None`` rather than erroring. ``login`` has no
-bound origin. Credential values are never returned. On failure raises
-``ToolError`` with ``error_kind`` ∈ ``&#123;auth_failed, forbidden, not_found,
-server_error, network_error, http_error}``.
+``configured`` is True only when BOTH keys of a pair are present.
+``origin`` (the bound ``https://host`` for basic-auth / cookie, or the
+affirmed-public origin) is revealed best-effort; a transient reveal failure
+surfaces as ``None`` rather than erroring. ``login`` has no bound origin.
+Credential values are never returned.
+
+**Returns** ``&#123;"basic_auth", "session_cookie", "login",
+"public_affirmed"}``, each carrying ``configured`` (``affirmed`` on
+``public_affirmed``) and, where one is bound, ``origin``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -93,12 +90,11 @@ rejects an unpaired login/basic-auth/cookie write). Saving any credential
     for ``basic_auth`` / ``cookie`` / ``public`` - falls back to the
     workspace ``base_url``. Ignored for ``login``.
 
+``origin`` comes back ``None`` for ``login``, and
+``cleared_public_affirmation`` is always ``False`` for ``public``.
+
 **Returns** ``&#123;"method": &lt;method>, "configured": True, "origin": str | None,
-"cleared_public_affirmation": bool}`` (``origin`` is ``None`` for ``login``;
-``cleared_public_affirmation`` is always ``False`` for ``public``). On
-failure raises ``ToolError`` with ``error_kind`` ∈ ``&#123;validation_error,
-auth_failed, forbidden, not_found, server_error, network_error,
-http_error}``.
+"cleared_public_affirmation": bool}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>

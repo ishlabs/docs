@@ -14,9 +14,9 @@ mode: "reference"
 
 Read your plan tier and simulation-credit balance.
 
-Call it before dispatching a batch of runs to avoid a mid-run
-``[insufficient_credits]`` 402: compare ``credits_remaining`` against the
-number of participant runs you are about to start. Each run draws from the
+Call it before dispatching a batch of runs so none of them dies mid-way
+for want of credits: compare ``credits_remaining`` against the number of
+participant runs you are about to start. Each run draws from the
 pool; the pool is included in the subscription, not billed per call, so a
 subscribed user with headroom can dispatch freely. When ``unlimited`` is
 True the balance is UNTRACKED (billing disabled or no default org resolved),
@@ -34,7 +34,6 @@ use ``workspace_get(workspace_id)`` instead.
 
 **Returns** an ``AccountUsage``: ``plan`` / ``credits_remaining`` /
 ``credits_monthly`` / ``period_reset_at`` / ``unlimited`` / ``rates`` /
-``notes``. On failure raises ``ToolError`` with ``error_kind`` in
-``&#123;auth_failed, forbidden, server_error, network_error, http_error}``.
+``notes``. Full shape: docs_get("reference/responses").
 
 _No parameters._
