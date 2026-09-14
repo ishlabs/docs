@@ -73,7 +73,7 @@ Usage: `ish study analyze [id] [options]`
 
 ### Options
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
-<ParamField path="--wait" type="boolean">Poll until the run reaches completed or failed</ParamField>
+<ParamField path="--wait" type="boolean">Poll until the run reaches completed, failed or insufficient_data</ParamField>
 <ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300; only with --wait)</ParamField>
 <ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
 
