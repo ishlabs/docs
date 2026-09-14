@@ -467,8 +467,8 @@ Bills credits per analysis after a study's first; live rates in
 
 `study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
 `wait` / `timeout`: blocking contract - ``docs_get("reference/long-running-jobs")``.
-``wait=True`` polls to ``completed``/``failed`` (raises ``ToolError`` on
-``failed``); default returns the ``pending`` envelope with a poll hint.
+``wait=True`` polls to ``completed``/``failed``/``insufficient_data`` (raises
+``ToolError`` on ``failed``); default returns the ``pending`` envelope with a poll hint.
 ``timeout`` defaults to 240 s - under the ~300 s idle limit at which Claude
 Code kills a silent call; on elapse the envelope carries the ids and a
 ``next_action``.
