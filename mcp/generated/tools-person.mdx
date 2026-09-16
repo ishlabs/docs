@@ -169,9 +169,9 @@ polls to terminal, returns resolved people + scenarios.
 job and waits it out. See ``docs_get("reference/long-running-jobs")``. The
 three inputs (description, ``source_paths``, ``source_upload_ids``) freely
 combine. Combining ``job_id`` with any of them is a ``validation_error``
-rather than a silent discard; if the job is already terminal and did not
-complete, you get the same ``ok=False`` envelope the blocking call would
-have returned, with no ``next_action``.
+rather than a silent discard; if the job is already terminal, ``wait=False``
+returns the same envelope the blocking call would have - the minted people
+on ``completed``, ``ok=False`` otherwise - with no ``next_action``.
 
 **``source_paths`` in full.** ``data:`` and ``http(s)://`` URLs are portable
 and work against the hosted server. To feed raw local bytes to the hosted
