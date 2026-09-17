@@ -311,7 +311,7 @@ exactly 1 broadcasts across the other. Any other mismatch is rejected.
 cross-leaked. To persist a goal beside the scenario in a frontend-editable
 way, write it onto the study's side-tagged ``Assignment.test_context``.
 <ParamField body="role_criteria_a" type="object">
-Side A demographic criteria; the backend resolves a pool at create time. Pre-flight the pool size with person_get(...) using the same filters.
+Side A demographic criteria; the backend resolves a pool at create time. Pre-flight the pool size with person_get(..., scope="all") using the same filters; the pair resolver draws from the workspace's private people and the shared public pool, so a bare call under-counts.
 <Expandable title="properties">
 Demographic filter for picking who plays one side of a pair scenario.
 
