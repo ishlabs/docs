@@ -56,11 +56,14 @@ Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``samp
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="generate" type="object">
-Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+Mint new people for this run and use exactly them (counts toward the custom-person cap). Minting takes 1-2 min, so with wait=False the call returns [generation_pending] and a next_action to re-call with generate=&#123;job_id}. Mutually exclusive with person_ids / sample / all_matching / filters.
 <Expandable title="properties">
 Mint people as part of a run instead of calling ``person_generate`` first.
-<ParamField body="description" type="string" required>
+<ParamField body="description" type="string">
 Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="job_id" type="string">
+Resume the job a [generation_pending] response named, using the people it minted. Pass it alone.
 </ParamField>
 <ParamField body="count" type="integer">
 How many people to mint (1-10). Default: `3`.
@@ -408,8 +411,9 @@ Round 1 always dispatches - there is no draft/stage primitive. The
 
 With ``people=&#123;"generate": ...}`` the people are minted before the ask
 exists, so that step alone can raise ``generation_failed`` (the job failed or
-produced nobody) or ``[timeout]`` (it outlived ``timeout`` and keeps running
-server-side; ``person_get`` picks up whatever landed).
+produced nobody) or ``[generation_pending]`` (always with ``wait=False``, or
+past ``timeout``): nothing is created, and the message names the re-call with
+``people=&#123;"generate": &#123;"job_id": ...}}``.
 
 On ``variants``: for label fidelity in prose, include the label inline in
 ``value``; pass an existing variant's ``id`` only to carry it into a
@@ -473,11 +477,14 @@ Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``samp
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="generate" type="object">
-Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+Mint new people for this run and use exactly them (counts toward the custom-person cap). Minting takes 1-2 min, so with wait=False the call returns [generation_pending] and a next_action to re-call with generate=&#123;job_id}. Mutually exclusive with person_ids / sample / all_matching / filters.
 <Expandable title="properties">
 Mint people as part of a run instead of calling ``person_generate`` first.
-<ParamField body="description" type="string" required>
+<ParamField body="description" type="string">
 Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="job_id" type="string">
+Resume the job a [generation_pending] response named, using the people it minted. Pass it alone.
 </ParamField>
 <ParamField body="count" type="integer">
 How many people to mint (1-10). Default: `3`.

@@ -954,11 +954,14 @@ Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``samp
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="generate" type="object">
-Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+Mint new people for this run and use exactly them (counts toward the custom-person cap). Minting takes 1-2 min, so with wait=False the call returns [generation_pending] and a next_action to re-call with generate=&#123;job_id}. Mutually exclusive with person_ids / sample / all_matching / filters.
 <Expandable title="properties">
 Mint people as part of a run instead of calling ``person_generate`` first.
-<ParamField body="description" type="string" required>
+<ParamField body="description" type="string">
 Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="job_id" type="string">
+Resume the job a [generation_pending] response named, using the people it minted. Pass it alone.
 </ParamField>
 <ParamField body="count" type="integer">
 How many people to mint (1-10). Default: `3`.
@@ -1324,11 +1327,14 @@ Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``samp
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="generate" type="object">
-Mint new people for this run (blocks ~30-60 s, counts toward the custom-person cap) and use exactly them. Mutually exclusive with person_ids / sample / all_matching / filters.
+Mint new people for this run and use exactly them (counts toward the custom-person cap). Minting takes 1-2 min, so with wait=False the call returns [generation_pending] and a next_action to re-call with generate=&#123;job_id}. Mutually exclusive with person_ids / sample / all_matching / filters.
 <Expandable title="properties">
 Mint people as part of a run instead of calling ``person_generate`` first.
-<ParamField body="description" type="string" required>
+<ParamField body="description" type="string">
 Plain-English brief for the people to mint, e.g. 'three skeptical indie hackers who distrust AI tools'. Same input as person_generate(description).
+</ParamField>
+<ParamField body="job_id" type="string">
+Resume the job a [generation_pending] response named, using the people it minted. Pass it alone.
 </ParamField>
 <ParamField body="count" type="integer">
 How many people to mint (1-10). Default: `3`.
