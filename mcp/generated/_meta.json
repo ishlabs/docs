@@ -1,9 +1,10 @@
 {
   "generator": "generate_docs_mcp.py",
-  "tool_count": 46,
+  "tool_count": 47,
   "resource_count": 8,
   "tags": [
     "account",
+    "always-visible",
     "ask",
     "chatbot",
     "compat",
@@ -11,6 +12,7 @@
     "delete",
     "dispatch",
     "docs",
+    "feedback",
     "participant",
     "person",
     "read",

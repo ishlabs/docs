@@ -458,9 +458,10 @@ Synthesizes a narrative summary plus a categorised ``KeyInsight`` list
 via ``study_get(view="insights")``.
 
 Prerequisites (server-enforced): modality in &#123;interactive, video, audio,
-text, image, document} (chat ineligible) and a minimum-completions floor. If
-it errors on the floor, wait for more completions or fall back to
-``study_get(view='summary', group_by='segment'|'frame')``.
+text, image, document} (chat ineligible) and at least 5 participants on the
+study (interactive counts every participant, the other modalities those
+with recorded interactions). Below the floor it errors: run more people, or
+fall back to ``study_get(view='summary', group_by='segment'|'frame')``.
 
 Bills credits per analysis after a study's first; live rates in
 ``account_usage().rates``.
@@ -559,7 +560,11 @@ Default: `"desktop"`.
 Read the server-aggregated benchmark comparison for a study: the source
 study's iterations and every reference clone's rounds, each with pre-computed
 metrics. Read-only; pair with ``study_benchmark`` (which dispatches the
-rounds) to see how the source study stacks up against each reference.
+rounds) to see how the source study stacks up against each reference. Also
+the per-version read with NO references and no participant floor:
+``study.iterations[*].metrics`` scores each of the study's own iterations
+(completion rate, steps, friction, sentiment) below the 5-participant
+insights floor, where ``study_get(group_by='iteration')`` only counts.
 
 `study_id`: UUID or alias (e.g. ``s-b2c``) of the SOURCE study (the one you
 passed to ``study_benchmark``).
@@ -734,6 +739,8 @@ participants left to slice.
 `group_by`: ``iteration`` | ``frame`` | ``segment`` | ``turn`` |
 ``assignment`` | ``step``. Reprojects onto the axis; returns a
 ``SliceResponse``. Only with ``study_id`` + default ``view="summary"``.
+``iteration`` counts per version; per-version scores (completion, steps,
+friction, sentiment) are ``study_comparison(study_id)``, no references needed.
 `limit`: int, default 50 - browse mode only, rows per page.
 `offset`: int, default 0 - browse mode only, rows to skip. Both are ignored
 on every single-study read: those are never paginated.
@@ -884,10 +891,11 @@ in ``account_usage().rates``.
 `name`: human-readable study name.
 `people`: required - a fresh study has no panel. ``&#123;"sample": N}``,
 ``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description": ...,
-"count": N}}``.
+"count": N}}``. ``person_get(limit=1).total`` counts a pool.
 `workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive with ``workspace_name``.
 `workspace_name`: case-insensitive; an ambiguous name is a
-``[validation_error]`` naming the candidates.
+``[validation_error]`` naming the candidates; an unmatched name creates it
+(``created_workspace``).
 `url`: interactive - the public page / prototype participants visit; must
 load WITHOUT your session. Exactly one of ``url`` / ``content_url`` /
 ``content_md``.
@@ -900,7 +908,7 @@ Exclusive.
 read-and-react study.
 `questions`: free-text interview questions asked after the run.
 `config_id`: simulation-config override (alias ``c-...``). Required for file
-and text modalities unless every resolved person already has one.
+and text modalities unless every resolved person has one.
 `max_interactions`: int, default 20 - per-participant step cap; 5 for a
 smoke probe. Bounds SPEND, not just duration.
 `screen_format`: ``url`` only - ``desktop`` (default) | ``mobile_portrait``.
@@ -1215,17 +1223,19 @@ Optional longer description of what completing the step means.
 Dispatch simulated people through a study's iteration (a URL, prototype,
 media or chatbot) and, with ``wait=True``, wait until they finish. Step 3
 of 3 after ``study_create`` and ``study_add_iteration``: resolve ``people``,
-create participants, dispatch the modality-appropriate batch.
+create participants, dispatch the batch.
 
 Bills credits per completed participant, scaled by the steps they take
 (``max_interactions`` bounds it); pair chat bills both sides; nothing on a
 failed pre-flight; live rates in ``account_usage().rates``.
 
 `study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
-`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest.
+`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest. A
+changed page is a new ``study_add_iteration``, else results merge.
 `people`: who runs through it - ``person_ids``, or ``sample=N`` /
 ``all_matching=True`` + demographic filters, or ``generate`` to mint them
-inline. ``None`` reuses the iteration's panel.
+inline. ``None`` reuses the iteration's panel. ``person_get(limit=1).total``
+counts a pool.
 `config_id`: simulation-config override (alias ``c-...``). Required for media
 and chat studies unless every resolved person has one; optional for
 interactive. ``participant_pair``: omitted infers from the first ``group_a``
@@ -1246,8 +1256,10 @@ turn cap (chat / chat_pair; omitted → request > iteration's stored value >
 `analyze`: bool, default ``False``. With ``wait=True``, runs
 ``study_analyze`` once every participant is terminal and returns its result
 in ``analysis`` - one call instead of run → analyze → insights. Not
-available for chat studies. A failed analysis does NOT fail the run:
-``analysis_error`` carries the reason and ``next_action`` the retry.
+available for chat studies. Needs 5+ participants on the study and
+``wait=True``; otherwise the run still dispatches and ``analysis_error``
+says what to do. A failed analysis does NOT fail the run: ``analysis_error``
+carries the reason and ``next_action`` the retry.
 
 Pre-flight failures (CSP refusals, NXDOMAIN, chatbot smoke-test failures) are
 retryable.

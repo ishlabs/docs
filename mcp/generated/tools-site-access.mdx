@@ -47,12 +47,19 @@ Configure it with ``site_access_set``. This read mirrors
 ``configured`` is True only when BOTH keys of a pair are present.
 ``origin`` (the bound ``https://host`` for basic-auth / cookie, or the
 affirmed-public origin) is revealed best-effort; a transient reveal failure
-surfaces as ``None`` rather than erroring. ``login`` has no bound origin.
+surfaces as ``None`` rather than erroring. ``login`` has no bound origin and
+is best effort (the participant types it if it meets a sign-in form).
 Credential values are never returned.
+
+``session_cookie`` also carries ``expires_at`` (ISO-8601) and ``expired``:
+the worker refuses an interactive run once the stored cookie's expiry has
+passed (``session_cookie_expired``), so check ``expired`` before dispatching
+and re-register the cookie with ``site_access_set`` when it is True.
 
 **Returns** ``&#123;"basic_auth", "session_cookie", "login",
 "public_affirmed"}``, each carrying ``configured`` (``affirmed`` on
-``public_affirmed``) and, where one is bound, ``origin``.
+``public_affirmed``) and, where one is bound, ``origin``; ``session_cookie``
+adds ``expires_at`` and ``expired``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -70,9 +77,19 @@ reach a login-gated URL without publishing it. Polymorphic on ``method``.
   ``password``. Binds to ``origin`` (or the workspace ``base_url``).
 - ``method="cookie"`` - a session cookie for sites that gate on a token
   (Vercel preview, Lovable, etc.). Requires ``name`` + ``value``. Binds to
-  ``origin`` (or the workspace ``base_url``).
-- ``method="login"`` - login-form credentials a participant types into the
-  site. Requires ``username`` + ``password``. NOT bound to an origin.
+  ``origin`` (or the workspace ``base_url``). Every cookie carries an
+  expiry: pass ``expires_at`` when you know it; otherwise the backend
+  derives one from the value (a JWT ``exp`` or a Supabase token blob),
+  else a per-host hint (Lovable and Bolt about 1 h, v0 about 30 min), else
+  ONE HOUR. The worker refuses a run once it has passed
+  (``session_cookie_expired``), so an opaque cookie without ``expires_at``
+  stops working after an hour; re-register it to extend.
+- ``method="login"`` - credentials for the site's OWN login form. Requires
+  ``username`` + ``password``. NOT bound to an origin. Best effort, not a
+  gate: the simulated participant sees them as values it may use and types
+  them if it meets a sign-in form during the task; nothing signs it in
+  beforehand and nothing checks that the login worked. For a wall that must
+  be passed before the page loads use ``basic_auth`` or ``cookie``.
 - ``method="public"`` - affirm the site needs no credentials. Binds to
   ``origin`` (or the workspace ``base_url``); writes no credential.
 
@@ -89,12 +106,18 @@ rejects an unpaired login/basic-auth/cookie write). Saving any credential
 `origin`: URL to bind to (e.g. ``https://preview.example.com``). Optional
     for ``basic_auth`` / ``cookie`` / ``public`` - falls back to the
     workspace ``base_url``. Ignored for ``login``.
+`expires_at`: ``cookie`` only - ISO-8601 timestamp (UTC when no offset is
+    given) after which the cookie is refused; must be in the future. Omit
+    to let the backend derive it. Rejected on any other ``method``.
 
 ``origin`` comes back ``None`` for ``login``, and
-``cleared_public_affirmation`` is always ``False`` for ``public``.
+``cleared_public_affirmation`` is always ``False`` for ``public``. For
+``cookie`` the result also carries the stored ``expires_at`` (yours, or the
+derived one) and ``expired``.
 
 **Returns** ``&#123;"method": &lt;method>, "configured": True, "origin": str | None,
-"cleared_public_affirmation": bool}``.
+"cleared_public_affirmation": bool}``, plus ``expires_at`` / ``expired``
+for ``cookie``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -116,5 +139,8 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 &nbsp;
 </ParamField>
 <ParamField body="origin" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="expires_at" type="string">
 &nbsp;
 </ParamField>
