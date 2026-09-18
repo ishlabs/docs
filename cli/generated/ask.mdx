@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ ask (v0.33.0).
+    Source: ishlabs/ish-cli @ ask (v0.33.1).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -188,7 +188,7 @@ Usage: `ish ask add-questions [id] [options]`
 <ParamField path="--ask <id>" type="string">Ask ID; alternative to positional argument</ParamField>
 <ParamField path="--round <n|round-id>" type="string">Round number (1-indexed) or round id/alias Required.</ParamField>
 <ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;] Required.</ParamField>
-<ParamField path="--redispatch-all" type="boolean">Clear prior phase-1 outputs (comment, pick, ratings) and re-run the entire round from scratch (legacy behavior). Default is additive - only the new questions are answered.</ParamField>
+<ParamField path="--redispatch-all" type="boolean">Clear prior phase-1 outputs (comment, pick, ratings) and re-run the entire round from scratch (legacy behavior); draws one credit per participant again. Default is additive - only the new questions are answered, and it draws nothing (a round carries at most 10 questions on the free path).</ParamField>
 <ParamField path="--wait" type="boolean">Wait until the round completes (or errors)</ParamField>
 <ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300)</ParamField>
 <ParamField path="-y, --yes" type="boolean">Skip the credit-spend confirmation (required in --json / non-TTY to proceed)</ParamField>
