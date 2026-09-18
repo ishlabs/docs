@@ -101,11 +101,12 @@ Usage: `ish workspace site-access cookie [options]`
 <ParamField path="--name <n>" type="string">Cookie name Required.</ParamField>
 <ParamField path="--value <v>" type="string">Cookie value (or "-" to read from stdin) Required.</ParamField>
 <ParamField path="--origin <url>" type="string">Origin to bind cookie to; defaults to workspace base_url</ParamField>
+<ParamField path="--expires-at <iso>" type="string">When the cookie stops working (ISO-8601, UTC when no offset). Omit to let the backend derive it: a JWT exp, a per-host hint (Lovable/Bolt about 1 h, v0 about 30 min), else ONE HOUR</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace site-access login`
 
-Set login form credentials a participant will type into the site
+Set login form credentials the participant types if it meets a sign-in form (best effort, not a gate)
 
 Usage: `ish workspace site-access login [options]`
 
