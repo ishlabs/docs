@@ -53,9 +53,11 @@ exceptions - the same shape as ``chatbot_test``. Concept:
 must load WITHOUT your session: use a published / share-preview link, not a
 login-gated editor preview (Lovable / Replit / Bolt / v0 previews are
 session-gated) - localhost needs ``ish connect``. You set this once per
-study; later runs reuse the iteration. Credentialed pages: register a login
-once with ``site_access_set``. Builder clients get a tailored ``notes`` hint
-on the response.
+study; later runs reuse the iteration. Credentialed pages: ``site_access_set``
+once - basic auth or a session cookie for a wall that must be passed before
+the page loads; login credentials are typed by the participant only if it
+meets a sign-in form. Builder clients get a tailored ``notes`` hint on the
+response.
 
 **Text bodies.** ``content_md`` is parsed server-side into the content_doc
 block AST (ADR-0015). ``content_text`` (inline, or ``@path``) is accepted as
@@ -927,8 +929,9 @@ interactive. ``wait`` / ``timeout`` carry ``study_run``'s client-transport
 caveat: many clients cut a tool call at ~30 s whatever ``timeout`` says.
 A multi-image study needs ``study_add_iteration``, which takes the list;
 the ``url`` share-link and credentialed-page rules (a published /
-share-preview link, or a login registered with ``site_access_set``) are
-written out there.
+share-preview link, or basic auth / a session cookie via ``site_access_set``;
+a registered login is typed by the participant only if it meets a sign-in
+form) are written out there.
 
 ``next_action`` mirrors ``run.next_action`` - the one place to look for what
 to call next. Branch on ``ok`` first, then on ``error_kind``: on a mid-chain
@@ -1303,8 +1306,13 @@ active ``ish connect`` tunnel; absent one, fails fast with
 ``error_kind="TunnelInactive"``. A *public* but session-gated URL (an
 app-builder editor preview - Lovable / Replit / Bolt / v0) passes this check
 yet still fails for ish's cloud testers: point the iteration at a published /
-share-preview link, or register a login with ``site_access_set``. See
-``docs_get("concepts/site-access")``.
+share-preview link, or pass the wall with ``site_access_set`` (basic auth or a
+session cookie; login credentials are typed by the participant only if it
+meets a sign-in form). See ``docs_get("concepts/site-access")``. A browser
+dispatch is pre-flighted, and what it found comes back in ``notes`` on this
+call: an anonymous fetch that met a login-style wall (dispatched anyway),
+and any registered credential that will not apply to the URL (another
+origin or host, an expired cookie).
 
 ``participant_pair`` chat rejects ``people`` (both sides live in the
 iteration's ``mode_details``).
