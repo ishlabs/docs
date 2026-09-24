@@ -14,15 +14,15 @@ mode: "reference"
 
 Enrich one existing **private** person with extra grounding -
 **exactly one of ``source`` / ``evidence``.** Use this to add
-hand-tailored material to a single persona after the fact (vs.
-``person_generate``, which mints N personas from a brief / sources). See
+hand-tailored material to a single Person after the fact (vs.
+``person_generate``, which mints N people from a brief / sources). See
 ``docs_get("guides/build-specific-person")`` for the evidence loop.
 
 - ``source=SourceAttachInput(path=..., description=...)`` runs the
   Person-scoped 3-step attachment intake (initiate → signed-URL PUT →
-  confirm) - a file you want this persona to react to.
+  confirm) - a file you want this Person to react to.
 - ``evidence=[EvidenceTraceInput(...), ...]`` POSTs scenario answers the
-  persona's simulation-time prompt reads as ``&lt;past_reactions>``.
+  Person's simulation-time prompt reads as ``&lt;past_reactions>``.
 
 **The Person must be private** (``visibility="private"``): the backend
 rejects shared/published people (moderation gate); the MCP surfaces
@@ -32,7 +32,7 @@ that as ``[validation_error]`` with a "must be private" message.
 caller-owned private Person.
 `source`: file payload - exactly one of ``source`` / ``evidence``.
 `evidence`: 1..N ``EvidenceTraceInput`` rows (mutually exclusive with
-``source``). Each carries ``text`` (persona answer), ``source`` enum
+``source``). Each carries ``text`` (the Person's answer), ``source`` enum
 (``situation`` / ``voice`` / ``binary`` / ``micro-story``),
 ``scenario_prompt`` (the question), optional ``raw_response``.
 
