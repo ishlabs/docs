@@ -65,6 +65,14 @@ a legacy alias and is itself treated as markdown. ``content_html`` authors
 paste-exact branded email as the ADR-0015 ``format:html`` carrier - rendered
 source-faithful, re-sanitized server-side.
 
+**Social posts.** A LinkedIn / X / Instagram / Facebook / TikTok post is an
+``image`` or ``video`` iteration with ``copy_content=&#123;"text": &lt;post text>,
+"social_platform": "linkedin"}`` on a study created with
+``content_type="social_post"``: participants meet it in that platform's feed.
+A ``text`` iteration has no feed, and a caption-only social post is not
+supported yet. ``study_launch(social_platform=..., caption=...)`` does all of
+this in one call.
+
 **Pair chat.** Drive each side of ``chat_pair`` from ``role_criteria_a`` /
 ``role_criteria_b`` (backend resolves pools at create time) or from explicit
 ``group_a`` / ``group_b`` (equal counts zip 1:1, or one side of 1
@@ -602,7 +610,8 @@ chatbot - and report the journey. Step 1 of 3: then ``study_add_iteration``
 `name`: human-readable study name.
 `modality`: interactive | text | video | audio | image | document | chat.
 `content_type`: refines media modalities only (e.g. modality="video",
-content_type="ad"); raises a preflight error for interactive / chat.
+content_type="ad"; "social_post" for an image / video feed post); raises a
+preflight error for interactive / chat.
 `chat_mode`: external_chatbot | participant_pair; required iff modality="chat".
 `assignments`: the tasks participants attempt - bare strings or
 ``AssignmentInput`` dicts; ``participant_pair`` chat requires two
@@ -880,8 +889,8 @@ Default: `0`.
 
 **Tier:** long-running · **Tags:** dispatch, study
 
-Test a landing page, web flow, prototype, video, document or text draft
-with simulated people in ONE call: creates the study, adds the content as
+Test a landing page, web flow, prototype, video, document, text draft or
+social post with simulated people in ONE call: creates the study, adds the content as
 its first iteration, and dispatches the run (the ``study_create`` →
 ``study_add_iteration`` → ``study_run`` chain). Use those primitives instead
 for chat, Figma, multiple iterations or edits.
@@ -893,21 +902,19 @@ in ``account_usage().rates``.
 `name`: human-readable study name.
 `people`: required - a fresh study has no panel. ``&#123;"sample": N}``,
 ``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description": ...,
-"count": N}}``. ``person_get(limit=1).total`` counts a pool.
+"count": N}}``.
 `workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive with ``workspace_name``.
-`workspace_name`: case-insensitive; an ambiguous name is a
-``[validation_error]`` naming the candidates; an unmatched name creates it
+`workspace_name`: case-insensitive; an unmatched name creates it
 (``created_workspace``).
 `url`: interactive - the public page / prototype participants visit; must
 load WITHOUT your session. Exactly one of ``url`` / ``content_url`` /
 ``content_md``.
 `content_url`: ONE hosted file or local path - video / audio / image /
-document; needs ``modality``. Exclusive.
+document; needs ``modality``.
 `content_md`: markdown body (inline, or ``@file.md``) for a text study.
-Exclusive.
 `modality`: only for ``content_url``; inferred otherwise.
-`task`: what participants attempt, as one assignment. Omit for a
-read-and-react study.
+`social_platform` + `caption`: a feed post (image / video); below.
+`task`: what participants attempt; omit for a read-and-react study.
 `questions`: free-text interview questions asked after the run.
 `config_id`: simulation-config override (alias ``c-...``). Required for file
 and text modalities unless every resolved person has one.
@@ -919,11 +926,18 @@ smoke probe. Bounds SPEND, not just duration.
 `wait` / `timeout`: ``wait=True`` blocks until terminal; ``timeout`` defaults
 to 240 s. Both as on ``study_run``.
 
+**Social posts.** A post for LinkedIn, X, Instagram, Facebook or TikTok is
+``content_url`` (image or video) + ``modality`` + ``social_platform`` +
+``caption`` (the post text): participants meet it in that platform's feed
+and react as they would there. ``content_md`` has no feed, so it loses the
+platform. A caption-only social post is not supported yet.
+
 ``task`` becomes the study's one assignment; ``questions`` the
 interview. ``people`` behaves as on ``study_run`` (default scope: this
 workspace's people) - its four mutually-exclusive modes are in
 ``docs_get("concepts/people-selector")``. On ``workspace_name`` an exact match wins over a
-substring one, rather than a guess. ``screen_format`` is ignored for
+substring one; an ambiguous name is a ``[validation_error]`` naming the
+candidates. ``person_get(limit=1).total`` counts a pool. ``screen_format`` is ignored for
 ``content_url`` / ``content_md``, and ``config_id`` is optional for
 interactive. ``wait`` / ``timeout`` carry ``study_run``'s client-transport
 caveat: many clients cut a tool call at ~30 s whatever ``timeout`` says.
@@ -937,11 +951,13 @@ form) are written out there.
 to call next. Branch on ``ok`` first, then on ``error_kind``: on a mid-chain
 failure ``ok`` is False, ``error_kind`` carries the failing primitive's
 machine-readable code, ``error_message`` names the step, and the rows created
-so far come back so you can continue with the primitives. Argument errors
-raise before anything is created.
+so far come back so you can continue with the primitives. ``steps`` walks
+the chain (workspace → study → iteration → segmentation → dispatch): each
+step's status, id, failure reason and any default or fallback it took.
+Argument errors raise before anything is created.
 
 **Returns** ``StudyLaunchResponse``: ``study``, ``iteration``, ``run``,
-``next_action``, plus ``notes`` and ``suggestions``. Full shape:
+``steps``, ``next_action``, plus ``notes`` and ``suggestions``. Full shape:
 ``docs_get("reference/responses")``.
 
 ### Parameters
@@ -1042,6 +1058,12 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 &nbsp;
 </ParamField>
 <ParamField body="modality" type="&quot;interactive&quot; | &quot;text&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;image&quot; | &quot;document&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="caption" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="task" type="string">
@@ -1434,44 +1456,45 @@ Default: `false`.
 
 **Tier:** write · **Tags:** study, write
 
-Patch an EXISTING iteration's content in place (cheap edits: rename,
-re-description, partial ``details`` patch). For a full re-spec, or to ADD a
-new content version, prefer ``study_add_iteration`` (its typed signature
-guides every modality's fields); for study-level metadata use ``study_revise``.
+Patch an EXISTING iteration in place: rename, re-describe, or change
+some ``details`` fields. For a new content version use
+``study_add_iteration``; for study-level metadata ``study_revise``.
 
-``details`` is the modality-specific nested payload; the ``type``
-discriminator is **required** on every shape and must match the iteration's
-modality (omitting it → ``[validation_error] Unable to extract tag using
-discriminator 'type'``):
+``details`` is a PARTIAL patch: pass only the fields to change, and they are
+merged over the iteration's stored details (the backend itself replaces
+``details`` whole). The ``type`` discriminator is taken from the stored
+iteration, so it may be omitted; if passed it must match. Fields per
+modality:
 
 - interactive - ``&#123;type: "interactive", url, platform, screen_format, ...}``
-- media (video/audio/document) - ``&#123;type: "media", content_url, title, ...}``
+- video / audio / document - ``&#123;type: "video" | "audio" | "document",
+  content_url, title, segmentation, ...}``
 - image - ``&#123;type: "image", image_urls, title, ...}``
-- text - ``&#123;type: "text", content_md, title, ...}``
+- text - ``&#123;type: "text", content_md, title, segmentation, ...}``
 - chat - ``&#123;type: "chat", endpoint, chatbot_endpoint_id, max_turns, ...}``
 
-**Text bodies are validated (ADR-0015).** The canonical body is markdown
-(``content_md``) or a pre-built ``content_doc`` (an ``ish.doc/1`` block AST,
-structurally checked here); a legacy ``content_text`` is accepted and routed
-through the markdown ingest (``content_md``). ``content_html`` is only the
-format:html escape hatch - a patch that sets ``content_html`` as the
-canonical body (no ``content_md`` / ``content_doc``, nothing to promote) is
-**rejected**, not silently forwarded. A body-absent patch (title- or
-segmentation-only) is allowed.
+**Text bodies are validated (ADR-0015).** A new body is markdown
+(``content_md``, or legacy ``content_text``), a pre-built ``content_doc``
+(``ish.doc/1`` block AST, structurally checked here) or ``content_html``
+(paste-exact email carrier); it replaces the stored body. Text
+segmentation: ``&#123;type: "heading_based", split_level: 2}`` makes one
+segment per H1/H2 heading (the default when none is set), or
+``&#123;type: "section_based", sections: [&#123;segment_id, name, start_block_id}]}``
+with block ids from ``study_get``.
 
-`study_id`: UUID or alias of the parent study (alias hydration only).
 `iteration_id`: UUID or alias (e.g. ``i-d4e``) of the iteration.
-`details`: modality-specific patch (see above).
+`study_id`: optional parent study; only helps resolve an iteration alias.
+`details`: partial modality-specific patch (see above).
 `name`, `description`: iteration-level fields.
 
 **Returns** the updated ``Iteration``. Full shape:
 ``docs_get("reference/responses")``.
 
 ### Parameters
-<ParamField body="study_id" type="string" required>
+<ParamField body="iteration_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="iteration_id" type="string" required>
+<ParamField body="study_id" type="string">
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="details" type="object">
