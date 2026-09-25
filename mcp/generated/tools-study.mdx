@@ -536,7 +536,9 @@ dispatched rounds finish.
 whose completed participant roster each round replicates.
 `screen_format`: shared screen format for every round (``"desktop"`` or
 ``"mobile_portrait"``).
-`max_interactions`: optional per-participant step cap; omitted means no cap.
+`max_interactions`: optional per-participant step cap; omitted, the
+backend's ``DEFAULT_MAX_STEPS = 15`` applies (``study_run`` defaults to 20,
+so pass the source study's cap for a like-for-like comparison).
 
 On a ``failed`` row, ``stage`` names where that reference broke: ``no_url |
 clone | append_round | create_participants | start_simulations``. ``skipped``
