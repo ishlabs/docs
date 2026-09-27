@@ -24,9 +24,11 @@ or campaign. Inside it:
 - **People and sources.** The people you generate and the sources you upload are
   visible to every study and ask in the same workspace, and only there.
 - **A default base URL.** `base_url` is the origin studies in the workspace target
-  by default, and the origin site-access credentials bind to.
-- **Site-access credentials.** Login details, session cookies, or basic-auth pairs
-  for a gated site, stored encrypted and scoped to this workspace.
+  by default, and it names the default site for site-access commands.
+- **Sites and their access.** Each [site](/concepts/site-access#sites-and-hosts)
+  (a web site with its hosts, or a native app) holds its own login details,
+  session cookie, or basic-auth pair, stored encrypted. A study uses the access of
+  the site its URL belongs to, never another site's.
 
 A workspace carries an alias with the `w-` prefix (for example `w-6ec`) derived
 from its UUID. The alias is accepted anywhere a workspace ID is, so you rarely

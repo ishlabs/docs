@@ -60,7 +60,7 @@ parameters, and return shapes, follow the links into the [CLI](/cli/overview),
 | [Assignment](/concepts/assignment-questionnaire#assignments-what-people-do) | **Study lane.** One thing a simulated person is asked to do during a run. A study carries one or more, run in order. Authored as `--assignment` on the CLI and `assignments` through MCP. The ish API's equivalent is a [task](#the-ish-api). |
 | [Step](/concepts/assignment-questionnaire#steps-a-checklist-inside-an-assignment) | An ordered atomic action inside an assignment, each a `name` of 1 to 80 characters plus an optional `description` of up to 500. An API task accepts the same shape, stored but not yet read during a session. |
 | [Questionnaire](/concepts/assignment-questionnaire) | The set of questions each simulated person answers. Lives on the study, alongside assignments. |
-| [Site access](/concepts/site-access) | How ish reaches a gated URL: public, HTTP basic auth, a session cookie, or a login form. Configured per workspace. |
+| [Site access](/concepts/site-access) | How ish reaches a gated URL: public, HTTP basic auth, a session cookie, or a login form. Each site (a web site with its hosts, or a native app) holds its own. |
 | [Secret](/concepts/secrets) | A per-workspace named value that backs a `{{secret:KEY}}` placeholder in chatbot endpoint config, resolved on the wire at dispatch. |
 
 ## Running and reading

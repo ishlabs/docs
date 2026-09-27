@@ -133,8 +133,8 @@ ish steers the agent for you. When the iteration's URL is a Lovable host, the
 ## When the page needs a login you cannot remove
 
 If the part of the app under test sits behind a real sign-in that you cannot publish
-around, register the access once on the workspace instead of fighting the gate. Then
-every interactive study you point at that origin reuses it.
+around, register the access once on its site instead of fighting the gate. Then every
+interactive study whose URL belongs to that site reuses it.
 
 <CodeGroup>
 
@@ -145,6 +145,7 @@ run the study.
 
 ```python site_access_set
 site_access_set(workspace_id="w-6ec", method="cookie",
+                origin="https://<slug>.lovable.app",
                 name="session", value="abc123")
 ```
 
@@ -152,7 +153,7 @@ site_access_set(workspace_id="w-6ec", method="cookie",
 
 ish can sign in three ways: HTTP basic auth, a session cookie, or a login form the
 participant fills in. See [site access](/concepts/site-access) for which method matches
-your gate and how an origin gets bound.
+your gate and how a study's URL picks its site.
 
 ## Share the results
 

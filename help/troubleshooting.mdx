@@ -300,8 +300,8 @@ point the fleet at work on your machine, and they are easy to confuse.
 
 A remote run needs to reach the iteration URL the way a real visitor would. A URL behind a
 password, a preview-deploy cookie, or a login form will block participants unless ish has
-the credentials. Configure them once on the [workspace](/concepts/site-access); participants
-reuse them on any study that points at a matching origin. Credentials are encrypted at rest
+the credentials. Configure them once on the URL's [site](/concepts/site-access); participants
+reuse them on any study whose URL belongs to that site. Credentials are encrypted at rest
 and never read back.
 
 <AccordionGroup>
@@ -309,19 +309,24 @@ and never read back.
     **Symptom.** A remote run against a staging gate, a Vercel or Lovable preview, or a
     login-protected app produces participants that never get past the first screen.
 
-    **Cause.** The URL is gated. ish has no credentials for that origin, so the simulated
-    visitor sees the wall, not your app.
+    **Cause.** The URL is gated. The site its host belongs to holds no credentials, or no
+    site covers that host at all, so the simulated visitor sees the wall, not your app.
 
-    **Fix.** Configure the matching method on the workspace, then re-run. Pick the one your
+    **Fix.** Configure the matching method on the URL's site, then re-run. Pick the one your
     site uses:
 
     ```bash
-    ish workspace site-access status                                  # what's configured
-    ish workspace site-access basic-auth --username alice --password hunter2
-    ish workspace site-access cookie --name session --value abc123
-    ish workspace site-access login --username demo --password demo
+    ish workspace site-access status                                  # every site and its hosts
+    ish workspace site-access basic-auth --origin https://staging.example.com \
+        --username alice --password hunter2
+    ish workspace site-access cookie --origin https://preview.example.app \
+        --name session --value abc123
+    ish workspace site-access login --origin https://app.example.com \
+        --username demo --password demo
     ```
 
+    If the site already has access but the study's URL is on another host (another TLD, a
+    sign-in subdomain), add that host to the site with `ish workspace site-access hosts`.
     See [Site access](/concepts/site-access) for what each method covers.
   </Accordion>
 
@@ -348,16 +353,16 @@ and never read back.
 
     **Cause.** ish cannot always tell a public page from a soft wall, so it asks.
 
-    **Fix.** Mark the origin public to silence the prompt:
+    **Fix.** Mark the site public to silence the prompt:
 
     ```bash
-    ish workspace site-access affirm-public
+    ish workspace site-access affirm-public --origin https://example.com
     ```
 
-    To remove a method you set by mistake, clear it:
+    To remove a method you set by mistake, clear it from that site:
 
     ```bash
-    ish workspace site-access clear cookie
+    ish workspace site-access clear cookie --origin https://example.com
     ```
   </Accordion>
 </AccordionGroup>
