@@ -138,6 +138,10 @@ Another environment in the workspace already claims this address.
 
 The environment resolves but is retired, so it cannot accept new sessions or new versions. Register a new environment, or describe one inline on the session.
 
+### environment_holds_site_access {#environment_holds_site_access}
+
+A PATCH to `/environments/{id}` would change `kind` or `config` on an environment that holds [site access](/concepts/site-access). That environment is a site, and its address and hosts decide which studies get its credentials, so they change only through site access (`/products/{product_id}/site-access`, named in the message). Change the site's hosts with `ish workspace site-access hosts` on the CLI or `site_access_set(method="hosts")` through MCP. A PATCH that changes neither field still goes through: a rename is allowed, and echoing back an unchanged `config` is not a change.
+
 ### environment_version_label_taken {#environment_version_label_taken}
 
 The label collides with another live version of this environment. `detail.existing_version_id` carries the holder.
