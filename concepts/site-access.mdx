@@ -76,7 +76,8 @@ wall in front of your URL.
     these are not handed to the browser up front: the participant types them into
     the site's own login page and submits it, the way a real person signs in. Not
     bound to an origin, because the login happens wherever the study sends the
-    participant.
+    participant. The login is shared by every study in the workspace, whichever
+    site it targets.
   </Accordion>
   <Accordion title="Public" icon="globe">
     Not a credential. An affirmation that the origin needs no access at all, which
@@ -102,8 +103,10 @@ the origin.
 
 <Note>
   An origin is host-level, not path-level. Basic auth bound to
-  `https://staging.example.com` covers every URL on that host. To gate a different
-  host, configure that origin separately.
+  `https://staging.example.com` covers every URL on that host. A workspace holds
+  one origin per method today: configuring basic auth or a cookie for a second
+  host replaces the first. Studies on any other host run without basic auth or a
+  cookie.
 </Note>
 
 ## Where the credentials live
@@ -115,7 +118,8 @@ origins are stored as plain values, not secrets, so a status read can show you t
 bound host to confirm you wired the right one.
 
 Because credentials sit on the workspace, every study in that workspace inherits
-them. Configure access to your staging host once, and every `interactive` study
+them: the login everywhere, basic auth and the cookie only on their one bound host.
+Configure access to your staging host once, and every `interactive` study
 you point at that host reuses it without re-entering anything.
 
 <Warning>
