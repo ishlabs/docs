@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ workspace (v0.33.3).
+    Source: ishlabs/ish-cli @ workspace (v0.34.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -66,13 +66,13 @@ Usage: `ish workspace delete <id> [options]`
 
 ## `ish workspace site-access`
 
-Manage credentials for gated test sites (basic auth, session cookie, login form)
+Manage per-site credentials for gated test sites (basic auth, session cookie, login form)
 
 Usage: `ish workspace site-access`
 
 ## `ish workspace site-access status`
 
-Show which site-access methods are configured
+One row per site: its hosts, configured methods, and cookie expiry
 
 Usage: `ish workspace site-access status [options]`
 
@@ -81,53 +81,73 @@ Usage: `ish workspace site-access status [options]`
 
 ## `ish workspace site-access basic-auth`
 
-Set HTTP basic auth credentials
+Set HTTP basic auth credentials on a site
 
 Usage: `ish workspace site-access basic-auth [options]`
 
 ### Options
 <ParamField path="--username <u>" type="string">Username (or "-" to read from stdin) Required.</ParamField>
 <ParamField path="--password <p>" type="string">Password (or "-" to read from stdin) Required.</ParamField>
-<ParamField path="--origin <url>" type="string">Origin to bind credentials to; defaults to workspace base_url</ParamField>
+<ParamField path="--origin <url>" type="string">Site URL; finds or creates the site that answers on it. Defaults to the workspace base_url</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace site-access cookie`
 
-Set a session cookie for sites that gate on a token (Vercel preview, Lovable, etc.)
+Set a session cookie on a site that gates on a token (Vercel preview, Lovable, etc.)
 
 Usage: `ish workspace site-access cookie [options]`
 
 ### Options
 <ParamField path="--name <n>" type="string">Cookie name Required.</ParamField>
 <ParamField path="--value <v>" type="string">Cookie value (or "-" to read from stdin) Required.</ParamField>
-<ParamField path="--origin <url>" type="string">Origin to bind cookie to; defaults to workspace base_url</ParamField>
 <ParamField path="--expires-at <iso>" type="string">When the cookie stops working (ISO-8601, UTC when no offset). Omit to let the backend derive it: a JWT exp, a per-host hint (Lovable/Bolt about 1 h, v0 about 30 min), else ONE HOUR</ParamField>
+<ParamField path="--origin <url>" type="string">Site URL; finds or creates the site that answers on it. Defaults to the workspace base_url</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace site-access login`
 
-Set login form credentials the participant types if it meets a sign-in form (best effort, not a gate)
+Set the site's login: credentials the participant types if it meets a sign-in form (best effort, not a gate)
 
 Usage: `ish workspace site-access login [options]`
 
 ### Options
 <ParamField path="--username <u>" type="string">Username (or "-" to read from stdin) Required.</ParamField>
 <ParamField path="--password <p>" type="string">Password (or "-" to read from stdin) Required.</ParamField>
+<ParamField path="--origin <url>" type="string">Site URL; finds or creates the site that answers on it. Defaults to the workspace base_url</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
+<ParamField path="--app <artifact>" type="string">App artifact (native app site): exactly the iteration's app_artifact, e.g. a bundle id; finds or creates it</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace site-access affirm-public`
 
-Mark the site as not requiring credentials
+Mark a site as not requiring credentials
 
 Usage: `ish workspace site-access affirm-public [options]`
 
 ### Options
-<ParamField path="--origin <url>" type="string">Origin to mark public; defaults to workspace base_url</ParamField>
+<ParamField path="--origin <url>" type="string">Site URL; finds or creates the site that answers on it. Defaults to the workspace base_url</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
+<ParamField path="--app <artifact>" type="string">App artifact (native app site): exactly the iteration's app_artifact, e.g. a bundle id; finds or creates it</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
+
+## `ish workspace site-access hosts`
+
+Set the other hosts a site answers on (.com and .se, an auth subdomain, localhost, ...)
+
+Usage: `ish workspace site-access hosts [options]`
+
+### Options
+<ParamField path="--set <hosts>" type="string">Comma-separated hosts; REPLACES the site's additional hosts (pass "" to remove them all)</ParamField>
+<ParamField path="--add <hosts>" type="string">Comma-separated hosts to add to the site's additional hosts</ParamField>
+<ParamField path="--origin <url>" type="string">Site URL; finds or creates the site that answers on it</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace site-access clear`
 
-Clear configured site-access credentials
+Clear one method, or all of them, from a site
 
 Usage: `ish workspace site-access clear <method> [options]`
 
@@ -135,6 +155,9 @@ Usage: `ish workspace site-access clear <method> [options]`
 <ParamField path="method">basic-auth | cookie | login | public | all (required)</ParamField>
 
 ### Options
+<ParamField path="--origin <url>" type="string">Site URL; the site that answers on it</ParamField>
+<ParamField path="--site <name>" type="string">Existing site, by name, case-insensitive (see `site-access status`)</ParamField>
+<ParamField path="--app <artifact>" type="string">App artifact (native app site)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; defaults to active workspace</ParamField>
 
 ## `ish workspace reference`
