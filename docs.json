@@ -155,7 +155,7 @@
               "mcp/generated/tools-person",
               "mcp/generated/tools-workspace",
               "mcp/generated/tools-chatbot",
-              "mcp/generated/tools-simulation",
+              "mcp/generated/tools-participant",
               "mcp/generated/tools-site-access",
               "mcp/generated/tools-connect",
               "mcp/generated/tools-upload",
