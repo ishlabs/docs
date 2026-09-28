@@ -12,22 +12,35 @@ mode: "reference"
 
 **Tier:** write · **Tags:** site_access, write
 
-Clear configured site-access credentials for a workspace. Deletes the
-matching reserved-key secrets via the batch-delete endpoint (paired keys go
-in one transaction, since the per-item delete rejects partial pair states).
+Remove access from one site in a workspace. Other sites keep theirs.
+
+The target is ONE of ``origin`` (a URL), ``site`` (a site's name) or
+``app_artifact``, and is required. A target no site answers on is
+``[not_found]``, naming the sites that hold access. The site itself and
+its hosts stay.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``).
-`method`: one of ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"all"``.
-    ``"all"`` also clears the public-affirmed flag.
+`method`: ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"public"`` /
+    ``"all"`` (every method the site holds).
+`origin` / `site` / `app_artifact`: the site, as for ``site_access_set``.
 
-**Returns** ``&#123;"method": &lt;method>, "deleted": &lt;int>}`` (``0`` when nothing
-was configured for that method).
+**Returns** ``&#123;"method", "site": &lt;name>, "cleared": [&lt;method>, ...]}``
+(``[]`` when the site held none of them).
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;all&quot;" required>
+<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;public&quot; | &quot;all&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="origin" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="site" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="app_artifact" type="string">
 &nbsp;
 </ParamField>
 
@@ -35,31 +48,29 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 
 **Tier:** read-only · **Tags:** read, site_access
 
-Show which site-access methods are configured on a workspace.
+Show every site in a workspace and the access each one holds.
 
-Site-access lets ish's cloud browser reach a login-gated URL (a Vercel /
-Lovable preview, a staging site behind a token) without publishing it.
-Configure it with ``site_access_set``. This read mirrors
-``ish workspace site-access status``.
+A site is one web site (its hosts, e.g. ``shop.com`` and ``shop.se`` or
+``localhost:3000``; www and bare are one host) or one app, and it owns its
+own basic auth, session cookie, login, or the statement that it is public.
+A run uses the access of the site its URL belongs to and nothing else; a
+URL no site covers runs with no access. Hosts only pick the site: basic
+auth and the cookie go to one origin, the one the run opens (the study
+URL's, or its tunnel's), never to all of a site's hosts. Configure with
+``site_access_set``. Mirrors ``ish workspace site-access status``.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
 
-``configured`` is True only when BOTH keys of a pair are present.
-``origin`` (the bound ``https://host`` for basic-auth / cookie, or the
-affirmed-public origin) is revealed best-effort; a transient reveal failure
-surfaces as ``None`` rather than erroring. ``login`` has no bound origin and
-is best effort (the participant types it if it meets a sign-in form).
-Credential values are never returned.
+``cookie_expires_at`` / ``cookie_expired`` ride on a site with a cookie:
+the worker refuses an interactive run once the cookie has expired
+(``session_cookie_expired``), so re-register it when ``cookie_expired``.
+``unassigned_hosts`` lists hosts this workspace's browser studies target
+that no site covers, with how many studies target each. Credential values are
+never returned.
 
-``session_cookie`` also carries ``expires_at`` (ISO-8601) and ``expired``:
-the worker refuses an interactive run once the stored cookie's expiry has
-passed (``session_cookie_expired``), so check ``expired`` before dispatching
-and re-register the cookie with ``site_access_set`` when it is True.
-
-**Returns** ``&#123;"basic_auth", "session_cookie", "login",
-"public_affirmed"}``, each carrying ``configured`` (``affirmed`` on
-``public_affirmed``) and, where one is bound, ``origin``; ``session_cookie``
-adds ``expires_at`` and ``expired``.
+**Returns** ``&#123;"sites": [&#123;"name", "hosts", "app_artifact", "methods":
+&#123;"basic_auth", "session_cookie", "login", "public"}}], "unassigned_hosts":
+[&#123;"host", "study_count"}]}``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -70,60 +81,66 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 
 **Tier:** write · **Tags:** site_access, write
 
-Attach site-access credentials to a workspace so ish's cloud browser can
-reach a login-gated URL without publishing it. Polymorphic on ``method``.
+Give one site in a workspace its access so ish's cloud browser can reach
+a login-gated URL without publishing it. Polymorphic on ``method``.
 
-- ``method="basic_auth"`` - HTTP basic auth. Requires ``username`` +
-  ``password``. Binds to ``origin`` (or the workspace ``base_url``).
-- ``method="cookie"`` - a session cookie for sites that gate on a token
-  (Vercel preview, Lovable, etc.). Requires ``name`` + ``value``. Binds to
-  ``origin`` (or the workspace ``base_url``). Every cookie carries an
-  expiry: pass ``expires_at`` when you know it; otherwise the backend
-  derives one from the value (a JWT ``exp`` or a Supabase token blob),
-  else a per-host hint (Lovable and Bolt about 1 h, v0 about 30 min), else
-  ONE HOUR. The worker refuses a run once it has passed
-  (``session_cookie_expired``), so an opaque cookie without ``expires_at``
-  stops working after an hour; re-register it to extend.
-- ``method="login"`` - credentials for the site's OWN login form. Requires
-  ``username`` + ``password``. NOT bound to an origin. Best effort, not a
-  gate: the simulated participant sees them as values it may use and types
-  them if it meets a sign-in form during the task; nothing signs it in
-  beforehand and nothing checks that the login worked. For a wall that must
-  be passed before the page loads use ``basic_auth`` or ``cookie``.
-- ``method="public"`` - affirm the site needs no credentials. Binds to
-  ``origin`` (or the workspace ``base_url``); writes no credential.
+`workspace_id`: UUID or short alias (e.g. ``w-6ec``). The target is ONE
+of ``origin`` (a URL; its site is created on first use), ``site`` (an
+existing site's name, from ``site_access_get``) or ``app_artifact`` (an
+app). With none, the workspace ``base_url`` is the origin (not for
+``hosts``, which must name the site). An origin on
+another host is another site: it never overwrites the first site's access.
+``created`` says a new site was made (check it against
+``other_sites_with_access`` for a typo). To make one site answer on several
+hosts, use ``method="hosts"``.
 
-Paired keys are written atomically via the batch endpoint (the backend
-rejects an unpaired login/basic-auth/cookie write). Saving any credential
-(basic_auth / cookie / login) clears any prior public-affirmed flag.
+Basic auth and the cookie go to one origin, the one the run opens (the
+study URL's, or its tunnel's), never to all of a site's hosts.
 
-`workspace_id`: UUID or short alias (e.g. ``w-6ec``).
-`method`: one of ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"public"``.
-`username`: required for ``basic_auth`` and ``login``.
-`password`: required for ``basic_auth`` and ``login``. Never logged/returned.
-`name`: cookie name; required for ``cookie``.
-`value`: cookie value; required for ``cookie``. Never logged/returned.
-`origin`: URL to bind to (e.g. ``https://preview.example.com``). Optional
-    for ``basic_auth`` / ``cookie`` / ``public`` - falls back to the
-    workspace ``base_url``. Ignored for ``login``.
-`expires_at`: ``cookie`` only - ISO-8601 timestamp (UTC when no offset is
-    given) after which the cookie is refused; must be in the future. Omit
-    to let the backend derive it. Rejected on any other ``method``.
+- ``basic_auth`` - HTTP basic auth. Requires ``username`` + ``password``.
+- ``cookie`` - a session cookie (Vercel preview, Lovable, etc.). Requires
+  ``name`` + ``value``. Pass ``expires_at`` when you know it; else the
+  backend derives one (a JWT ``exp``, a per-host hint, else ONE HOUR).
+  Past it, runs fail (``session_cookie_expired``); re-register to extend.
+- ``login`` - credentials for the site's OWN login form. Requires
+  ``username`` + ``password``. Best effort, not a gate: the participant
+  types them only if it meets a sign-in form. The only credential an app
+  takes.
+- ``public`` - state the site needs no access. Refused (``[conflict]``)
+  while the site holds a credential; saving a credential withdraws it.
+- ``hosts`` - replaces the extra hosts (e.g. ``shop.se``,
+  ``auth.shop.com``, ``localhost:3000``; ``[]`` removes them); to add one,
+  pass the site's current hosts from ``site_access_get`` plus the new one
+  (the first host is the address and is ignored). www and bare are one
+  host. Hosts only pick the site a study URL belongs to. A host another
+  site holds is ``[conflict]``. Web sites only.
 
-``origin`` comes back ``None`` for ``login``, and
-``cleared_public_affirmation`` is always ``False`` for ``public``. For
-``cookie`` the result also carries the stored ``expires_at`` (yours, or the
-derived one) and ``expired``.
+`method`: ``"basic_auth"`` / ``"cookie"`` / ``"login"`` / ``"public"`` / ``"hosts"``.
+`origin`: URL of the site, e.g. ``https://preview.example.com``.
+`site`: name of an existing site. `app_artifact`: an app's artifact.
+`username` / `password`: ``basic_auth`` and ``login``. Never returned.
+`name` / `value`: the cookie's; ``cookie`` only. Never returned.
+`expires_at`: ``cookie`` only; ISO-8601 (UTC without an offset), future.
+`hosts`: ``hosts`` only.
 
-**Returns** ``&#123;"method": &lt;method>, "configured": True, "origin": str | None,
-"cleared_public_affirmation": bool}``, plus ``expires_at`` / ``expired``
-for ``cookie``.
+**Returns** ``&#123;"method", "site": &lt;site_access_get's site>, "created",
+"cleared_public_affirmation"}``, plus ``other_sites_with_access`` when
+``created``.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;public&quot;" required>
+<ParamField body="method" type="&quot;basic_auth&quot; | &quot;cookie&quot; | &quot;login&quot; | &quot;public&quot; | &quot;hosts&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="origin" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="site" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="app_artifact" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="username" type="string">
@@ -138,9 +155,9 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="value" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="origin" type="string">
+<ParamField body="expires_at" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="expires_at" type="string">
+<ParamField body="hosts" type="string[]">
 &nbsp;
 </ParamField>

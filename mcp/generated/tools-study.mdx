@@ -916,7 +916,8 @@ document; needs ``modality``.
 `content_md`: markdown body (inline, or ``@file.md``) for a text study.
 `modality`: only for ``content_url``; inferred otherwise.
 `social_platform` + `caption`: a feed post (image / video); below.
-`task`: what participants attempt; omit for a read-and-react study.
+`task`: what participants attempt. Required with ``url``, else
+``[study_has_no_tasks]``; omit for a read-and-react content study.
 `questions`: free-text interview questions asked after the run.
 `config_id`: simulation-config override (alias ``c-...``). Required for file
 and text modalities unless every resolved person has one.
@@ -1289,7 +1290,9 @@ says what to do. A failed analysis does NOT fail the run: ``analysis_error``
 carries the reason and ``next_action`` the retry.
 
 Pre-flight failures (CSP refusals, NXDOMAIN, chatbot smoke-test failures) are
-retryable.
+retryable. An interactive study with no assignments fails
+``study_has_no_tasks`` before any participant is created; add one with
+``study_revise(assignments=[...])``.
 
 Three modes:
 
