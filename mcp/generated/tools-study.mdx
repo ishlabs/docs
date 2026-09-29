@@ -1274,13 +1274,12 @@ checkpoint; run later with ``people=None``.
 ``False`` returns the post-dispatch snapshot with a ``next_action`` poll hint.
 `timeout`: float seconds, default 240 - under the ~300 s idle limit at which
 Claude Code kills a silent call. On elapse the envelope carries the ids and
-a ``next_action``. Many clients abort at ~30 s regardless, so prefer
-``wait=False``.
+a ``next_action``.
 `max_interactions` / `max_turns`: int caps, each >= 1 and each bounding SPEND,
 not just duration. ``max_interactions`` is the per-participant step cap
 (interactive / media, default 20, ignored for chat); ``max_turns`` is the
-turn cap (chat / chat_pair; omitted → request > iteration's stored value >
-14).
+turn cap (chat / chat_pair; default the iteration's stored value, else 14).
+`language`: ISO 639-1, default ``en``; anyone can run in any language.
 `analyze`: bool, default ``False``. With ``wait=True``, runs
 ``study_analyze`` once every participant is terminal and returns its result
 in ``analysis`` - one call instead of run → analyze → insights. Not
@@ -1451,6 +1450,9 @@ Default: `240.0`.
 &nbsp;
 </ParamField>
 <ParamField body="max_turns" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="language" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="analyze" type="boolean">
