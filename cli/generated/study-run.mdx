@@ -38,7 +38,7 @@ Usage: `ish study run [id] [options]`
 <ParamField path="--max-interactions <n>" type="string">Max interactions per participant (interactive / media only). Precedence: flag &gt; iteration's stored value &gt; CLI default (20).</ParamField>
 <ParamField path="--max-turns <n>" type="string">Max conversation turns per participant (chat studies only)</ParamField>
 <ParamField path="--early-termination" type="boolean">Allow chat agent to end the conversation early when goals are met (chat studies only)</ParamField>
-<ParamField path="--language <lang>" type="string">Language code (e.g. en, sv)</ParamField>
+<ParamField path="--language <lang>" type="string">ISO 639-1 language the people think and answer in (default: en). Any person can run in any language, whatever their country (e.g. sv, de, fr)</ParamField>
 <ParamField path="--wait" type="boolean">Wait for all simulations to reach a terminal state before returning</ParamField>
 <ParamField path="--timeout <s>" type="string">Wait timeout in seconds (default 300; only with --wait)</ParamField>
 <ParamField path="--dispatch-timeout <s>" type="string">Per-POST timeout in seconds for the create-participants + dispatch calls (default 120). Bump if `study run` times out client-side after seeding participants but before dispatch - those participants exist server-side and are surfaced under `seeded_but_not_dispatched_*` in the error envelope so the agent can resume.</ParamField>
