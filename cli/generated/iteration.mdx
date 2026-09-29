@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ iteration (v0.34.0).
+    Source: ishlabs/ish-cli @ iteration (v0.34.1).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -31,7 +31,7 @@ Usage: `ish iteration create [options]`
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
 <ParamField path="--name <name>" type="string">Iteration name (defaults to the next position letter A/B/C… if omitted)</ParamField>
 <ParamField path="--description <description>" type="string">Iteration description</ParamField>
-<ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code) - interactive only</ParamField>
+<ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code) - interactive only. Defaults to code for a localhost or LAN --url, else browser</ParamField>
 <ParamField path="--url <url>" type="string">URL to test - interactive only (optional for ios/android native apps)</ParamField>
 <ParamField path="--app <id>" type="string">Native app bundle id (or .app/.apk path) - ios/android; supplies the iteration target so --url isn't required</ParamField>
 <ParamField path="--screen-format <format>" type="string">Screen format (mobile_portrait, desktop) - interactive only; hyphen/underscore variants accepted. Default: desktop, or mobile_portrait for native ios/android</ParamField>
