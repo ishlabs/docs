@@ -4515,7 +4515,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.9.0"
+    "version": "1.10.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -5766,7 +5766,7 @@
                 }
               }
             },
-            "description": "`detail.error_kind` is `environment_name_taken` or `environment_address_taken` when the edit collides with another LIVE environment (`detail.existing_environment_id` carries it), or `environment_archived` when the environment has been deleted (archived environments are readable but closed to writes).",
+            "description": "`detail.error_kind` is `environment_name_taken` or `environment_address_taken` when the edit collides with another LIVE environment (`detail.existing_environment_id` carries it), `environment_archived` when the environment has been deleted (archived environments are readable but closed to writes), or `environment_holds_site_access` when a `kind` or `config` edit targets an environment that holds site access (change its hosts through site access instead; a rename is still allowed).",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
