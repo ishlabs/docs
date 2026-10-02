@@ -37,6 +37,7 @@ version).
   (inline, or ``@file.html``) is the paste-exact branded-email carrier.
   Markdown OR html, not both. Optional `sender_name` / `sender_email`,
   `featured_image_url`, `segmentation`, `content_config`, `title`.
+  Parts: heading_based, or block ids from ``content_blocks``.
 - ``image``: `image_urls` (non-empty; local paths and/or hosted URLs).
   Optional `copy_content`, `segmentation`, `content_config`, `title`.
 - ``chat``, two mutually-exclusive sub-modes: `chatbot_endpoint_id` (a saved
@@ -167,39 +168,40 @@ Per-segment labels for the participant UI; align with intervals_seconds.
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 2)">
-Section-based segmentation for text/document iterations.
+Explicit block-id sections for a text iteration.
 <ParamField body="type" type="string">
 Default: `"section_based"`.
 </ParamField>
 <ParamField body="sections" type="object[]" required>
-Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article).
+Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article; an email in 2-3 parts).
 <Expandable title="item properties">
-One section in a section-based segmentation.
-
-Use either the marker fields (``start_marker`` / ``end_marker``) or the
-paragraph fields (``paragraph_start`` / ``paragraph_end``), not both.
+One explicit section of a text body: every top-level block from
+``start_block_id`` up to the next section's.
+<ParamField body="segment_id" type="string" required>
+Stable id, any short slug (e.g. 'intro').
+</ParamField>
 <ParamField body="name" type="string" required>
-Stable section identifier (e.g. ``'section-1'``).
+Section identifier.
 </ParamField>
 <ParamField body="label" type="string" required>
-Human-readable label shown in the participant UI (required, non-empty).
+Label shown to participants and in results.
 </ParamField>
-<ParamField body="start_marker" type="string">
-Inclusive start marker text.
-</ParamField>
-<ParamField body="end_marker" type="string">
-Exclusive end marker text.
-</ParamField>
-<ParamField body="paragraph_start" type="integer">
-Zero-based first paragraph.
-</ParamField>
-<ParamField body="paragraph_end" type="integer">
-Zero-based last paragraph (exclusive).
+<ParamField body="start_block_id" type="string">
+Block id where it starts, from ``content_blocks``; only the first section may omit it (document start).
 </ParamField>
 </Expandable>
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 3)">
+Split a text iteration at its headings; no ids to manage.
+<ParamField body="type" type="string">
+Default: `"heading_based"`.
+</ParamField>
+<ParamField body="split_level" type="integer">
+Split at every heading of this level or above (2 = at H1 and H2). Default: `2`.
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 4)">
 Page-based segmentation for documents - pages are auto-derived.
 <ParamField body="type" type="string">
 Default: `"page_based"`.
@@ -246,39 +248,40 @@ Per-segment labels for the participant UI; align with intervals_seconds.
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 2)">
-Section-based segmentation for text/document iterations.
+Explicit block-id sections for a text iteration.
 <ParamField body="type" type="string">
 Default: `"section_based"`.
 </ParamField>
 <ParamField body="sections" type="object[]" required>
-Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article).
+Ordered sections; each becomes one segment. Semantic, not per-paragraph (3-6 for a long article; an email in 2-3 parts).
 <Expandable title="item properties">
-One section in a section-based segmentation.
-
-Use either the marker fields (``start_marker`` / ``end_marker``) or the
-paragraph fields (``paragraph_start`` / ``paragraph_end``), not both.
+One explicit section of a text body: every top-level block from
+``start_block_id`` up to the next section's.
+<ParamField body="segment_id" type="string" required>
+Stable id, any short slug (e.g. 'intro').
+</ParamField>
 <ParamField body="name" type="string" required>
-Stable section identifier (e.g. ``'section-1'``).
+Section identifier.
 </ParamField>
 <ParamField body="label" type="string" required>
-Human-readable label shown in the participant UI (required, non-empty).
+Label shown to participants and in results.
 </ParamField>
-<ParamField body="start_marker" type="string">
-Inclusive start marker text.
-</ParamField>
-<ParamField body="end_marker" type="string">
-Exclusive end marker text.
-</ParamField>
-<ParamField body="paragraph_start" type="integer">
-Zero-based first paragraph.
-</ParamField>
-<ParamField body="paragraph_end" type="integer">
-Zero-based last paragraph (exclusive).
+<ParamField body="start_block_id" type="string">
+Block id where it starts, from ``content_blocks``; only the first section may omit it (document start).
 </ParamField>
 </Expandable>
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 3)">
+Split a text iteration at its headings; no ids to manage.
+<ParamField body="type" type="string">
+Default: `"heading_based"`.
+</ParamField>
+<ParamField body="split_level" type="integer">
+Split at every heading of this level or above (2 = at H1 and H2). Default: `2`.
+</ParamField>
+</Expandable>
+<Expandable title="properties (variant 4)">
 Page-based segmentation for documents - pages are auto-derived.
 <ParamField body="type" type="string">
 Default: `"page_based"`.
@@ -1486,8 +1489,10 @@ modality:
 (paste-exact email carrier); it replaces the stored body. Text
 segmentation: ``&#123;type: "heading_based", split_level: 2}`` makes one
 segment per H1/H2 heading (the default when none is set), or
-``&#123;type: "section_based", sections: [&#123;segment_id, name, start_block_id}]}``
-with block ids from ``study_get``.
+``&#123;type: "section_based", sections: [&#123;segment_id, name, label,
+start_block_id}]}`` with ids from the iteration's ``content_blocks``
+(only the first section may omit ``start_block_id``). Paragraph indices
+and markers are refused: they error every participant at run time.
 
 `iteration_id`: UUID or alias (e.g. ``i-d4e``) of the iteration.
 `study_id`: optional parent study; only helps resolve an iteration alias.

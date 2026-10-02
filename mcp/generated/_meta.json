@@ -1,6 +1,6 @@
 {
   "generator": "generate_docs_mcp.py",
-  "tool_count": 47,
+  "tool_count": 51,
   "resource_count": 8,
   "tags": [
     "account",
