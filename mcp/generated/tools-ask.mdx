@@ -16,8 +16,8 @@ Add more participants to an existing ask; the new people run through the
 chosen round. A WRITE/dispatch verb that expands the panel, not a reader: to
 READ who is already on an ask use ``ask_get`` (the summary roster), not this.
 
-What that run draws follows the round's billing (live rates in
-``account_usage().rates``); nothing on a failed pre-flight.
+Bills credits per added participant's completed response; nothing on a
+failed pre-flight; live rates in ``account_usage().rates``.
 
 `ask_id`: UUID or short alias of the ask.
 `round`: 1-indexed int or round UUID/alias - new participants start there.
