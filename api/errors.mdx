@@ -214,6 +214,40 @@ None of these is a state to handle. Quote `request_id` and the kind in a bug rep
 
 The participant produced an invalid choice twice, and no turn was recorded. Retriable: resubmit the **same** `turn_index` with a fresh frame.
 
+## Person context (app and CLI)
+
+These come from the workspace routes for reviewing a person's context. They are not part of the developer API.
+
+### needs_human_approval {#needs_human_approval}
+
+409. A person, not an assistant, has to confirm these actions:
+- approving context about a real person;
+- releasing a held pattern line;
+- accepting a real person's proposed bio;
+- changing a real person into another kind of person.
+
+The MCP server can't confirm them. `suggestions` holds the `ish` command to run in a terminal.
+
+### version_conflict {#version_conflict}
+
+409. The episode or the patterns changed after you read them (`expected_version` is stale). Reload and retry.
+
+### episode_withdrawn {#episode_withdrawn}
+
+409. The episode is withdrawn. You can erase it, but not approve it.
+
+### no_pending_bio_proposal {#no_pending_bio_proposal}
+
+409. No bio proposal is waiting to be accepted or dismissed.
+
+### subject_kind_requires_private {#subject_kind_requires_private}
+
+409. Only a private person can be marked as a real person. Unpublish them first.
+
+### subject_kind_locked {#subject_kind_locked}
+
+409. A real person, or a person who is you, still has context that is not withdrawn, so what kind of person they are can't change. Withdraw or erase the context first.
+
 ## Related
 
 <Columns cols={2}>
