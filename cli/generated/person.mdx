@@ -10,174 +10,136 @@ mode: "reference"
 
 import GlobalFlags from "/snippets/global-flags.mdx";
 
-## `ish person experience`
+## `ish person context`
 
-Save, decode, review, and approve narrated experiences for an existing person
+Add real interactions to a person, review the episodes, and approve them for runs
 
-Usage: `ish person experience`
+Usage: `ish person context`
 
-## `ish person experience add`
+## `ish person context add`
 
-Add a past experience with optional files and start processing
+Add files plus a note; ish reads them into episodes for review
 
-Usage: `ish person experience add <person-id> [options]`
+Usage: `ish person context add <person-id> [files]... [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="files">(optional, variadic)</ParamField>
+
+### Options
+<ParamField path="--wait" type="boolean">Wait until the episodes are ready, a question needs your answer, or reading fails; never approves</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
+<ParamField path="--note <text>" type="string">Your account in your own words, or @path to a UTF-8 file</ParamField>
+<ParamField path="--note-file <path>" type="string">UTF-8 note file, or - for stdin</ParamField>
+<ParamField path="--role <file=role>" type="string">Mark a file shown (the person saw it) or record (the file is the log itself); repeatable Default: [].</ParamField>
+<ParamField path="--request-id <uuid>" type="string">UUID sent as the import's idempotency key. After a failure, check what was created with status &lt;person-id&gt; &lt;import-id&gt; or list; a re-run uploads the files again</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context status`
+
+Read an import, or resume waiting on it with --wait
+
+Usage: `ish person context status <person-id> <import-id> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="import-id">(required)</ParamField>
+
+### Options
+<ParamField path="--wait" type="boolean">Wait until the episodes are ready, a question needs your answer, or reading fails; never approves</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context answer`
+
+Answer an import's question (needs_input) and read it again
+
+Usage: `ish person context answer <person-id> <import-id> <answer> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="import-id">(required)</ParamField>
+<ParamField path="answer">(required)</ParamField>
+
+### Options
+<ParamField path="--wait" type="boolean">Wait until the episodes are ready, a question needs your answer, or reading fails; never approves</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context list`
+
+List this person's episodes in this workspace with moment counts
+
+Usage: `ish person context list <person-id> [options]`
 
 ### Arguments
 <ParamField path="person-id">(required)</ParamField>
 
 ### Options
-<ParamField path="--title <text>" type="string">Experience title (default: Untitled experience)</ParamField>
-<ParamField path="--description <text>" type="string">Original narrated account, or @path to a UTF-8 text file</ParamField>
-<ParamField path="--description-file <path>" type="string">UTF-8 account file, or - for stdin; retained unchanged</ParamField>
-<ParamField path="--narrator <text>" type="string">Who reports this account (default: Account author)</ParamField>
-<ParamField path="--role <text>" type="string">Optional role in the account (default: selected person's name)</ParamField>
-<ParamField path="--setting <text>" type="string">Optional situation or surrounding context</ParamField>
-<ParamField path="--occurred-at <datetime>" type="string">Optional ISO date/time including timezone</ParamField>
-<ParamField path="--time-precision <value>" type="string">unknown (default), approximate, or exact</ParamField>
-<ParamField path="--source <path-or-id>" type="string">Local file or source already linked to this person; role artifact (repeatable, ordered) Default: [].</ParamField>
-<ParamField path="--sources-file <path>" type="string">Ordered JSON array of &#123;path|attachment_id,role,label?&#125;; paths relative to manifest; - for stdin</ParamField>
-<ParamField path="--wait" type="boolean">Poll until decoding completes; never approve automatically</ParamField>
-<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 120) Default: "120".</ParamField>
-<ParamField path="--draft" type="boolean">Save the account without starting processing</ParamField>
-<ParamField path="--request-id <uuid>" type="string">Optional stable creation UUID for idempotent replay; inspect show after an interrupted upload</ParamField>
+<ParamField path="--status <status>" type="string">pending, approved or withdrawn</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person experience list`
+## `ish person context show`
 
-List this person's experiences, including drafts, failures, and withdrawn history
+Read one episode: its setting, files and every moment with the person's own words
 
-Usage: `ish person experience list <person-id> [options]`
+Usage: `ish person context show <person-id> <episode-id> [options]`
 
 ### Arguments
 <ParamField path="person-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
 
 ### Options
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person experience show`
+## `ish person context approve`
 
-Read the account, supporting files, and whether it is ready to use
+Approve the episode version you read; its pending moments go into new runs
 
-Usage: `ish person experience show <person-id> <experience-id> [options]`
+Usage: `ish person context approve <person-id> <episode-id> [options]`
 
 ### Arguments
 <ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
 
 ### Options
+<ParamField path="--expected-version <n>" type="string">The version you read with show (required unless you confirm at a terminal)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person experience history`
+## `ish person context withdraw`
 
-Read immutable account revisions and their interpretation and approval history
+Stop using an episode (or one --moment) in new runs and in runs already set up; the record is kept
 
-Usage: `ish person experience history <person-id> <experience-id> [options]`
+Usage: `ish person context withdraw <person-id> <episode-id> [options]`
 
 ### Arguments
 <ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
 
 ### Options
+<ParamField path="--expected-version <n>" type="string">The episode version you read (not needed with --moment)</ParamField>
+<ParamField path="--moment <moment-id>" type="string">Withdraw only this moment</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person experience update`
+## `ish person context erase`
 
-Revise input fields, increment version, and reset interpretation and approval
+Permanently erase an episode, its moments, files nothing else cites, and copies in runs already set up
 
-Usage: `ish person experience update <person-id> <experience-id> [options]`
+Usage: `ish person context erase <person-id> <episode-id> [options]`
 
 ### Arguments
 <ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
-
-### Options
-<ParamField path="--title <text>" type="string">Experience title (default: Untitled experience)</ParamField>
-<ParamField path="--description <text>" type="string">Original narrated account, or @path to a UTF-8 text file</ParamField>
-<ParamField path="--description-file <path>" type="string">UTF-8 account file, or - for stdin; retained unchanged</ParamField>
-<ParamField path="--narrator <text>" type="string">Who reports this account (default: Account author)</ParamField>
-<ParamField path="--role <text>" type="string">Optional role in the account (default: selected person's name)</ParamField>
-<ParamField path="--setting <text>" type="string">Optional situation or surrounding context</ParamField>
-<ParamField path="--occurred-at <datetime>" type="string">Optional ISO date/time including timezone</ParamField>
-<ParamField path="--time-precision <value>" type="string">unknown (default), approximate, or exact</ParamField>
-<ParamField path="--source <path-or-id>" type="string">Local file or source already linked to this person; role artifact (repeatable, ordered) Default: [].</ParamField>
-<ParamField path="--sources-file <path>" type="string">Ordered JSON array of &#123;path|attachment_id,role,label?&#125;; paths relative to manifest; - for stdin</ParamField>
-<ParamField path="--clear-setting" type="boolean">Clear the setting</ParamField>
-<ParamField path="--clear-time" type="boolean">Clear the time and set precision to unknown</ParamField>
-<ParamField path="--expected-version <n>" type="string">Required current version; approve the version you reviewed</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
-
-## `ish person experience decode`
-
-Start an included interpretation; default returns the accepted decoding state
-
-Usage: `ish person experience decode <person-id> <experience-id> [options]`
-
-### Arguments
-<ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
-
-### Options
-<ParamField path="--expected-version <n>" type="string">Required current version; approve the version you reviewed</ParamField>
-<ParamField path="--wait" type="boolean">Poll until decoding completes; never approve automatically</ParamField>
-<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 120) Default: "120".</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
-
-## `ish person experience approve`
-
-Approve the ready version you reviewed for use in new runs
-
-Usage: `ish person experience approve <person-id> <experience-id> [options]`
-
-### Arguments
-<ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
-
-### Options
-<ParamField path="--expected-version <n>" type="string">Required current version; approve the version you reviewed</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
-
-## `ish person experience withdraw`
-
-Stop using this experience, including in runs already set up; the account and revision history are kept (delete erases it)
-
-Usage: `ish person experience withdraw <person-id> <experience-id> [options]`
-
-### Arguments
-<ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
-
-### Options
-<ParamField path="--expected-version <n>" type="string">Required current version; approve the version you reviewed</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
-
-## `ish person experience delete`
-
-Permanently erase this experience, its revisions and unshared files; use withdraw to only stop using it
-
-Usage: `ish person experience delete <person-id> <experience-id> [options]`
-
-### Arguments
-<ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
 
 ### Options
 <ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person experience status`
+## `ish person context patterns`
 
-Read decoding/review state, or resume waiting on an accepted decode
+Read the person's patterns, reject or pin a line, accept or dismiss a proposed bio line
 
-Usage: `ish person experience status <person-id> <experience-id> [options]`
-
-### Arguments
-<ParamField path="person-id">(required)</ParamField>
-<ParamField path="experience-id">(required)</ParamField>
-
-### Options
-<ParamField path="--wait" type="boolean">Poll until decoding completes; never approve automatically</ParamField>
-<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 120) Default: "120".</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+Usage: `ish person context patterns`
 
 ## `ish person list`
 
@@ -279,6 +241,7 @@ Usage: `ish person update <id> [options]`
 <ParamField path="--income-level <value>" type="string">Self-identified relative socioeconomic position. One of: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say</ParamField>
 <ParamField path="--employment-status <value>" type="string">Primary daytime activity / labor-force status. One of: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other</ParamField>
 <ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
+<ParamField path="--subject-kind <kind>" type="string">Who this person is: fictional, self, or real_third_party (a real person other than you; their context is approved by a human only, and they stay private). Moving off real_third_party asks y/N at a terminal</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person delete`
