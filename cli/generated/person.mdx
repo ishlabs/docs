@@ -68,7 +68,7 @@ Usage: `ish person context answer <person-id> <import-id> <answer> [options]`
 
 ## `ish person context list`
 
-List this person's episodes in this workspace with moment counts
+List this person's episodes in this workspace with beat counts
 
 Usage: `ish person context list <person-id> [options]`
 
@@ -81,7 +81,7 @@ Usage: `ish person context list <person-id> [options]`
 
 ## `ish person context show`
 
-Read one episode: its setting, files and every moment with the person's own words
+Read one episode: its summary, files, facts and every beat with the person's own words
 
 Usage: `ish person context show <person-id> <episode-id> [options]`
 
@@ -94,7 +94,7 @@ Usage: `ish person context show <person-id> <episode-id> [options]`
 
 ## `ish person context approve`
 
-Approve the episode version you read; its pending moments go into new runs
+Approve the episode version you read; its pending beats go into new runs
 
 Usage: `ish person context approve <person-id> <episode-id> [options]`
 
@@ -106,9 +106,22 @@ Usage: `ish person context approve <person-id> <episode-id> [options]`
 <ParamField path="--expected-version <n>" type="string">The version you read with show (required unless you confirm at a terminal)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
-## `ish person context withdraw`
+## `ish person context leave-out`
 
-Stop using an episode (or one --moment) in new runs and in runs already set up; the record is kept
+Stop using an episode (or one --beat) in new runs and in runs already set up; the record is kept as Not in use
+
+Usage: `ish person context leave-out <person-id> <episode-id> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
+
+### Options
+<ParamField path="--expected-version <n>" type="string">The episode version you read (not needed with --beat)</ParamField>
+<ParamField path="--beat <beat-id>" type="string">Leave out only this beat</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context withdraw`
 
 Usage: `ish person context withdraw <person-id> <episode-id> [options]`
 
@@ -117,13 +130,49 @@ Usage: `ish person context withdraw <person-id> <episode-id> [options]`
 <ParamField path="episode-id">(required)</ParamField>
 
 ### Options
-<ParamField path="--expected-version <n>" type="string">The episode version you read (not needed with --moment)</ParamField>
-<ParamField path="--moment <moment-id>" type="string">Withdraw only this moment</ParamField>
+<ParamField path="--expected-version <n>" type="string">The episode version you read (not needed with --beat)</ParamField>
+<ParamField path="--beat <beat-id>" type="string">Leave out only this beat</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context use-again`
+
+Undo leave-out: use an episode (or one --beat) again; it returns to In use if it was approved
+
+Usage: `ish person context use-again <person-id> <episode-id> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
+
+### Options
+<ParamField path="--beat <beat-id>" type="string">Use only this beat again</ParamField>
+<ParamField path="--expected-version <n>" type="string">The episode version you read (default: the version use-again reads first)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context edit`
+
+Correct ish's wording, remove a quote, or name a speaker; an approved episode stays approved
+
+Usage: `ish person context edit <person-id> <episode-id> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+<ParamField path="episode-id">(required)</ParamField>
+
+### Options
+<ParamField path="--title <text>" type="string">New title</ParamField>
+<ParamField path="--summary <text>" type="string">New summary: how it started and how it ended</ParamField>
+<ParamField path="--beat <beat-id>" type="string">The beat the following --what-they-did / --what-was-going-on change; repeatable</ParamField>
+<ParamField path="--what-they-did <text>" type="string">New what-they-did for the --beat before it</ParamField>
+<ParamField path="--what-was-going-on <text>" type="string">New what-was-going-on for the --beat before it; "" clears it</ParamField>
+<ParamField path="--remove-quote <beat-id:index>" type="string">Remove a quote: the beat id and the 0-based index in its quotes (show --json); repeatable Default: [].</ParamField>
+<ParamField path="--speaker <label=name>" type="string">Name a speaker: the label as show --json lists it, then the display name; repeatable Default: [].</ParamField>
+<ParamField path="--expected-version <n>" type="string">The version you read (default: the version edit reads first)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person context erase`
 
-Permanently erase an episode, its moments, files nothing else cites, and copies in runs already set up
+Permanently erase an episode, its beats, files nothing else cites, and copies in runs already set up
 
 Usage: `ish person context erase <person-id> <episode-id> [options]`
 
