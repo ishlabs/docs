@@ -47,7 +47,7 @@ Update a simulation config
 Usage: `ish config update <id> [options]`
 
 ### Arguments
-<ParamField path="id">Config ID (required)</ParamField>
+<ParamField path="id">Config UUID (a c-… alias is refused: configs have no workspace to check it against) (required)</ParamField>
 
 ### Options
 <ParamField path="--file <path>" type="string">JSON file with update data Required.</ParamField>
@@ -59,7 +59,7 @@ Delete a simulation config
 Usage: `ish config delete <id> [options]`
 
 ### Arguments
-<ParamField path="id">Config ID (required)</ParamField>
+<ParamField path="id">Config UUID (a c-… alias is refused: configs have no workspace to check it against) (required)</ParamField>
 
 ### Options
 <ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json / non-TTY)</ParamField>
