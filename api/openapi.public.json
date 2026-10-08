@@ -4515,7 +4515,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.10.0"
+    "version": "1.11.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7223,7 +7223,7 @@
                 }
               }
             },
-            "description": "The person's decision could not be produced this turn (`detail.error_kind = 'decision_invalid'`); no turn is recorded; retry the same `turn_index`.",
+            "description": "The person's decision could not be produced this turn; no turn is recorded. `detail.error_kind = 'decision_invalid'`: retry the same `turn_index`. `persona_refused`: the model declined to answer; the same observation gets the same refusal, so do not retry it as-is.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"

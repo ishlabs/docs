@@ -44,6 +44,7 @@ The `turn_index` on a turn must equal the session's current turn count. The firs
 **Every returned turn is recorded, including `no_match` and `none_needed` turns.** Drive the next index off the response's `turn_index`, plus one, not off whether you executed anything. Two cases move differently:
 
 - A `502 decision_invalid` records **nothing**. Retry the **same** `turn_index` with a fresh frame.
+- A `502 persona_refused` records **nothing** either, but the same frame gets the same refusal: change the observation or end the session rather than resubmitting it unchanged.
 - A `409 turn_index_mismatch` hands you the index the server expected. Resubmit with `turn_index` set to that `expected_turn_index`.
 
 ## Reading the trace
@@ -83,6 +84,7 @@ These are the errors the session loop itself produces. Branch on `detail.error_k
 | `422` | Validation error (two envelope shapes, below) | Fix the payload. |
 | `429` `rate_limited` / `session_quota_exceeded` | The key's per-minute request rate, or its daily session-create quota | Transient. Honor `Retry-After`; the two reset on different clocks. |
 | `502` `decision_invalid` | The participant produced an invalid choice twice; no turn was recorded | Retriable: resubmit the **same** `turn_index` with a fresh frame. |
+| `502` `persona_refused` | The model behind the person declined to answer; no turn was recorded | Not retriable as-is: change the observation or end the session. |
 
 ### Two shapes of 422
 
@@ -140,6 +142,7 @@ loop:
     resp    = POST /sessions/{id}/turns  { turn_index, observation:obs, valid_actions:actions }
         on 409 turn_index_mismatch -> turn_index = err.expected_turn_index ; continue
         on 502 decision_invalid    -> retry SAME turn_index with a fresh frame
+        on 502 persona_refused     -> do not resend as-is; change the frame or end
     d = resp.decision
     if d.action_name != null:                     # ALWAYS execute a non-null action FIRST,
         ok = execute(d.action_name, d.arguments)  # even on a terminal turn (action + done can bundle)

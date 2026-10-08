@@ -214,6 +214,10 @@ None of these is a state to handle. Quote `request_id` and the kind in a bug rep
 
 The participant produced an invalid choice twice, and no turn was recorded. Retriable: resubmit the **same** `turn_index` with a fresh frame.
 
+### persona_refused {#persona_refused}
+
+The model behind the person declined to answer this turn, and no turn was recorded. Not retriable as-is: the same observation gets the same refusal, so change the observation (or end the session) instead of resubmitting it unchanged.
+
 ## Person context (app and CLI)
 
 These come from the workspace routes for reviewing a person's context. They are not part of the developer API.
