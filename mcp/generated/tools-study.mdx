@@ -64,7 +64,9 @@ response.
 block AST (ADR-0015). ``content_text`` (inline, or ``@path``) is accepted as
 a legacy alias and is itself treated as markdown. ``content_html`` authors
 paste-exact branded email as the ADR-0015 ``format:html`` carrier - rendered
-source-faithful, re-sanitized server-side.
+source-faithful, re-sanitized server-side. On a study created with
+``content_type="email"``, ``title`` is the Subject: line and ``sender_name``
+/ ``sender_email`` the sender participants see.
 
 **Social posts.** A LinkedIn / X / Instagram / Facebook / TikTok post is an
 ``image`` or ``video`` iteration with ``copy_content=&#123;"text": &lt;post text>,
@@ -614,9 +616,19 @@ chatbot - and report the journey. Step 1 of 3: then ``study_add_iteration``
 `workspace_id`: UUID or alias (e.g. ``w-6ec``) of the workspace.
 `name`: human-readable study name.
 `modality`: interactive | text | video | audio | image | document | chat.
-`content_type`: refines media modalities only (e.g. modality="video",
-content_type="ad"; "social_post" for an image / video feed post); raises a
-preflight error for interactive / chat.
+`content_type`: refines the modality. Legal values per modality -
+text: narrative | informational | commercial | editorial | reference |
+email | news; video: music | tutorial | documentary | entertainment |
+review | lifestyle | news | social_post | ad; audio: music | narration |
+conversation | speech | soundscape | news | ad; image: product |
+photography | infographic | artwork | interface | visual_assets |
+packaging | pricing | social_post | ad; document: deck | presentation |
+report | brochure | guide (live list: ``ish://reference/content-types/
+&#123;modality}``). Raises a preflight error for interactive / chat.
+``content_type="email"`` makes participants read each text version as an
+email: the iteration's ``title`` is its Subject: line and its
+``sender_name`` / ``sender_email`` are shown as the sender.
+``"social_post"`` frames an image / video as a feed post.
 `chat_mode`: external_chatbot | participant_pair; required iff modality="chat".
 `assignments`: the tasks participants attempt - bare strings or
 ``AssignmentInput`` dicts; ``participant_pair`` chat requires two
@@ -937,6 +949,12 @@ to 240 s. Both as on ``study_run``.
 ``caption`` (the post text): participants meet it in that platform's feed
 and react as they would there. ``content_md`` has no feed, so it loses the
 platform. A caption-only social post is not supported yet.
+
+**Emails.** An email or newsletter is not a ``study_launch``: launched as
+``content_md`` it runs as a plain text study, without the Subject: line or
+sender. Use ``study_create(modality="text", content_type="email")``, then one
+``study_add_iteration(content_md, title=&lt;Subject>, sender_name,
+sender_email)`` per version, then ``study_run``.
 
 ``task`` becomes the study's one assignment; ``questions`` the
 interview. ``people`` behaves as on ``study_run`` (default scope: this
