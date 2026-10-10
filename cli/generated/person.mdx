@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ person (v0.36.0).
+    Source: ishlabs/ish-cli @ person (v0.37.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -33,6 +33,7 @@ Usage: `ish person context add <person-id> [files]... [options]`
 <ParamField path="--note-file <path>" type="string">UTF-8 note file, or - for stdin</ParamField>
 <ParamField path="--role <file=role>" type="string">Mark a file shown (the person saw it) or record (the file is the log itself); repeatable Default: [].</ParamField>
 <ParamField path="--request-id <uuid>" type="string">UUID sent as the import's idempotency key. After a failure, check what was created with status &lt;person-id&gt; &lt;import-id&gt; or list; a re-run uploads the files again</ParamField>
+<ParamField path="--dir <folder>" type="string">Add every supported file directly in a folder, one import per file; a re-run adds nothing it added before</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person context status`
@@ -162,6 +163,10 @@ Usage: `ish person context edit <person-id> <episode-id> [options]`
 ### Options
 <ParamField path="--title <text>" type="string">New title</ParamField>
 <ParamField path="--summary <text>" type="string">New summary: how it started and how it ended</ParamField>
+<ParamField path="--about <subject>" type="string">What the episode was about, as a stable name ("Onboarding flow"), at most 80 characters; keeps the current version unless --about-version or --clear-about-version</ParamField>
+<ParamField path="--about-version <text>" type="string">Which version of that subject ("v2", "after the redesign"), at most 40 characters; needs --about</ParamField>
+<ParamField path="--clear-about-version" type="boolean">Remove the version and keep the subject</ParamField>
+<ParamField path="--clear-about" type="boolean">Remove what the episode was about, subject and version</ParamField>
 <ParamField path="--beat <beat-id>" type="string">The beat the following --what-they-did / --what-was-going-on change; repeatable</ParamField>
 <ParamField path="--what-they-did <text>" type="string">New what-they-did for the --beat before it</ParamField>
 <ParamField path="--what-was-going-on <text>" type="string">New what-was-going-on for the --beat before it; "" clears it</ParamField>
@@ -182,6 +187,19 @@ Usage: `ish person context erase <person-id> <episode-id> [options]`
 
 ### Options
 <ParamField path="-y, --yes" type="boolean">Skip confirmation prompt (required in --json or non-TTY contexts)</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+
+## `ish person context export`
+
+Print the person's approved context in use as one Markdown file, oldest episode first
+
+Usage: `ish person context export <person-id> [options]`
+
+### Arguments
+<ParamField path="person-id">(required)</ParamField>
+
+### Options
+<ParamField path="--out <file>" type="string">Write the Markdown to this file instead of stdout, and print its path</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person context patterns`
