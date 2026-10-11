@@ -19,8 +19,8 @@ latest. This *creates* a version: it does not re-run the study
 (``study_run``), edit one in place (``study_update_iteration``), or change
 study-level metadata (``study_revise``).
 
-Every modality: `study_id` (UUID or alias, e.g. ``s-b2c``), `name` (this
-version's label), `modality`, optional `description` (free text about this
+Every modality: `study_id` (UUID or alias, e.g. ``s-b2c``), `name` (what this
+version changes), `modality`, optional `description` (free text about this
 version).
 
 - ``interactive``: `url`, `platform` (browser / android / figma / code),
@@ -45,6 +45,11 @@ version).
   `chat_pair=ChatPairConfig(...)` for ``participant_pair`` (AI to AI).
   ``chat_pair`` with either of the other two is a validation error. Optional
   `max_turns`, `early_termination` on both sub-modes.
+
+**One kind of artifact, named by its change.** A version is the same kind of
+artifact as the study's others: a LinkedIn message next to an email is a
+separate study. Each iteration gets its letter (A, B, C) automatically, so
+``name`` says what differs, e.g. "Shorter subject line", never "B" or "v2".
 
 Media pre-flight and argument errors come back as ``ok=False`` rather than as
 exceptions - the same shape as ``chatbot_test``. Concept:
@@ -612,6 +617,8 @@ Start a study: simulated people experience one artifact end to end - a
 landing page, a web flow, a prototype, a video, a document, text or a
 chatbot - and report the journey. Step 1 of 3: then ``study_add_iteration``
 (the URL / content), then ``study_run``. ``modality`` picks the artifact kind.
+A study's iterations are versions of ONE kind of artifact (e.g. one email); a
+different format (a LinkedIn message vs an email) is a separate study.
 
 `workspace_id`: UUID or alias (e.g. ``w-6ec``) of the workspace.
 `name`: human-readable study name.
@@ -956,6 +963,10 @@ sender. Use ``study_create(modality="text", content_type="email")``, then one
 ``study_add_iteration(content_md, title=&lt;Subject>, sender_name,
 sender_email)`` per version, then ``study_run``.
 
+A study tests versions of ONE kind of artifact; a different format (a
+LinkedIn message vs an email) is a separate study. The first version is
+named after the study; the app labels it A.
+
 ``task`` becomes the study's one assignment; ``questions`` the
 interview. ``people`` behaves as on ``study_run`` (default scope: this
 workspace's people) - its four mutually-exclusive modes are in
@@ -1270,7 +1281,8 @@ Optional longer description of what completing the step means.
 **Tier:** long-running · **Tags:** dispatch, study
 
 Dispatch simulated people through a study's iteration (a URL, prototype,
-media or chatbot) and, with ``wait=True``, wait until they finish. Step 3
+media or chatbot) and, with ``wait=True``, wait until they finish. Compare
+iterations on one panel with ``people=&#123;like_iteration: &lt;id>}``. Step 3
 of 3 after ``study_create`` and ``study_add_iteration``: resolve ``people``,
 create participants, dispatch the batch.
 
@@ -1278,29 +1290,29 @@ Bills credits per completed participant, scaled by the steps they take
 (``max_interactions`` bounds it); pair chat bills both sides; nothing on a
 failed pre-flight; live rates in ``account_usage().rates``.
 
-`study_id`: UUID or alias (e.g. ``s-b2c``) of the study.
-`iteration_id`: UUID or alias (e.g. ``i-d4e``); defaults to the latest. A
+`study_id`: UUID or alias (``s-b2c``) of the study.
+`iteration_id`: UUID or alias (``i-d4e``); defaults to the latest. A
 changed page is a new ``study_add_iteration``, else results merge.
 `people`: who runs through it - ``person_ids``, or ``sample=N`` /
 ``all_matching=True`` + demographic filters, or ``generate`` to mint them
-inline. ``None`` reuses the iteration's panel. ``person_get(limit=1).total``
-counts a pool.
+inline, or ``like_iteration`` (an earlier iteration's people). ``None``
+reuses the iteration's own panel (a new one has none).
+``person_get(limit=1).total`` counts a pool.
 `config_id`: simulation-config override (alias ``c-...``). Required for media
 and chat studies unless every resolved person has one; optional for
-interactive. ``participant_pair``: omitted infers from the first ``group_a``
-person, else ``validation_error``.
+interactive.
 `dispatch`: ``False`` stages participants without drawing credits - a review
 checkpoint; run later with ``people=None``.
 `wait`: ``True`` polls every participant to terminal or ``timeout``;
 ``False`` returns the post-dispatch snapshot with a ``next_action`` poll hint.
-`timeout`: float seconds, default 240 - under the ~300 s idle limit at which
-Claude Code kills a silent call. On elapse the envelope carries the ids and
-a ``next_action``.
-`max_interactions` / `max_turns`: int caps, each >= 1 and each bounding SPEND,
-not just duration. ``max_interactions`` is the per-participant step cap
+`timeout`: float seconds, default 240, under the ~300 s at which Claude Code
+kills a silent call; on elapse the envelope carries the ids and a
+``next_action``.
+`max_interactions` / `max_turns`: int caps >= 1 that bound SPEND, not only
+time. ``max_interactions`` is the per-participant step cap
 (interactive / media, default 20, ignored for chat); ``max_turns`` is the
 turn cap (chat / chat_pair; default the iteration's stored value, else 14).
-`language`: ISO 639-1, default ``en``; anyone can run in any language.
+`language`: ISO 639-1, default ``en``; any person runs in any language.
 `analyze`: bool, default ``False``. With ``wait=True``, runs
 ``study_analyze`` once every participant is terminal and returns its result
 in ``analysis`` - one call instead of run → analyze → insights. Not
@@ -1314,13 +1326,15 @@ retryable. An interactive study with no assignments fails
 ``study_has_no_tasks`` before any participant is created; add one with
 ``study_revise(assignments=[...])``.
 
-Three modes:
+Four modes:
 
 1. Materialize + dispatch (default): ``people`` + ``dispatch=True``.
 2. Stage only: ``people`` + ``dispatch=False`` - creates participants but
    does NOT dispatch. Run later with ``people=None``.
 3. Reuse panel: ``people=None`` - dispatches whatever participants already
    exist on the iteration.
+4. Carry a panel forward: ``people=&#123;like_iteration: &lt;id|alias>}`` - the same
+   people as that earlier iteration, on this one.
 
 Verb choice (study vs ask): ``docs_get("concepts/run-verbs")``. Who runs
 through it: ``docs_get("concepts/people")``. The ``people`` selector's four
@@ -1379,16 +1393,8 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="people" type="object">
 &nbsp;
 <Expandable title="properties">
-Mutually-exclusive ways to pick the people for a run.
-
-Pass exactly one of:
-  - ``generate`` - mint fresh people for this run and use exactly them.
-  - ``person_ids`` - explicit IDs, returned verbatim.
-  - ``sample`` (with optional filters) - randomly sample N from the pool.
-  - ``all_matching`` (with optional filters) - every match in the pool.
-  - filters only - treated as ``all_matching``.
-
-Always sends ``type=ai`` to the backend (simulations are AI-driven).
+``AudienceFilter`` plus the one mode only a study run has: an earlier
+iteration's panel. Asks keep the plain filter, where it would mean nothing.
 <ParamField body="person_ids" type="string[]">
 Explicit person IDs (UUIDs or ``p-...`` aliases). Mutually exclusive with ``sample`` / ``all_matching`` and with the demographic filters - pass either explicit IDs or a sampler+filters, never both.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
@@ -1452,6 +1458,10 @@ Which pool `sample` / `all_matching` draw from. 'workspace' (default): this work
 </ParamField>
 <ParamField body="visibility" type="string">
 Raw backend visibility filter (workspace | shared | platform, or a comma-separated union). Prefer `scope`; when both are set this wins.
+</ParamField>
+<ParamField body="like_iteration" type="string">
+Run the people an earlier iteration of this study ran (UUID or ``i-...`` alias), so the two iterations compare on one panel. Pass it alone.
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 </Expandable>
 </ParamField>
