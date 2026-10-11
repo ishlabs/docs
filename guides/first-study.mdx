@@ -45,13 +45,15 @@ study_create(
 
 study_add_iteration(
     study_id="s-b2c",
-    name="A",
+    name="Current landing page",
     modality="interactive",
     url="https://example.com",
 )
 ```
 
 </CodeGroup>
+
+Name the iteration for what it is or what it changes: ish gives every iteration its letter (`A`, `B`, `C`) automatically, so the name should not repeat it. A study tests versions of one kind of artifact; an email and a LinkedIn message are two studies.
 
 The CLI prints the new study id and an alias like `s-b2c`, and remembers it as your active study, so later commands need no id. On the MCP server, pass the returned `study_id` to the next call.
 

@@ -193,7 +193,7 @@ ish study run --sample 5 --yes      # uses the active study
 # workspace_id keys creation; the URL attaches to the iteration, not the study;
 # study_id keys the run.
 study_create(workspace_id="w-6ec", name="Onboarding", modality="interactive")
-study_add_iteration(study_id="s-b2c", name="A", modality="interactive", url="https://app.example.com")
+study_add_iteration(study_id="s-b2c", name="Current onboarding", modality="interactive", url="https://app.example.com")
 study_run(study_id="s-b2c", audience={"sample": 5})
 ```
 

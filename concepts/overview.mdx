@@ -177,7 +177,7 @@ workspace_get(workspace_id="w-6ec")
 study_create(workspace_id="w-6ec", name="Onboarding UX", modality="interactive",
              assignments=["Sign up:Complete the signup flow"],
              questions=["How easy was it?"])
-study_add_iteration(study_id="s-b2c", name="A", modality="interactive",
+study_add_iteration(study_id="s-b2c", name="Current signup flow", modality="interactive",
                     url="https://example.com", platform="browser")
 study_run(study_id="s-b2c", audience={"sample": 5, "country": ["SE"]})
 study_get(study_id="s-b2c", view="summary")

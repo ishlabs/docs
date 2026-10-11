@@ -32,6 +32,21 @@ without inline content starts with zero iterations on purpose: there is no
 placeholder draft to dispatch against by accident. The first iteration you add
 becomes `A`, the second `B`, and so on.
 
+## One kind of artifact per study
+
+Every iteration is a version of the same kind of thing: three versions of one
+email, two landing pages, a video cut two ways. A different format, such as a
+LinkedIn message next to an email, or an email next to the one-pager it links
+to, is a separate study. Participants frame each format differently, so versions
+that mix them cannot be compared.
+
+## Naming a version
+
+The letter is assigned automatically, and the app, the comparison and the
+analysis label versions by it. The name is the only place to say what a version
+changes, so name it for that: `"Shorter subject line"`, `"Price above the
+fold"`. Leave the letter and any version number (`"B"`, `"v2"`) out of it.
+
 ## What an iteration carries, by modality
 
 The iteration's content is modality-specific. Supply only the fields the modality
@@ -153,7 +168,7 @@ example below shows the parity, not a procedure to follow step by step.
 ish iteration create --study s-b2c --url https://example.com \
   --platform browser --screen-format desktop
 
-# A second iteration is the B variant: same study, different artifact
+# A second iteration is version B: the same kind of artifact, one change
 ish iteration create --study s-b2c --url https://example.com/v2 \
   --platform browser --screen-format desktop
 
@@ -166,17 +181,17 @@ ish iteration get i-d4e
 # Interactive: attach a URL as iteration A
 study_add_iteration(
     study_id="s-b2c",
-    name="A",
+    name="Current homepage",
     modality="interactive",
     url="https://example.com",
     platform="browser",
     screen_format="desktop",
 )
 
-# A second iteration is the B variant: same study, different artifact
+# A second iteration is version B: the same kind of artifact, one change
 study_add_iteration(
     study_id="s-b2c",
-    name="B",
+    name="Shorter hero headline",
     modality="interactive",
     url="https://example.com/v2",
     platform="browser",
