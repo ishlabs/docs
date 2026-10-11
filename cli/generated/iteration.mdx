@@ -29,7 +29,7 @@ Usage: `ish iteration create [options]`
 ### Options
 <ParamField path="--study <id>" type="string">Study ID (or set via `ish study use`)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the study)</ParamField>
-<ParamField path="--name <name>" type="string">What this version changes, e.g. "Shorter subject line". Leave the letter out: every iteration gets its letter (A/B/C…) automatically, and an omitted name falls back to it</ParamField>
+<ParamField path="--name <name>" type="string">What this version changes, e.g. "Shorter subject line". Leave the letter out: every iteration gets its letter (A/B/C…) automatically. Omitted, the name is --title, else the study's name</ParamField>
 <ParamField path="--description <description>" type="string">Iteration description</ParamField>
 <ParamField path="--platform <platform>" type="string">Platform (browser, android, ios, figma, code) - interactive only. Defaults to code for a localhost or LAN --url, else browser</ParamField>
 <ParamField path="--url <url>" type="string">URL to test - interactive only (optional for ios/android native apps)</ParamField>
