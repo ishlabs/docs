@@ -126,6 +126,10 @@ with optional ``role`` shown | record.
 seconds, default 240); a wait that runs out returns status ``interpreting``
 and a ``next_action``.
 `idempotency_key`: only to retry an add that failed; the error names it.
+`rights_basis`: required to add; why the USER may share this: they
+``agreed``, ``public``, ``work`` with the person, ``own`` (they made it),
+``remembered`` (last answer). Ask the user, never assume.
+`includes_others`: other people are in it.
 
 **Returns** ``ContextImport``: ``status`` / ``status_label``, ``question``,
 ``episodes`` with beats, ``next_step``; ``next_action`` while reading. Full
@@ -177,6 +181,12 @@ Default: `240.0`.
 </ParamField>
 <ParamField body="idempotency_key" type="string">
 &nbsp;
+</ParamField>
+<ParamField body="rights_basis" type="&quot;agreed&quot; | &quot;public&quot; | &quot;work&quot; | &quot;own&quot; | &quot;remembered&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="includes_others" type="boolean">
+Default: `false`.
 </ParamField>
 
 ## `person_context_delete`
