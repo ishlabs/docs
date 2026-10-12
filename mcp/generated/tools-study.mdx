@@ -220,10 +220,13 @@ Default: `"page_based"`.
 <Expandable title="properties">
 Per-iteration evaluation settings layered on top of segmentation.
 <ParamField body="early_termination" type="boolean">
-If true, end the participant session once all selected segments are seen. Default: `false`.
+Stop at the first segment where the participant says they would not keep going. Default: `false`.
 </ParamField>
 <ParamField body="selected_segment_indices" type="integer[]">
 Subset of segment indices to include; ``None`` (default) means all.
+</ParamField>
+<ParamField body="preview_gate_enabled" type="boolean">
+Show a feed teaser card first; stop if the participant would not open it. Needs ``feed_preview`` in the iteration's details, else the run is ungated. Default: `false`.
 </ParamField>
 </Expandable>
 </ParamField>
@@ -923,11 +926,11 @@ Bills credits per completed participant, scaled by the steps they take
 (``max_interactions`` bounds it); nothing on a failed pre-flight; live rates
 in ``account_usage().rates``.
 
-`name`: human-readable study name.
+`name`: study name.
 `people`: required - a fresh study has no panel. ``&#123;"sample": N}``,
 ``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description": ...,
 "count": N}}``.
-`workspace_id`: UUID or alias (e.g. ``w-6ec``). Exclusive with ``workspace_name``.
+`workspace_id`: UUID or alias (``w-6ec``); exclusive with ``workspace_name``.
 `workspace_name`: case-insensitive; an unmatched name creates it
 (``created_workspace``).
 `url`: interactive - the public page / prototype participants visit; must
@@ -938,16 +941,16 @@ document; needs ``modality``.
 `content_md`: markdown body (inline, or ``@file.md``) for a text study.
 `modality`: only for ``content_url``; inferred otherwise.
 `social_platform` + `caption`: a feed post (image / video); below.
+`content_config`: file / text only; as on ``study_add_iteration``.
 `task`: what participants attempt. Required with ``url``, else
 ``[study_has_no_tasks]``; omit for a read-and-react content study.
-`questions`: free-text interview questions asked after the run.
+`questions`: interview questions asked after the run.
 `config_id`: simulation-config override (alias ``c-...``). Required for file
-and text modalities unless every resolved person has one.
-`max_interactions`: int, default 20 - per-participant step cap; 5 for a
-smoke probe. Bounds SPEND, not just duration.
+and text studies unless every person has one.
+`max_interactions`: default 20 - per-participant step cap (5 for a smoke
+probe); bounds SPEND, not just duration.
 `screen_format`: ``url`` only - ``desktop`` (default) | ``mobile_portrait``.
-`analyze`: with ``wait=True``, runs ``study_analyze`` and returns it in
-``run.analysis``.
+`analyze`: with ``wait=True``, adds ``study_analyze`` as ``run.analysis``.
 `wait` / `timeout`: ``wait=True`` blocks until terminal; ``timeout`` defaults
 to 240 s. Both as on ``study_run``.
 
@@ -1100,6 +1103,21 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="caption" type="string">
 &nbsp;
+</ParamField>
+<ParamField body="content_config" type="object">
+&nbsp;
+<Expandable title="properties">
+Per-iteration evaluation settings layered on top of segmentation.
+<ParamField body="early_termination" type="boolean">
+Stop at the first segment where the participant says they would not keep going. Default: `false`.
+</ParamField>
+<ParamField body="selected_segment_indices" type="integer[]">
+Subset of segment indices to include; ``None`` (default) means all.
+</ParamField>
+<ParamField body="preview_gate_enabled" type="boolean">
+Show a feed teaser card first; stop if the participant would not open it. Needs ``feed_preview`` in the iteration's details, else the run is ungated. Default: `false`.
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="task" type="string">
 &nbsp;
