@@ -401,10 +401,13 @@ codes. `gender`: list of gender labels.
 one. Returned in ``next_action`` by a ``wait=False`` call. Mutually
 exclusive with every generation input: combining them is a
 ``validation_error``, never a silent discard.
-`wait`: bool, default ``True`` - blocks until terminal (runs take ~30-60 s).
-``False`` returns the ``job_id`` immediately plus a ``next_action`` naming
-the resume call.
-`timeout`: float seconds to wait when ``wait=True``; default 180.
+`wait`: bool, default ``True`` - blocks until terminal, but for at most
+~50 s (runs take ~40-100 s): a job still running then comes back
+``ok=True`` with its ``job_id``, ``status`` and a ``next_action`` that
+re-attaches. ``False`` returns that shape right after enqueue.
+`timeout`: seconds to block instead of ~50 s, for a client that lets one
+call run longer; on elapse, the ``timeout`` envelope (same ``job_id`` and
+``next_action``).
 
 Minting also counts toward the plan's custom-person entity cap, which is
 independent of the credit pool; on hit, ``[usage_limit_reached]``.
@@ -417,12 +420,15 @@ it mints, optionally with scenarios traced back to the real reactions. See
 **Blocking and resume.** ``wait=True`` uploads artifacts, enqueues the job,
 polls to terminal, returns resolved people + scenarios.
 ``person_generate(workspace_id=..., job_id=...)`` re-attaches to that same
-job and waits it out. See ``docs_get("reference/long-running-jobs")``. The
-three inputs (description, ``source_paths``, ``source_upload_ids``) freely
-combine. Combining ``job_id`` with any of them is a ``validation_error``
-rather than a silent discard; if the job is already terminal, ``wait=False``
-returns the same envelope the blocking call would have - the minted people
-on ``completed``, ``ok=False`` otherwise - with no ``next_action``.
+job and waits it out, again for ~50 s at a time: keep following
+``next_action`` until ``status`` is terminal. Never re-send the brief to
+recover a cut call; that mints a second set. See
+``docs_get("reference/long-running-jobs")``. The three inputs (description,
+``source_paths``, ``source_upload_ids``) freely combine. Combining ``job_id``
+with any of them is a ``validation_error`` rather than a silent discard; if
+the job is already terminal, ``wait=False`` returns the same envelope the
+blocking call would have - the minted people on ``completed``, ``ok=False``
+otherwise - with no ``next_action``.
 
 **``source_paths`` in full.** ``data:`` and ``http(s)://`` URLs are portable
 and work against the hosted server. To feed raw local bytes to the hosted
@@ -441,9 +447,9 @@ Pipeline-specific failures come back as ``generation_failed`` or
 enqueue failed, ``source_ids`` is still populated so agents can retry
 against existing sources without re-uploading.
 
-**Returns** ``PersonGenerateResponse`` keyed by ``ok``: ``wait=True``
-populates ``people`` + ``person_ids``, ``wait=False`` ``job_id`` +
-``status="queued"`` + ``next_action``. Full shape:
+**Returns** ``PersonGenerateResponse`` keyed by ``ok``: a finished job
+populates ``people`` + ``person_ids``; a running one ``job_id`` +
+``status`` + ``next_action``. Full shape:
 ``docs_get("reference/responses")``.
 
 ### Parameters
@@ -484,7 +490,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 Default: `true`.
 </ParamField>
 <ParamField body="timeout" type="number">
-Default: `180.0`.
+&nbsp;
 </ParamField>
 
 ## `person_get`
