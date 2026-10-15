@@ -91,6 +91,9 @@ Local uploads: ``content_url`` / ``image_urls`` accept local paths (uploaded
 and resolved to hosted URLs); ``content_md`` accepts ``@file.md`` (markdown)
 or ``@file.html`` (routed to the format:html email carrier); ``content_text``
 accepts ``@path``; ``content_html`` accepts inline HTML or ``@file.html``.
+@file paths are read only when the MCP server runs locally
+(``ISH_AUTH_MODE=local``); on the hosted server pass the body inline, or the
+call returns ``validation_error``.
 
 **Returns** ``IterationCreateResponse`` discriminated by ``ok``; on failure
 read ``error_kind`` / ``suggestions``. Full shape:
@@ -994,7 +997,9 @@ machine-readable code, ``error_message`` names the step, and the rows created
 so far come back so you can continue with the primitives. ``steps`` walks
 the chain (workspace → study → iteration → segmentation → dispatch): each
 step's status, id, failure reason and any default or fallback it took.
-Argument errors raise before anything is created.
+Argument errors raise before anything is created. One of them: @file paths
+are read only when the MCP server runs locally, so on the hosted server an
+``@file`` ``content_md`` is a ``[validation_error]``; pass the body inline.
 
 **Returns** ``StudyLaunchResponse``: ``study``, ``iteration``, ``run``,
 ``steps``, ``next_action``, plus ``notes`` and ``suggestions``. Full shape:
