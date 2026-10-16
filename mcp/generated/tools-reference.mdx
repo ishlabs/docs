@@ -15,10 +15,9 @@ mode: "reference"
 Create a reference (comparison product) under a parent workspace, the
 comparison target for a benchmark.
 
-Benchmark workflow: ``reference_create`` each target, run the SOURCE study,
-then ``study_benchmark(source_study_id, reference_ids=[...],
-source_iteration_id=...)`` to clone the study onto each reference and run it,
-then ``study_comparison(study_id)`` to read the aggregated results.
+``study_benchmark(references=[&#123;name, base_url}])`` creates its targets
+inline, so a benchmark needs no separate create. Use this to add a reference
+ahead of time, then pass its id as ``study_benchmark(reference_ids=[...])``.
 
 A saturated account refuses the create; reuse an existing reference
 instead.

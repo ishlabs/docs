@@ -527,7 +527,7 @@ own variants - use ``ask_run`` for copy or image variants, or a second
 Bills credits per completed participant, scaled by the steps they take
 (``max_interactions`` bounds it); nothing on a failed pre-flight; live rates
 in ``account_usage().rates``. Every reference clone runs its own roster, so
-spend scales with ``reference_ids``.
+spend scales with the number of references.
 
 Per reference (isolated, so one failure never aborts the rest) the backend
 clones the source study onto the reference, appends a fresh round, replicates
@@ -536,29 +536,30 @@ Re-running against the same references appends another round (it never
 deletes an existing clone).
 
 Precondition: ``source_iteration_id`` must already have COMPLETED AI
-participants. The benchmark replicates that iteration's participant roster onto
-each reference, so run the source study first (``study_run``, then wait for
-completion). References are created with ``reference_create`` and must share
-the source study's parent workspace. Each reference's target URL defaults to
-its ``base_url``; a reference with no URL is reported under ``failed`` with
-``stage="no_url"``.
-
-Read the results with ``study_comparison(study_id)`` once the
+participants, so run the source study first (``study_run``, then wait for
+completion). Read the results with ``study_comparison(study_id)`` once the
 dispatched rounds finish.
 
 `source_study_id`: UUID or alias (e.g. ``s-b2c``) of the source study.
-`reference_ids`: list of reference UUIDs / aliases (``w-...``); at least one.
 `source_iteration_id`: UUID or alias (``i-...``) of the source iteration
 whose completed participant roster each round replicates.
+`reference_ids`: existing reference UUIDs / aliases (``w-...``), e.g. from
+an earlier run's ``started`` rows.
+`references`: new targets, each ``&#123;name, base_url}``, created first in the
+source study's workspace. On a re-run pass ``reference_ids`` instead, or
+each call creates new references. At least one target across the two.
 `screen_format`: shared screen format for every round (``"desktop"`` or
 ``"mobile_portrait"``).
 `max_interactions`: optional per-participant step cap; omitted, the
 backend's ``DEFAULT_MAX_STEPS = 15`` applies (``study_run`` defaults to 20,
 so pass the source study's cap for a like-for-like comparison).
 
-On a ``failed`` row, ``stage`` names where that reference broke: ``no_url |
-clone | append_round | create_participants | start_simulations``. ``skipped``
-covers references skipped before any work (e.g. no access).
+Each reference's target URL is its ``base_url``. On a ``failed`` row,
+``stage`` names where that reference broke: ``create_reference | no_url |
+clone | append_round | create_participants | start_simulations``
+(``no_url``: the reference has no URL). A ``create_reference`` row carries
+``name`` in place of ``reference_id``. ``skipped`` covers references
+skipped before any work (e.g. no access).
 
 **Returns** ``&#123;"started": [&#123;reference_id, clone_study_id, iteration_id,
 participant_count}], "failed": [&#123;reference_id, stage, error}], "skipped":
@@ -568,11 +569,22 @@ participant_count}], "failed": [&#123;reference_id, stage, error}], "skipped":
 <ParamField body="source_study_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="reference_ids" type="string[]" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
-</ParamField>
 <ParamField body="source_iteration_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="reference_ids" type="string[]">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="references" type="object[]">
+&nbsp;
+<Expandable title="item properties">
+<ParamField body="name" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="base_url" type="string" required>
+&nbsp;
+</ParamField>
+</Expandable>
 </ParamField>
 <ParamField body="screen_format" type="&quot;desktop&quot; | &quot;mobile_portrait&quot;">
 Default: `"desktop"`.
