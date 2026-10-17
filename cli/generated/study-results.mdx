@@ -27,7 +27,7 @@ Usage: `ish study results <id> [options]`
 <ParamField path="--segment <ref>" type="string">Filter media studies (video/audio/text/document) by segment index (integer) or segment label (substring). Image and other modalities: warned and ignored.</ParamField>
 <ParamField path="--turn <n>" type="string">Filter chat interactions to a single `actions[0].data.turn_index`. Non-chat modalities: warned and ignored.</ParamField>
 <ParamField path="--side <a|b>" type="string">Filter participant_pair chat interactions by assignment side. Other modalities: warned and ignored.</ParamField>
-<ParamField path="--assignment <ref>" type="string">Filter to a single assignment by UUID or name (substring, case-insensitive).</ParamField>
+<ParamField path="--assignment <ref>" type="string">Filter to a single assignment by UUID, as-… alias, or name (substring, case-insensitive).</ParamField>
 <ParamField path="--step <ref>" type="string">Filter `participant_assignments[].step_results[]` to a single step by step-id or name (substring). Pair with --include-evidence to also drop non-evidence interactions.</ParamField>
 <ParamField path="--sentiment <labels>" type="string">Filter to interactions whose sentiment.label is in the comma-separated list (case-insensitive; repeatable). Drops interactions whose sentiment is null. A participant is kept when at least one of their interactions matches, even if their aggregate session sentiment is null (e.g. failed runs with a pre-error matching interaction). Default: [].</ParamField>
 <ParamField path="--actor <actor>" type="string">Filter to interactions whose actor is `ai`, `human`, or `user` (case-insensitive).</ParamField>
