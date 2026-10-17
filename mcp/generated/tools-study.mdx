@@ -847,11 +847,12 @@ over participants.
 
 ``per_participant``'s ``interactions[]`` IS the step-by-step clickstream,
 ordered by timestamp, each step carrying ``url``, ``location`` (page/screen
-template), ``actions[]`` (taps / typing / scrolls) and ``screenshot_id`` - for
-interactive studies, the visited-pages and decision-path record. Graded step
-outcomes roll up via ``group_by='step'``. Screenshots and transcripts also
-arrive as ``ish://`` resources, pointed at by ``screenshots_resource`` /
-``transcripts_resource`` on the ``summary`` view.
+template), ``actions[]`` (taps / typing / scrolls) and ``screenshot`` (an
+``ish://participant/...`` resource with the image) - for interactive
+studies, the visited-pages and decision-path record. Graded step outcomes
+roll up via ``group_by='step'``. The study-wide screenshot and transcript
+indexes are pointed at by ``screenshots_resource`` / ``transcripts_resource``
+on the ``summary`` view.
 
 Do NOT pass more than one of ``study_id`` / ``study_ids`` / ``workspace_id``,
 and do not use ``view='per_participant'`` to DISCOVER participants - read
@@ -903,7 +904,7 @@ Chat-modality only. Matches interactions whose ``actions[0].data.turn_index`` eq
 participant_pair chat only. Restricts to interactions whose parent assignment has ``side == 'a'`` or ``side == 'b'``.
 </ParamField>
 <ParamField body="assignment" type="string[]">
-Each entry is an assignment UUID or a case-insensitive substring of the assignment's name.
+Each entry is an assignment UUID, an ``as-...`` alias, or a case-insensitive substring of the assignment's name.
 </ParamField>
 <ParamField body="step" type="string[]">
 Each entry is a step_id (canonical) or a case-insensitive substring of the step's name. Resolves against ``study.assignments[].steps[]``. Trims ``participant.participant_assignments[].step_results[]`` to matching rows.
