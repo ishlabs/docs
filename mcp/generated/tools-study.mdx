@@ -547,7 +547,8 @@ whose completed participant roster each round replicates.
 an earlier run's ``started`` rows.
 `references`: new targets, each ``&#123;name, base_url}``, created first in the
 source study's workspace. On a re-run pass ``reference_ids`` instead, or
-each call creates new references. At least one target across the two.
+each call creates new references. At least one target across the two. If
+the benchmark itself then fails, the error names the references created.
 `screen_format`: shared screen format for every round (``"desktop"`` or
 ``"mobile_portrait"``).
 `max_interactions`: optional per-participant step cap; omitted, the
