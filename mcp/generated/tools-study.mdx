@@ -26,25 +26,26 @@ version).
 - ``interactive``: `url`, `platform` (browser / android / figma / code),
   `screen_format` (mobile_portrait / desktop). Optional `locale`,
   `flow_name`. ``platform="figma"`` also needs `file_key` +
-  `start_node_id`. The ``url`` must load WITHOUT your session: a
-  published/share link, not a gated editor preview; localhost needs
-  ``ish connect``.
+  `start_node_id`. The ``url`` must load without your session (below).
 - ``video`` / ``audio`` / ``document``: `content_url` (local path or hosted
   URL). Optional `segmentation`, `content_config`, `copy_content`
-  (video/audio), `title`, `mime_type`.
+  (video/audio), `title`, `mime_type`, `feed_preview` (not audio).
+  Video/audio: `stimulus_mode="reference"` sends no media bytes and needs
+  `stimulus_reference` (the work) + `stimulus_duration_seconds`.
 - ``text``: `content_md` - markdown body (inline, or ``@file.md``), the
   canonical truth. `content_text` is a legacy markdown alias; `content_html`
   (inline, or ``@file.html``) is the paste-exact branded-email carrier.
   Markdown OR html, not both. Optional `sender_name` / `sender_email`,
-  `featured_image_url`, `segmentation`, `content_config`, `title`.
-  Parts: heading_based, or block ids from ``content_blocks``.
+  `featured_image_url`, `segmentation`, `content_config`, `title`,
+  `feed_preview`. Parts: heading_based, or block ids from ``content_blocks``.
 - ``image``: `image_urls` (non-empty; local paths and/or hosted URLs).
-  Optional `copy_content`, `segmentation`, `content_config`, `title`.
-- ``chat``, two mutually-exclusive sub-modes: `chatbot_endpoint_id` (a saved
-  endpoint) OR an inline `endpoint` dict for ``external_chatbot``; or
-  `chat_pair=ChatPairConfig(...)` for ``participant_pair`` (AI to AI).
-  ``chat_pair`` with either of the other two is a validation error. Optional
-  `max_turns`, `early_termination` on both sub-modes.
+  Optional `copy_content`, `segmentation`, `content_config`, `title`,
+  `feed_preview`.
+- ``chat`` (optional `max_turns`, `early_termination`), two mutually-exclusive
+  sub-modes: `chatbot_endpoint_id` (a saved endpoint) OR an inline `endpoint`
+  dict for ``external_chatbot``; or `chat_pair=ChatPairConfig(...)` for
+  ``participant_pair`` (AI to AI). ``chat_pair`` with either of the other two
+  is a validation error.
 
 **One kind of artifact, named by its change.** A version is the same kind of
 artifact as the study's others: a LinkedIn message next to an email is a
@@ -75,7 +76,8 @@ source-faithful, re-sanitized server-side. On a study created with
 
 **Social posts.** A LinkedIn / X / Instagram / Facebook / TikTok post is an
 ``image`` or ``video`` iteration with ``copy_content=&#123;"text": &lt;post text>,
-"social_platform": "linkedin"}`` on a study created with
+"social_platform": "linkedin", "social_device": "desktop"}`` (device optional,
+default mobile) on a study created with
 ``content_type="social_post"``: participants meet it in that platform's feed.
 A ``text`` iteration has no feed, and a caption-only social post is not
 supported yet. ``study_launch(social_platform=..., caption=...)`` does all of
@@ -306,6 +308,36 @@ Whether the copy is shown before or after the media. Default: `"after"`.
 </ParamField>
 <ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot;">
 Optional social-platform skin for the rendered post.
+</ParamField>
+<ParamField body="social_device" type="&quot;mobile&quot; | &quot;desktop&quot; | &quot;mix&quot;">
+Feed device; mix = one per participant; None = mobile.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="stimulus_mode" type="&quot;bytes&quot; | &quot;reference&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="stimulus_reference" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="stimulus_duration_seconds" type="number">
+&nbsp;
+</ParamField>
+<ParamField body="feed_preview" type="object">
+&nbsp;
+<Expandable title="properties">
+Feed-teaser card for the pre-view gate (video/text/image/document).
+<ParamField body="thumbnail_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="headline" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="teaser" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="context" type="string">
+&nbsp;
 </ParamField>
 </Expandable>
 </ParamField>
