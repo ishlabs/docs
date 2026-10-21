@@ -173,10 +173,10 @@ Time-based segmentation for video/audio iterations.
 Default: `"time_based"`.
 </ParamField>
 <ParamField body="intervals_seconds" type="number[]" required>
-Segment boundaries in seconds; include 0 as the start of segment 0.
+Boundary marks in seconds: start at 0, strictly ascending, end at the media length; N+1 marks = N segments ([0, 10, 30] = 0-10 s, 10-30 s). Sent as per-segment durations ([10, 20]).
 </ParamField>
 <ParamField body="labels" type="string[]">
-Per-segment labels for the participant UI; align with intervals_seconds.
+One label per segment (marks - 1).
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 2)">
@@ -256,10 +256,10 @@ Time-based segmentation for video/audio iterations.
 Default: `"time_based"`.
 </ParamField>
 <ParamField body="intervals_seconds" type="number[]" required>
-Segment boundaries in seconds; include 0 as the start of segment 0.
+Boundary marks in seconds: start at 0, strictly ascending, end at the media length; N+1 marks = N segments ([0, 10, 30] = 0-10 s, 10-30 s). Sent as per-segment durations ([10, 20]).
 </ParamField>
 <ParamField body="labels" type="string[]">
-Per-segment labels for the participant UI; align with intervals_seconds.
+One label per segment (marks - 1).
 </ParamField>
 </Expandable>
 <Expandable title="properties (variant 2)">
