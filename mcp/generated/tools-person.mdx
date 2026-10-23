@@ -353,7 +353,7 @@ Default: `false`.
 Permanently delete a person. **DESTRUCTIVE**.
 
 Public-pool people cannot be deleted by individual workspaces; the
-backend rejects those with ``[auth_failed]`` (or ``[not_found]`` if
+backend rejects those with ``[forbidden]`` (or ``[not_found]`` if
 the Person does not exist).
 
 `person_id`: UUID or short alias (e.g. ``p-d4e``) of the person
@@ -542,7 +542,7 @@ has_more}``); ``total`` is the match count, handy for pre-flighting a
 pair-mode side's pool (the ``*_in`` enums + a11y booleans share their
 vocabulary with ``RoleCriteria``). If nothing matches, fall through to
 ``person_generate`` to mint matching people. Public-pool rows surface
-but can't be deleted by the caller (``person_delete`` → ``[auth_failed]``).
+but can't be deleted by the caller (``person_delete`` → ``[forbidden]``).
 
 **Single mode** (with ``person_id``): that Person with workspace-scoped
 custom fields + usage stats.
