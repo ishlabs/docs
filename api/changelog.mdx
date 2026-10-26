@@ -8,6 +8,59 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-10-08 (spec 1.11.0)
+
+Additive. A new error kind on an existing status code; no field changed.
+
+- **`POST /v1/sessions/{session_id}/turns` can answer `502` [`persona_refused`](/api/errors#persona_refused).** The model behind the person declined to answer the turn. That is a policy refusal, not the person's own "I can't".
+- **No turn is recorded, as with `decision_invalid`, but do not retry it as-is.** The same observation gets the same refusal.
+
+## 2026-09-27 (spec 1.10.0)
+
+Additive. A new error kind on an existing status code; no field changed.
+
+- **`PATCH /v1/environments/{environment_id}` can answer `409` [`environment_holds_site_access`](/api/errors#environment_holds_site_access).** An environment that holds site access (a site's basic auth, session cookie, login, or public flag) refuses an edit to its `kind` or `config`, because repointing it would carry those credentials to whatever host it now names.
+- **Edit its hosts through site access instead.** A rename still succeeds.
+
+## 2026-08-28 (spec 1.9.0)
+
+Additive. No existing operation changed.
+
+- **A public event log.** `GET /v1/workspaces/{workspace_id}/events` serves one entry per session ending, newest first, keyset-paged, and retained for 30 days. It sits under its own `events:read` scope, which nothing implies and the mint default does not include.
+- **Two types, `session.completed` and `session.failed`.** They split on who ended the run, not on whether the person succeeded. The precise status and `ended_reason` are in `data.object`.
+- **The envelope is the one webhook delivery will use**, so you can build against the poll now and switch to push later without changing your parser.
+- **An unknown value in `types` is refused** rather than matching nothing, so a typo cannot read as "no events".
+
+## 2026-08-23 (spec 1.8.0)
+
+Additive. Response-only; no existing operation, status code, or field changed.
+
+- **The frozen person a session carries now reports their interests.** `interests` on `PersonSnapshot` (reachable as `person_snapshot` on a session read) carries the interest labels the person was generated with. Because a snapshot is frozen at open, it shows what they were into at the time, which is the version the run reflects.
+- **Nullable.** A person generated before interests were resolved carries none.
+
+## 2026-08-14 (spec 1.7.0)
+
+Additive. A client that ignores the new array is unaffected.
+
+- **A turn's decision now reports what the person wrote down.** `noticed` on `TurnDecisionView` carries zero or more `{label, detail}` notes: things they picked up and expect to still know later (a price, a limit, a figure they worked out), which stay with them for the rest of the session.
+- **It holds one turn's writes, not the whole running set, and the label is the key.** A repeated label replaces the note stored under it, which is how someone corrects a thing they first misread. Most turns carry none.
+- **Read it to see what your environment left the person holding.** That is a different question from what they said in `comment`.
+
+## 2026-08-05 (spec 1.6.1)
+
+Documentation only. No operation, schema shape, status code, or field changed.
+
+- **`DeclaredAction.name` now states the label-leak contract it was always held to.** A label names a visible affordance, never its hidden meaning, so `take_rusty_key` and chess notation like `nxe5_check` are violations.
+- **The API cannot validate this for you.** Whether a label leaks is only decidable against the frame, so a leaking label is accepted and the session's findings are silently wrong. See [environment authoring](/api/guides/environment-authoring).
+
+## 2026-08-05 (spec 1.6.0)
+
+Additive. No existing operation changed.
+
+- **Delete a session's retained observation frames on request.** `DELETE /v1/sessions/{session_id}/observations` (`purgeSessionObservations`), under the existing `sessions:run` scope, erases the frames now instead of waiting for the retention window.
+- **Only the frames go.** The session, its turns, and its full decision trace survive.
+- **Idempotent, and it reports counts rather than a boolean.** `observations_deleted` counts frames removed; `delete_failures` counts frames whose stored object could not be removed yet. A non-zero `delete_failures` is an accepted request whose bytes are not all gone: their references are kept so a retry or the next expiry sweep collects them.
+
 ## 2026-08-02 (spec 1.5.0)
 
 Additive. No existing operation changed.
