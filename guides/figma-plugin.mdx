@@ -1,0 +1,194 @@
+---
+title: "Test a Figma prototype"
+description: "Run simulated people through a Figma prototype from inside Figma with the ish plugin, then read their journeys in the web app."
+mode: "how-to"
+---
+
+The ish plugin for Figma sends simulated people through a prototype straight from
+the canvas. You select a flow, pick people, and run. Each person moves through the
+prototype in a cloud browser and reports back, and the full journey opens in the
+ish web app.
+
+The plugin works in Figma design files. It uses the same ish account as the web
+app, the CLI, and the MCP server.
+
+## Before you start
+
+- An ish account. You can also sign up from inside the plugin.
+- A Figma design file with the frames you want to test, ideally a prototype flow
+  with a starting point.
+- An [interactive study](/concepts/study) with at least one
+  [assignment](/concepts/assignment-questionnaire). You can create both the study
+  and its assignments from the plugin.
+
+<Note>
+  The plugin's labels differ slightly from these docs: it calls a
+  [workspace](/concepts/workspace) a "product", and writes the name as "Ish".
+</Note>
+
+## Run a prototype
+
+<Steps>
+  <Step title="Install and open the plugin">
+    Install [ish from Figma Community](https://www.figma.com/community/plugin/1598666558944305200),
+    then run it from the plugins menu in a design file.
+  </Step>
+  <Step title="Sign in">
+    Choose **Continue with Google** (sign-in finishes in your browser) or use your
+    email and password. Your session stays signed in on this machine.
+  </Step>
+  <Step title="Pick the workspace and study">
+    Choose a workspace ("product") and a study at the top of the panel, or create
+    them there. Only interactive studies run from the plugin; any other kind shows
+    "This study type runs from the web app".
+  </Step>
+  <Step title="Share the prototype, once per file">
+    The first time you run from a file, the plugin asks for a public prototype
+    link. In Figma's **Share** menu, set **Anyone with the link** to **can view**,
+    choose **Copy link**, and paste it into the plugin. Each person who runs the
+    plugin on the file pastes the link once.
+  </Step>
+  <Step title="Select what to test">
+    Select the starting frame of a prototype flow and the plugin takes in every
+    frame reachable from it. You can also select a single frame, or up to three
+    flows to run side by side. Several frames with no flow starting point cannot
+    run.
+  </Step>
+  <Step title="Pick people">
+    Set a sample size and let the plugin choose from your workspace's simulated
+    [people](/concepts/people), filter by gender or country, or pick people
+    by hand. Optionally set the response language and a maximum number of steps.
+  </Step>
+  <Step title="Run">
+    Tick the assignments to include and choose **Run simulation**. The plugin
+    shows progress as it checks frames, uploads them, and starts each person. You
+    can cancel while it runs.
+  </Step>
+  <Step title="Read the results">
+    When the run finishes, the plugin shows a short summary: who completed, how
+    much of each assignment was done, average steps and time, and answers to the
+    study's questions. Choose **View results in Ish** to open the full journeys in
+    the web app. See [reactions and results](/concepts/reactions-and-results).
+  </Step>
+</Steps>
+
+The screen size comes from the start frame: a frame taller than it is wide runs as
+mobile portrait, any other as desktop.
+
+## What the plugin uploads
+
+Before each run, the plugin exports the selected frames and stores new or changed
+ones in your workspace's frame library, along with the structure of the frames and
+their prototype links. If a frame changed since its last upload, the plugin asks
+whether to upload a new version. Because the plugin sends this structure itself, a
+run from the plugin needs no Figma access token. The frames become the
+[frames](/concepts/frames) you read results by.
+
+## Compare versions of a flow
+
+Each flow you run becomes an [iteration](/concepts/iteration) of the study, matched
+by the file and its starting frame. When a flow has already been run, the plugin
+shows which iteration it belongs to ("This flow has simulations in iteration B").
+Run into that iteration again, or start a new iteration after you change the
+design, and compare the two in the web app.
+
+## Frames with no prototype links
+
+If the frames you select have no prototype connections, choose between running
+them as they are or **Generate connections**. Generation takes up to 15 selected
+frames and writes prototype interactions and a "Main Flow" starting point into your Figma
+file, so people can move between screens. Each generation costs 1 credit. The
+plugin offers it on Starter and above.
+
+<Warning>
+  Generating connections edits your Figma file. Review the links it adds before
+  you share the file.
+</Warning>
+
+## Limits
+
+One run takes at most three flows and 60 simulations (flows times people). Your
+plan's caps on workspaces, studies, iterations, and participants apply as they do
+everywhere else, and the server enforces them; see
+[credits and limits](/concepts/credits-and-limits).
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Re-share required">
+    The prototype link stopped working: link sharing was turned off, the file was
+    not found, or the link expired. Set **Anyone with the link** to **can view**
+    again and paste a fresh link.
+  </Accordion>
+  <Accordion title="Figma prototype requires authentication">
+    Figma asked the simulated person to log in, so the prototype is not public.
+    Check the file's link sharing and paste the link again.
+  </Accordion>
+  <Accordion title="A flow starting point is required to run simulation">
+    You selected two or more frames that are not part of a flow. Add a flow
+    starting point in Figma's prototype settings, select a single frame, or
+    generate connections.
+  </Accordion>
+  <Accordion title="This study type runs from the web app">
+    The study is not interactive. Pick or create an interactive study.
+  </Accordion>
+  <Accordion title="Out of credits or over a plan limit">
+    The plugin says how many credits the run needs and how many you have, or which
+    plan limit you reached. Upgrading opens billing in the web app.
+  </Accordion>
+  <Accordion title="Lost connection to simulation">
+    The plugin stopped receiving updates. The run carries on; check its status in
+    the web app.
+  </Accordion>
+</AccordionGroup>
+
+## Without the plugin
+
+You can also test a Figma prototype from the web app (choose **Figma** when
+creating a study and paste the prototype URL), the CLI, or the MCP server. Use the
+full share link of the starting frame, including its `node-id`, and pass the
+file key and start frame alongside it.
+
+<CodeGroup>
+```bash CLI
+ish iteration create --study s-b2c --platform figma \
+  --url "https://www.figma.com/proto/<file-key>/<name>?node-id=<start-node>&t=<token>" \
+  --file-key <file-key> --start-node-id <start-node> \
+  --screen-format mobile_portrait
+```
+
+```json MCP
+// study_add_iteration
+{
+  "study_id": "s-b2c",
+  "name": "Checkout flow",
+  "modality": "interactive",
+  "platform": "figma",
+  "url": "https://www.figma.com/proto/<file-key>/<name>?node-id=<start-node>&t=<token>",
+  "file_key": "<file-key>",
+  "start_node_id": "<start-node>",
+  "screen_format": "mobile_portrait"
+}
+```
+</CodeGroup>
+
+<Note>
+  Outside the plugin, ish reads the prototype through Figma, so a run needs Figma
+  access on the workspace. In the web app, connect Figma or add a Figma access
+  token under the workspace's **Settings**, **Integrations**. CLI and MCP runs use
+  that workspace token, and it can only be set in the web app.
+</Note>
+
+## Related
+
+<Columns cols={3}>
+  <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
+    One iteration per flow, and how versions compare.
+  </Card>
+  <Card title="Frames" icon="image" href="/concepts/frames">
+    The screens a run captures, one card each.
+  </Card>
+  <Card title="Site access" icon="key" href="/concepts/site-access">
+    Access for sites and prototypes behind a login.
+  </Card>
+</Columns>

@@ -1,0 +1,111 @@
+---
+title: "Follow-up interviews"
+description: "Ask a finished simulated participant follow-up questions about their session, in the web app."
+mode: "how-to"
+---
+
+After a run, you can keep talking to any simulated participant who took part. Ask
+them about a moment, the exact wording they read, or why they gave up, and they
+answer in their own voice from what happened in their session.
+
+Follow-up interviews live in the ish web app, on the **Chat** tab of a participant.
+There is no CLI command or MCP tool for them, and API keys cannot reach them.
+
+<Note>
+  This is a conversation with one participant about a run that already happened.
+  To put a new question to many people at once, use an [ask](/concepts/ask-and-round).
+  To ask every participant fixed questions at the end of a run, add
+  [interview questions](/concepts/assignment-questionnaire) to the study.
+</Note>
+
+## Before you start
+
+- A study with at least one simulated participant whose run has ended: `completed`,
+  `failed`, or `cancelled`. Participants still running cannot be interviewed yet.
+- You are signed in to the web app. Share links are read-only and do not show the
+  Chat tab.
+
+Real (human) participants, participants in an ask, and participants whose person
+was deleted cannot be interviewed.
+
+## Open the chat
+
+<Steps>
+  <Step title="Open the study's results">
+    Any results view works: the participants table, the overview, journeys, the
+    timeline, [frames](/concepts/frames), or segments.
+  </Step>
+  <Step title="Select a participant">
+    Their details open in a panel.
+  </Step>
+  <Step title="Open the Chat tab">
+    The first time, it reads "Talk to the participant" and offers two starter
+    questions for the study's modality. Tap one to send it, or type your own.
+  </Step>
+</Steps>
+
+Press Enter to send and Shift+Enter for a new line. Replies stream in; Stop ends a
+reply early. If a reply fails or you stop it, **Try again** asks the same question
+again. Each message can be up to 8,000 characters of text; attachments are not
+supported.
+
+## Ask questions that use what they remember
+
+The participant answers from a record of their session: who they were at the time
+of the run, what they did step by step, what they noted to themselves, their answers
+to the study's questions, and their own end-of-session summary. A failed or
+cancelled run is part of that record, so a participant who barely started says so
+rather than inventing a session.
+
+- **Point at a moment.** "Take me to the moment you first hesitated" gets a more
+  useful answer than "How was it?"
+- **Ask why.** "What exactly made you lose confidence?" draws out the reasoning
+  behind a reaction.
+- **Ask for the exact detail.** For a price, a label, or a line of copy, the
+  participant looks back at the screen, image, page, or clip they saw. If it was too
+  small or blurry to read, they say so instead of guessing.
+- **Hypotheticals are guesses.** Ask about something outside the session (a change
+  you are considering, new copy you paste in) and they answer as themselves but say
+  it is a guess, not a memory. Asked about something they never ran into, they say
+  they do not recall it.
+
+Each reply sees the most recent 40 messages of the conversation, so in a long
+thread the earliest turns stop informing the answers.
+
+## Work on one thread as a team
+
+Each participant has one thread, shared by everyone who can open the study. Reopen
+the tab and the conversation picks up where it left off. When your organization
+has more than one member, each question shows who asked it. Only one reply is generated at a
+time per participant. There is no way to clear or export a thread.
+
+## Cost and limits
+
+| | |
+|---|---|
+| Credits | Follow-up questions do not draw simulation credits. |
+| Message length | Up to 8,000 characters, text only. |
+| Pace | Messages are rate limited per user. Over the limit, wait and send again. |
+| Who | Simulated participants in a study whose run has ended. |
+
+<Note>
+  Answers are generated from the recorded session; they are a reconstruction, not
+  a replay. The participant's record is fixed at the run, so they know nothing of
+  later iterations, and the conversation does not change the run's recorded
+  journey. Read their answers with the same care as the rest of the
+  [results](/concepts/reactions-and-results).
+</Note>
+
+## Related
+
+<Columns cols={3}>
+  <Card title="Reactions and results" icon="comments" href="/concepts/reactions-and-results">
+    The recorded journey a participant answers from.
+  </Card>
+  <Card title="Assignment and questionnaire" icon="list-check" href="/concepts/assignment-questionnaire">
+    Questions every participant answers at the end of a run.
+  </Card>
+  <Card title="Ask and round" icon="square-poll-vertical" href="/concepts/ask-and-round">
+    Put a new question to a whole panel instead of one person.
+  </Card>
+</Columns>

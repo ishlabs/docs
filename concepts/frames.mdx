@@ -1,0 +1,176 @@
+---
+title: "Frames"
+description: "How ish groups an interactive run into one card per screen, what a frame shows, and how to compare a screen across iterations."
+mode: "explanation"
+---
+
+In an interactive study, participants move through screens: a home page, a search
+results page, a checkout, a login. ish groups every step they took by the screen
+it happened on. Each distinct screen is a **frame**, and its card holds what the
+screen looked like, every reaction recorded there, and how each iteration fared
+on it.
+
+The [reported journey](/concepts/reactions-and-results) tells you how one person's
+run went. Frames turn the same record sideways, so you can see where things went
+wrong for everyone: which screen held up the most people, and what they said while
+they were on it.
+
+<Note>
+  This page is about frames in studies. The [API](/api/overview) uses "frame" for
+  something else: the rendered screen you send with each turn.
+</Note>
+
+## One screen, three kinds of difference
+
+A frame is one screen: one route of your site or app, or an overlay on one (a
+search dropdown, a cookie banner, a checkout step that keeps the same URL). Within a
+frame, ish keeps apart three ways the screen can differ:
+
+| | What changes | Example |
+|---|---|---|
+| **State** | How the screen looks at a moment, including a redesign between iterations. Stored as a frame version (`frame_version_id`). | A form empty, then filled in; the checkout before and after a new layout. |
+| **Record** | Which item the screen shows, with the same layout. | Product pages for three different products. |
+| **Display** | The same screen under a display or accessibility setting. | Dark mode, high contrast, larger text. |
+
+So a product page that showed ten products is still one frame, and so is a login
+page in dark mode. A deliberate redesign is a new state of the same frame, not a
+new frame, which is what lets you compare it.
+
+Frames belong to the [workspace](/concepts/workspace), not to one study. The same
+screen reached in iteration B, or in another study of the same workspace, lands on
+the same frame. A page captured on desktop and the same page captured on mobile
+are separate frames, because they are different screens to the person using them.
+
+Frames exist only in interactive studies: hosted web runs on desktop or mobile,
+local runs from the CLI (web, iOS, and Android), and Figma prototypes. Media
+studies are read by [segments](/concepts/iteration#segments-reactions-per-section-not-just-per-asset)
+instead, and chat studies by turns.
+
+## How ish finds the screens
+
+Frames are not drawn up front. ish forms them while the run happens, one capture
+per step, by asking whether this screen is one it has seen before.
+
+The first evidence is identity the screen already carries: the node of a Figma
+prototype, the accessibility structure of a native app screen, or the route of a
+web page. Then ish compares how the screenshot looks with the screens already in
+the workspace. A near-identical image is matched at once, a clearly different one
+becomes a new frame, and close calls go to a model that compares the two
+screenshots and says whether they are the same screen and how they relate: the
+same state, a new state, another record, an overlay, or a display change.
+
+Some rules keep the grouping honest:
+
+- **A redesign appears only between iterations.** Within one iteration, a screen
+  that looks different is matched to a state already seen, never recorded as a
+  redesign.
+- **A poor capture never makes a frame.** A clipped or partial screenshot is
+  matched to the closest state, or kept with no frame at all. Steps with no frame
+  are read under `_unmatched`; see [slicing results](/guides/slicing-results#filter-by-frame-segment-or-turn).
+- **Figma frames are known in advance.** Before a Figma run, ish registers every
+  frame reachable in the prototype flow under its Figma name.
+
+This grouping is automated and can be wrong: one screen can split into two frames,
+or two screens can merge. In the web app you can rename a frame, merge two frames,
+move steps to another frame, or turn a frame into a state or record of another.
+Because frames belong to the workspace, these edits apply to every study in it.
+
+## How frames are named
+
+A new frame takes its name from the URL when the URL names the screen (a route
+like `/checkout`, or a template route such as `/wiki/{slug}`, which becomes
+"Article"). When the URL says nothing useful, the name comes from what the
+participant reported looking at. An overlay or step is named from the
+participant's report. A Figma frame keeps its name from Figma. A record is named
+from the page's main heading, else its title, else the URL.
+
+## What a frame card shows
+
+In the web app's **Frames** tab, each screen gets one card:
+
+- **The screenshot** of the state on display, with a heatmap you can switch on.
+  The heatmap marks where simulated steps landed, not real clicks.
+- **The states** of the screen and its overlays, in the order they were first
+  seen, and a picker for its **records** and display settings where there are
+  real alternatives.
+- **Four numbers.** Friction, Sentiment, and Avg time are worked out over the
+  steps taken on the screen, so one participant can count many times. Reach is the
+  share of participants who reached the screen at least once. Friction and
+  Sentiment appear from 5 steps on a screen.
+
+Open a card to read every step on it with the participants' own comments. You can
+also generate a written summary of the screen from 5 steps; each summary costs 1
+credit.
+
+| Number | What it measures |
+|---|---|
+| Friction | The share of steps on the screen with a negative reaction, with unsure reactions counted as half. |
+| Sentiment | The average reaction across the screen's steps, from 0 to 100, with 50 neutral. |
+| Avg time | The time from a step on this screen to the next step. |
+| Reach | The share of participants who took a step here at least once. |
+
+## Reading frames on each surface
+
+<Tabs>
+  <Tab title="Web app">
+    The study's **Frames** tab shows the cards, with a table view and search. The
+    workspace also has a frame library listing every frame across its studies.
+  </Tab>
+  <Tab title="Share link">
+    A [share link](/concepts/sharing) shows the same cards, read-only. Renaming,
+    merging, and frame summaries are not available there.
+  </Tab>
+  <Tab title="CLI">
+    There is no frame command. Narrow results to a screen with
+    `ish study results <id> --frame <name>`, and see screenshots grouped by frame
+    with `ish study screenshots`. See [slicing results](/guides/slicing-results).
+  </Tab>
+  <Tab title="MCP">
+    Pass a `frame` filter or `group_by="frame"` to `study_get`, and read
+    screenshots grouped by frame from `ish://study/{study_id}/screenshots`. See
+    [slicing results](/guides/slicing-results).
+  </Tab>
+</Tabs>
+
+The CLI and MCP list an overlay as its own row, where the web app nests it under
+its page. Neither returns records or display settings, which are read in the web
+app.
+
+## Comparing a screen across iterations
+
+Because the same screen lands on the same frame in every
+[iteration](/concepts/iteration) (shown as versions in the web app), a frame is
+where a change shows up most directly. In the web app, turn on **Compare** with
+two or more iterations that have results, and each card shows one column per
+iteration: its screenshot, heatmap, and numbers. An iteration that never reached
+the screen shows an empty column.
+
+On the CLI and MCP, narrow to one screen and group by iteration:
+
+<CodeGroup>
+```bash CLI
+ish study results s-b2c --frame checkout --group-by iteration
+```
+
+```json MCP
+// study_get
+{ "study_id": "s-b2c", "filters": { "frame": ["checkout"] }, "group_by": "iteration" }
+```
+</CodeGroup>
+
+A desktop iteration and a mobile iteration produce different frames, so Compare
+does not line them up.
+
+## Related
+
+<Columns cols={3}>
+  <Card title="Slicing results" icon="filter" href="/guides/slicing-results">
+    Filter and group results by frame, and how unmatched steps are read.
+  </Card>
+  <Card title="Reactions and results" icon="comments" href="/concepts/reactions-and-results">
+    The reported journey frames are grouped from.
+  </Card>
+  <Card title="Test a Figma prototype" icon="figma" href="/guides/figma-plugin">
+    Runs whose frames come straight from your Figma file.
+  </Card>
+</Columns>

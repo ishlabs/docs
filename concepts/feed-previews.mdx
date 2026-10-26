@@ -1,0 +1,128 @@
+---
+title: "Feed previews and the open gate"
+description: "How a preview card decides whether a participant opens your content at all, how the would-open rate is counted, and how this differs from social post platforms."
+mode: "explanation"
+---
+
+Most content is never opened. A video sits in a feed as a thumbnail and a title, an
+article as a headline and a teaser, an email as one row in an inbox. Whether
+someone gets past that card is the first outcome, and it decides whether anything
+after it matters.
+
+ish models that moment with the **open gate**. With the gate on, each participant
+first meets a preview card for your content and decides, from the card alone,
+whether they would open it or scroll past. People who open it go on to the content
+as usual. People who scroll past stop there. Across a panel, that gives you a
+**would-open rate** for each version of the card.
+
+## What the participant sees first
+
+The gate applies to the text and media [modalities](/concepts/modalities): video,
+audio, text, image, and document. Interactive and chat studies never have one.
+
+The card is a single generic feed card in one of four looks, picked from the
+content type: video (16:9 thumbnail), news for news and editorial articles (16:9),
+product (square), and social (square). It is not dressed as any particular
+platform's feed. An email is the exception: its card is the inbox row (sender,
+subject, and preview text), and its rate is called the open rate.
+
+You can write the card yourself as a `feed_preview` on the iteration's details:
+
+| Field | What it holds | Limit |
+|---|---|---|
+| `thumbnail_url` | The image on the card. | 2,083 characters |
+| `headline` | The title line. | 500 characters |
+| `teaser` | The line or two under it. | 500 characters |
+| `context` | Where the card appears, such as a channel or site name. | 200 characters |
+
+Every field is optional. Without a `feed_preview`, ish builds the card from the
+content's own title, caption, and first image. With nothing to show at all (an
+email with no subject or sender, or an item with no title, caption, or image), the
+run goes ahead ungated.
+
+<Note>
+  The card renders only images stored in ish. A thumbnail URL from another host
+  shows as a blank placeholder tile. The web app copies a pasted thumbnail into ish
+  when you save the card; through the CLI or MCP, upload the image first.
+</Note>
+
+## What the decision does to the run
+
+The participant answers three things: whether they would open it, why (in a
+sentence or two, in their own words), and roughly how many seconds they spent on
+the card. The gate step carries no sentiment or engagement reading.
+
+- **Opened.** The participant goes on to the content, and the rest of the run is
+  the same as an ungated one. An email opener goes straight to the body.
+- **Scrolled past.** The run stops before any content. The participant is marked
+  `completed`, skips the closing interview, and is billed for that one step.
+
+Scrolling past is not the same as stopping partway through the content. That is
+early termination (`content_config.early_termination`), a separate setting that
+applies after someone has opened it.
+
+Because only openers see the content, every metric after the gate (engagement,
+sentiment, conversion) describes openers only. The web app says so beside those
+numbers. Non-openers' reasons still reach the study's
+[findings](/concepts/reactions-and-results).
+
+## How the would-open rate is counted
+
+For each version, the rate is the number of participants who would open it divided
+by the number who recorded a decision. A participant with no recorded decision is
+left out, never counted as a no. Versions are ranked by rate. The rate is worked
+out each time you read it, so it needs no analysis run.
+
+Read it as a ranking of your cards against each other, within one study. It is not
+a forecast of a real click-through or open rate, and it does not compare across
+studies or over time. Below 15 decisions, the web app shows the split as a count
+("4 of 9") instead of a percentage.
+
+Beside the rate, the web app shows an entry funnel for each version: of the
+participants who completed a run, how many opened the content, carried on past its
+first moment, and finished it.
+
+## Turning it on
+
+The gate is a per-iteration setting, `preview_gate_enabled` in the iteration's
+`content_config`. New iterations of an email or a social post have it on by
+default; every other content type has it off.
+
+| Surface | How |
+|---|---|
+| Web app | The **Would they open it?** switch, when creating a study or in the study's settings. Turning it on in settings opens the card editor (headline, teaser, context, thumbnail). The web app offers it for videos, news and editorial articles, and product images, and leaves it off for social posts and emails. |
+| CLI | `--content-config-json '{"preview_gate_enabled": true}'` on `ish iteration create` or `ish study create`. To write the card too, use `ish iteration create --details-json` with both inside it, since `--details-json` replaces the other detail flags: `{"feed_preview": {...}, "content_config": {"preview_gate_enabled": true}}`. |
+| MCP | `content_config: {"preview_gate_enabled": true}` on `study_add_iteration` or `study_launch`. Passing any `content_config` without the key sends `false`, which turns off the email and social post default. |
+
+The would-open rate, the reasons, and the funnel are read in the web app, on the
+study overview and in each participant's replay, which shows the exact card they
+saw and whether they opened it. Public share links carry the rate too. The CLI
+and MCP do not return it; there you read each participant's decision in their
+interactions.
+
+## Social post platforms are a different thing
+
+A social post study also takes a `social_platform`, and that is easy to confuse
+with the gate. The platform decides how the post itself is drawn, as a native
+Instagram, TikTok, Facebook, LinkedIn, X, or YouTube post, and it is what the
+participant reacts to. Instagram and TikTok posts are always shown on mobile; the
+others can be shown on mobile, desktop, or a mix.
+
+The platform has no would-open rate of its own. If the gate is also on, the
+participant first sees the square social card built from the caption and first
+image, then the platform post if they open it. The CLI help and the MCP tool list
+five platforms; `youtube` is accepted by the web app.
+
+## Related
+
+<Columns cols={3}>
+  <Card title="Modalities" icon="shapes" href="/concepts/modalities">
+    The media and text modalities the gate applies to.
+  </Card>
+  <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
+    Where `content_config` and the card live, one version at a time.
+  </Card>
+  <Card title="Reactions and results" icon="comments" href="/concepts/reactions-and-results">
+    What openers report once they reach the content.
+  </Card>
+</Columns>

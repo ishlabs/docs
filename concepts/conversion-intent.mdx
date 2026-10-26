@@ -1,0 +1,119 @@
+---
+title: "Conversion intent"
+description: "An optional read of how a simulated audience leaned toward buying, signing up, or subscribing: how it is asked, how words become a scale, and what it does not claim."
+mode: "explanation"
+---
+
+A journey tells you where people got stuck. Conversion intent adds one more
+question at the end: having been through it, would they take the action you care
+about? It is an optional read of how a simulated audience leaned toward one event,
+**buying**, **signing up**, or **subscribing**, and it is a direction to compare
+versions by, not a forecast.
+
+## Each person answers in words, not a number
+
+A study opts in by naming the event in `evaluation_dimensions`. Each value adds one
+open question that every participant answers after the run, alongside any other
+[after-run questions](/concepts/assignment-questionnaire):
+
+| Value | Question added | Card title |
+|---|---|---|
+| `purchase_intent` | "Would you buy this? Why or why not?" | Purchase intent |
+| `signup_intent` | "Would you sign up for this? Why or why not?" | Sign-up intent |
+| `subscribe_intent` | "Would you subscribe to this? Why or why not?" | Subscription intent |
+
+The simulated person answers in their own voice, with the whole session behind
+them. Nobody picks a point on a scale, so the read keeps the reasons and the
+hedges behind each answer.
+
+The question is kept in step with the setting: turn the event off and it is
+removed, turn it on and it is added, and your own questions keep their order. It
+does not appear among the questionnaire answers in the web app or in exports,
+because its answers feed this read instead.
+
+## From words to a five-point spread
+
+ish turns each answer into a position on a five-point scale with **Semantic
+Similarity Rating** (SSR), a published method (Maier et al., 2025). The answer is
+compared by meaning with first-person reference statements written for each
+point (for buying, from "There's no chance I'd buy this" at the bottom to a clear
+yes at the top), across several sets of statements.
+The result for each participant is not one number but a spread: how much of their
+answer sits at each of the five points. Its mean falls between 1 and 5.
+
+For each iteration, the participants' spreads are averaged into one, with its own
+mean, and iterations are ranked by that mean. The mean also gets a plain label:
+clearly wouldn't, leaning against, divided, leaning toward, or clearly would.
+
+A participant with no answer to the question (someone who stopped early, for
+example) is scored from their end-of-session summary instead. Working out the read
+uses no generation, only the comparison by meaning, so it costs no credits and
+gives the same result each time for the same answers.
+
+## Two numbers for one read
+
+The same read is shown two ways, and it helps to know which one you are looking at.
+
+- **The 1 to 5 mean.** The raw result for each iteration, with its spread, band,
+  and rank. This is what the CLI's analysis results carry and what a benchmark
+  comparison returns.
+- **The 0 to 100 index.** The web app's headline. It starts at 50 (balanced) and
+  moves by half the difference between the share in the top two points and the
+  share in the bottom two. It pools every iteration, weighted by how many people
+  ran each.
+
+Percentages in the breakdown are shares of the pooled spread, not counts of
+people, so a figure like 4% can appear in a panel of ten.
+
+## How many people a read needs
+
+The web app shows no spread below 8 answers, and marks a read from 8 to 14 answers
+as an early read. From 15 it is shown as a firm read. That is also the sample size
+the run page suggests for a study that measures conversion intent.
+
+## What it does not claim
+
+- It is not a prediction of how many people will convert, and not a sales,
+  sign-up, or revenue forecast. "12 of 20 would buy" is not a reading of it.
+- It does not compare across different studies or over time. It is most useful
+  between iterations of one study, where the panel and questions are the same.
+- The shape of the spread carries more than any single number.
+- The method's published reliability describes the method on labelled data, not
+  ish's own output. ish checked purchase intent against labelled reviews; sign-up
+  and subscribe intent have not been checked separately against real outcomes.
+
+When a study also uses the [open gate](/concepts/feed-previews), only the people
+who opened the content are asked, so the read describes openers.
+
+## Where it is set and read
+
+Conversion intent applies to interactive and media studies. The web app does not
+offer it for chat studies.
+
+| Surface | Turn it on | Read it |
+|---|---|---|
+| Web app | When creating the study: **Would they buy / sign up / subscribe?** in the "Also find out" section. One event per study. | The study overview, with the index, the breakdown, each person's answer, and a ranking when Compare is on. A share link shows it once an analysis has completed. |
+| CLI | `--evaluation-dimension` on `ish study create`, `ish study generate`, or `ish study update` (repeatable; `update` replaces the list). | `evaluation_metrics` on each analysis result in `ish study insights --json`, after an analysis has run. |
+| MCP | `evaluation_dimensions` on `study_create` or `study_revise` (pass `[]` to clear). | `study_comparison`, as `purchase_intent` per iteration. |
+
+In a benchmark comparison, the `purchase_intent` field holds the 1 to 5 mean of the
+study's first conversion event, whichever event that is. See
+[benchmarks](/concepts/benchmarking).
+
+Values are not validated when you set them: a misspelt event such as
+`purchase-intent` is stored and produces no read. Use the values in the table
+above exactly.
+
+## Related
+
+<Columns cols={3}>
+  <Card title="Reactions and results" icon="comments" href="/concepts/reactions-and-results">
+    The reported journey conversion intent is read alongside.
+  </Card>
+  <Card title="Assignment and questionnaire" icon="list-check" href="/concepts/assignment-questionnaire">
+    The after-run questions the added question joins.
+  </Card>
+  <Card title="Creating a study" icon="terminal" href="/cli/generated/study-create">
+    `--evaluation-dimension` on `ish study create`.
+  </Card>
+</Columns>
