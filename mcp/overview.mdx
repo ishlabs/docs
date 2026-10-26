@@ -54,19 +54,21 @@ fixed upstream redirect and translates the client's per-session redirect to it.
 
 ## Surface
 
-The hosted server exposes 40 tools, 10 resources, and no prompts.
+The hosted server exposes 51 tools, 9 resources, and no prompts.
 
 <Columns cols={2}>
   <Card title="Tools" href="/mcp/generated/index">
-    40 tools across 11 domains: workspace, reference, study, ask, person, chatbot,
-    simulation, site_access, connect, upload, docs. Each carries a `domain`
+    51 tools across 13 domains: workspace, reference, study, ask, person,
+    participant, chatbot, site_access, connect, upload, docs, account, feedback.
+    Each carries a `domain`
     tag and a `mode` tag (read, write, dispatch, delete) for clients that filter
     the catalog.
   </Card>
   <Card title="Resources" href="/mcp/generated/resources">
-    10 `ish://` resources: the docs index and pages, the authenticated identity,
-    per-modality content types, workspace secrets, and the binary study media
-    (screenshots, transcripts, iteration media) read on demand.
+    9 `ish://` resources: the authenticated identity, per-modality content
+    types, workspace secrets, and the binary study media (screenshots,
+    transcripts, iteration media) read on demand. Docs pages are read with the
+    `docs_get` tool.
   </Card>
 </Columns>
 

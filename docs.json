@@ -160,7 +160,8 @@
               "mcp/generated/tools-connect",
               "mcp/generated/tools-upload",
               "mcp/generated/tools-reference",
-              "mcp/generated/tools-docs"
+              "mcp/generated/tools-docs",
+              "mcp/generated/tools-account"
             ]
           },
           {
