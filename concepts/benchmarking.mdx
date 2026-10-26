@@ -1,19 +1,26 @@
 ---
 title: "Benchmarks and reference workspaces"
-description: "How a reference workspace and study benchmark let you run the same study head-to-head against competitors or alternative versions."
+description: "How references and a benchmark run the same study against competitor products, with the same people, and line the results up side by side."
 mode: "explanation"
 ---
 
 A benchmark answers a comparative question: not "does my checkout land?" but "does
 my checkout land better than the two competitors I keep losing to?" To answer it
-fairly, every variant has to face the same audience and the same questions. Only
+fairly, every product has to face the same people and the same questions. Only
 the thing being experienced should change.
 
-ish models that with two pieces. A **reference workspace** is one comparison target.
-A **benchmark** clones a [study](/concepts/study) across a set of references so each
-one inherits the same modality, assignments, and interview questions, and differs
-only in the artifact participants actually see. Both live on the MCP server. There
-is no CLI surface for references or benchmarks.
+ish models that with two pieces. A **reference workspace** is one comparison target:
+a competitor's product and the URL it lives at. A **benchmark** clones a
+[study](/concepts/study) onto each reference and runs it there, with the same people
+who took part in your version. You can drive both from the web app, the CLI
+(`ish workspace reference`, `ish study benchmark`, `ish study comparison`), or the
+MCP server (`reference_*`, `study_benchmark`, `study_comparison`).
+
+<Note>
+  Benchmarks work on interactive studies only, and they are a Pro plan feature.
+  Free and Starter accounts are refused both when creating a reference and when
+  running a benchmark. See [credits and limits](/concepts/credits-and-limits).
+</Note>
 
 ## A reference is a comparison workspace
 
@@ -27,104 +34,105 @@ a top-level workspace: it is a thing you compare against, not a place you keep w
 That split is deliberate, and it shows up in what the read tools return.
 `workspace_get` lists only standard workspaces, never references. `reference_get`
 lists only the references under one parent. A reference never shows up as a
-workspace you might accidentally start fresh work in, and a workspace never gets
-pulled into a benchmark cohort by mistake.
+workspace you might accidentally start fresh work in.
 
-A reference carries three fields that matter for a benchmark: a `name`, an optional
-`description`, and an optional `base_url`. The `base_url` is the one that does
-work later. When a benchmark clones an interactive study to a reference, that URL
-becomes the suggested URL for the clone's iteration, so the competitor's site is
-already half filled in.
+A reference carries a `name`, an optional `description`, and a `base_url`. The
+`base_url` is the URL the benchmark runs against on that reference. The web app can
+override it for one run; the CLI and MCP always use it. A reference with no URL is
+reported as failed at the `no_url` stage and nothing runs there.
 
 <Note>
   References and the source study must share the same parent workspace. A benchmark
-  compares variants of one body of work; it does not reach across workspaces.
+  compares one body of work against its competitors; it does not reach across
+  workspaces. A reference outside the source study's workspace comes back as
+  `skipped` with the reason `no_access`.
 </Note>
 
-## The benchmark clones, it does not run
+A benchmark is for comparing your product with someone else's. To compare versions
+of your own work, add another [iteration](/concepts/iteration) to the same study, or
+put the variants to a panel with an [ask](/concepts/ask-and-round).
 
-`study_benchmark` takes a source study and a list of reference IDs, and clones the
-study into each reference. What carries over is the question, not the answer: the
-name, description, assignments, and interview questions. What does **not** carry
-over is everything that makes a run concrete. Iterations, participants, and frames
-are not copied.
+## The benchmark clones and runs
 
-That is the whole idea. The clone inherits a fixed lens, so the same audience
-faces the same prompts against each variant. Then you point each clone at its own
-artifact: your URL on the source, the competitor's URL on its clone, the
-alternative copy on a third. The comparison stays honest because only the
-experienced thing differs.
+One benchmark call does the whole fan-out. For each reference it reuses the clone
+of your study that the reference already holds, or creates one. It then opens a
+round on that clone (an iteration pointed at the reference's URL) and adds the same
+simulated people who took part in your source iteration. Finally it dispatches their
+simulations.
 
-Two consequences follow from "clone, do not run", and both trip up agents that
-treat a benchmark like a one-shot.
+What the clone carries over is the question, not the answer: the name,
+description, assignments, interview questions, and evaluation dimensions. Your
+iterations, participants, and frames are not copied. The round gets its own
+participants, built from your roster, so the same people face the same prompts
+against each product. The comparison stays honest because only the experienced
+thing differs.
 
-<Steps>
-  <Step title="Clones are drafts">
-    `study_benchmark` does not dispatch any participants. Each clone lands as a
-    draft study with no run behind it. You run each one yourself with `study_run`
-    once its iteration is filled in. Nothing draws [simulation
-    credits](/concepts/workspace#caps-and-credits-are-scoped-here) until you do.
-  </Step>
-  <Step title="Fill the placeholder, do not append">
-    Each clone is born with one empty placeholder [iteration](/concepts/iteration)
-    `A`, returned in `placeholder_iteration_ids` keyed by the clone's alias. Fill
-    it by editing that iteration, not by adding a new one. `study_add_iteration`
-    would append a second iteration `B` and leave the empty `A` in place, so the
-    clone would carry a dead iteration alongside the real one.
-  </Step>
-</Steps>
+Three consequences follow, and each one trips up agents that treat a benchmark as
+a free setup step.
 
-A benchmark is also idempotent against a reference that already has a clone of this
-study, and it never silently overrides access. Any reference it could not clone to
-comes back in a `skipped` list with a reason: `no_access`, or `already_cloned`
-with a pointer to the existing clone. Read `skipped` before you assume a clean
-cohort, or you will run a comparison that is missing a competitor.
+**You run your own study first.** The benchmark copies its people from the
+source iteration's simulated participants, whatever state their runs are in. An
+iteration with no simulated participants is refused before anything is written.
+Benchmark an iteration whose run has finished, so you have your own results to
+compare against.
+
+**It spends credits on every reference.** Each reference runs the full roster, and
+billing is per completed participant scaled by steps, as for any run. Three
+references cost roughly three runs of your study. Without an explicit step cap,
+each participant gets the default of 15 steps.
+
+**Re-running grows the round instead of starting over.** Benchmark the same source
+iteration against the same reference again and the new participants join the round
+that already exists: one reference, one round, a roster that grows. Benchmarking a
+different source iteration opens a new round, so people who ran against different
+designs are never pooled into one set of metrics.
+
+## Read the outcome before the results
+
+Each reference is handled on its own, so one failure never stops the rest. The
+response puts every reference in `started`, `failed`, or `skipped`, and adds a
+`design_drift` entry when a reused clone has drifted:
+
+| List | What it means |
+|---|---|
+| `started` | The round is running. Carries the clone's study ID, the round's iteration ID, and the participant count. |
+| `failed` | Something stopped this reference. `stage` says where: `no_url`, `clone`, `append_round`, `create_participants`, or `start_simulations`. |
+| `skipped` | The reference was not reachable from the source study's workspace (`no_access`). |
+| `design_drift` | A warning beside the other lists: the reused clone's design no longer matches your study, so its round runs against the older design. |
+
+Read `failed` and `skipped` before you trust the cohort, or you will read a
+comparison that is missing a competitor.
 
 ## Reading the cohort head-to-head
 
-Once each clone has run, you read the whole set in one call. `study_get` takes a
-`study_ids` list, and a benchmark cross-read passes the source study plus its
-clones. It returns a list of per-study results in the same order you asked for
-them, each shaped by the same `view`, so the variants line up side by side under
-one lens. The [findings](/concepts/reactions-and-results) read as a comparison,
-not as five unrelated runs you have to reconcile by hand.
+The comparison read (`ish study comparison`, or `study_comparison` on MCP) returns
+your source iterations and each reference's rounds in one payload, with the metrics
+already computed per iteration: participants, completion rate, average time to
+finish, average steps, friction, sentiment, and purchase intent when the study
+measures it. A `running` count above zero means people are still in flight; read
+again later. The web app's benchmark page shows the same comparison and can write a
+comparative summary across it.
 
-## The shape of a benchmark
+For the full per-participant [findings](/concepts/reactions-and-results) behind the
+numbers, read the studies together: `study_get` takes a `study_ids` list, and
+`ish study get` accepts several IDs.
 
-End to end, a benchmark is a small, ordered set of MCP calls. The mental model is
-worth holding even though the parameters live in the reference.
+On MCP, `study_benchmark` can also create references inline from a list of
+`{name, base_url}` pairs. That is convenient once, but every call creates new
+references, so pass `reference_ids` when you re-run.
 
-<Steps>
-  <Step title="Create one reference per comparison target">
-    `reference_create` under the parent workspace, once per competitor or alternative
-    version. Give each a `base_url` so its cloned iteration starts pre-filled.
-  </Step>
-  <Step title="Clone the study across them">
-    `study_benchmark(source_study_id, reference_ids=[...])`. One call fans the study
-    out to every reference. Check `skipped`.
-  </Step>
-  <Step title="Fill each placeholder iteration">
-    `study_update_iteration` on each `placeholder_iteration_ids` entry, pointing
-    the clone at that reference's artifact.
-  </Step>
-  <Step title="Run each clone">
-    `study_run` per clone (and the source). Each draws credits only when it runs.
-  </Step>
-  <Step title="Read them together">
-    `study_get(study_ids=[source, ...clones])` for the head-to-head.
-  </Step>
-</Steps>
-
-Full parameters, return shapes, and error kinds live in the reference:
-[reference tools](/mcp/generated/tools-reference) for `reference_create` /
-`reference_get` / `reference_delete`, and [study tools](/mcp/generated/tools-study) for
-`study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.
+Full flags, parameters, and return shapes live in the reference:
+[`ish workspace reference`](/cli/generated/workspace),
+[`ish study benchmark` and `ish study comparison`](/cli/generated/study),
+[reference tools](/mcp/generated/tools-reference), and
+[study tools](/mcp/generated/tools-study).
 
 <Warning>
-  Deleting a reference cascades to every study and iteration cloned under it, with
-  no soft archive. Confirm before calling `reference_delete`. The widest destructive
-  action, deleting the parent workspace, takes its references with it. See the
-  [reference tools](/mcp/generated/tools-reference).
+  Deleting a reference cascades to every study cloned under it, with its rounds
+  and run history, and there is no soft archive. Confirm before calling
+  `reference_delete` or `ish workspace reference delete` (which needs `--yes`
+  outside an interactive terminal). Deleting the parent workspace takes its
+  references with it.
 </Warning>
 
 ## Related
@@ -134,15 +142,18 @@ Full parameters, return shapes, and error kinds live in the reference:
     Why a reference is a workspace underneath, and how the namespaces stay apart.
   </Card>
   <Card title="Studies" icon="flask" href="/concepts/study">
-    The recipe a benchmark clones across references, and what carries over.
+    The recipe a benchmark clones onto each reference, and what carries over.
   </Card>
   <Card title="Iterations" icon="layer-group" href="/concepts/iteration">
-    The placeholder iteration each clone is born with, and how to fill it.
+    The round a benchmark opens on each reference is an iteration of the clone.
+  </Card>
+  <Card title="Study commands" icon="terminal" href="/cli/generated/study">
+    `ish study benchmark` and `ish study comparison`.
   </Card>
   <Card title="reference tools" icon="/images/logos/mcp.svg" href="/mcp/generated/tools-reference">
-    The MCP reference for `reference_create`, `reference_get`, and `reference_delete`.
+    The MCP reference for `reference_create`, `reference_get`, `reference_update`, and `reference_delete`.
   </Card>
   <Card title="study tools" icon="/images/logos/mcp.svg" href="/mcp/generated/tools-study">
-    `study_benchmark`, `study_update_iteration`, `study_run`, and `study_get`.
+    `study_benchmark`, `study_comparison`, and `study_get`.
   </Card>
 </Columns>

@@ -131,8 +131,8 @@ is its own guide.
 ## References: comparison workspaces
 
 A reference is a workspace in disguise. When you want to benchmark your study against
-a competitor or an alternative version on the same panel, you create a reference under
-a parent workspace. At the data layer a reference is a workspace with a parent set and
+a competitor's product with the same people, you create a reference under a parent
+workspace. At the data layer a reference is a workspace with a parent set and
 a `product_type` of `reference`; ish gives it its own `reference` namespace so you
 reason about it as a comparison target, not a top-level container.
 
@@ -142,15 +142,15 @@ is not true the other way you might expect: `workspace_get` lists only standard
 workspaces, never references, and `reference_get` lists only the references under a
 given parent.
 
-The benchmark flow is two steps. Create one reference per comparison target, then run
-a single benchmark that clones the study to every reference. Each clone gets its own
-[iteration](/concepts/iteration) to fill in with that reference's URL or media, so the
-same questions and panel run against each variant.
+The benchmark flow is two steps. Create one reference per comparison target, with the
+URL it lives at, then run a single benchmark that clones your study onto every
+reference and runs it there with the people who took part in your version. See
+[benchmarks](/concepts/benchmarking) for how the rounds, credits, and re-runs work.
 
 <Note>
   Deleting a workspace is the widest destructive action in ish. It cascades to
   every study, ask, person, source, secret, and reference inside it, and there is no
-  soft archive. Deleting a reference cascades to its cloned studies and iterations.
+  soft archive. Deleting a reference cascades to its cloned studies, with their rounds and run history.
   Both are irreversible. The CLI requires `-y` / `--yes` to delete in a
   non-interactive context. Full flags are in the
   [`workspace` CLI reference](/cli/generated/workspace) and the
