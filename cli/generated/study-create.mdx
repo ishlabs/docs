@@ -32,6 +32,7 @@ Usage: `ish study create [options]`
 <ParamField path="--content-md <md>" type="string">Markdown content, or @filepath to read from file. Parsed to the canonical content_doc block AST (ish.doc/1). Creates iteration A inline (text modality only). Mutually exclusive with --content-text.</ParamField>
 <ParamField path="--url <url>" type="string">URL to test. Creates iteration A inline (interactive modality only)</ParamField>
 <ParamField path="--screen-format <format>" type="string">Screen format for interactive iterations: desktop (default) or mobile_portrait (hyphen/underscore variants accepted)</ParamField>
+<ParamField path="--locale <locale>" type="string">Locale code (e.g. en-GB) for the inline interactive iteration A - requires --url. Change it later with `ish iteration update &lt;id&gt; --locale`.</ParamField>
 <ParamField path="--content-url <url>" type="string">Public URL or local file path of the media file (local files are auto-uploaded). Creates iteration A (video, audio, document modalities).</ParamField>
 <ParamField path="--image-urls <urls>" type="string">Comma-separated image URLs or local file paths (local files are auto-uploaded; URLs and paths may be mixed). Creates iteration A (image modality).</ParamField>
 <ParamField path="--title <title>" type="string">Participant-facing content title - the headline participants read before the body (text + media modalities - image, video, audio, document; optional). With --content-type email it becomes the email Subject: line. Not an internal label. Not used for interactive / chat.</ParamField>

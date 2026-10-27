@@ -100,6 +100,7 @@ Usage: `ish iteration update <id> [options]`
 <ParamField path="--details-json <json>" type="string">Iteration details as JSON string</ParamField>
 <ParamField path="--label <label>" type="string">Iteration label (uppercase letters)</ParamField>
 <ParamField path="--segmentation-json <json>" type="string">Text iterations: replace only details.segmentation (the rest of details is read and sent back for you). Same validation as `iteration create`: heading_based &#123;split_level&#125;, or section_based &#123;sections[&#123;segment_id,name,label,start_block_id&#125;]&#125; with block ids from `ish iteration get &lt;id&gt; --blocks`; the dead paragraph_start/end form is refused. Mutually exclusive with --details-json.</ParamField>
+<ParamField path="--locale <locale>" type="string">Interactive iterations: set only details.locale, e.g. en-GB (the rest of details is read and sent back for you). With --details-json it is set on the details you pass instead.</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish iteration delete`
