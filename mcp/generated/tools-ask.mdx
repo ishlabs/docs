@@ -312,10 +312,12 @@ Read asks. Polymorphic - supply exactly one of ``ask_id`` / ``workspace_id``.
   ``workspace_list``.
 - **``ask_id``, no ``participant_id``** → results for one ask.
   ``view="summary"`` (default) returns the projected envelope: per-round
-  ``aggregates`` (``pick_counts``; ``winner`` = &#123;label, variant_id, count,
-  tied, n, confidence}, or &#123;refused, reason, errored, total} when too many
-  responses errored) + ``summary``. Raw responses are flattened once onto the
-  top-level ``responses`` list (each tagged with ``round_index``) - not
+  ``aggregates`` (``pick_counts``, ``abstained``, ``no_preference``;
+  ``winner`` = &#123;label, variant_id, count, tied, n, picks, share, clear,
+  reason, leader, confidence}, read from the backend's round verdict, with
+  ``label`` null unless ``clear``; or &#123;refused, reason, errored, total}
+  when too many responses errored) + ``summary``. Raw responses are
+  flattened once onto the top-level ``responses`` list (each tagged with ``round_index``) - not
   repeated per round. A lean ``participants`` roster
   (``&#123;participant_id, person_id, name, persona}`` per participant) maps the
   ``pt-…`` ids on responses to who they are; full Person detail is opt-in via
