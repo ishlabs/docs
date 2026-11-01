@@ -48,7 +48,7 @@ Usage: `ish study run [id] [options]`
 <ParamField path="--slow-mo <ms>" type="string">Slow down actions by ms (local mode only)</ParamField>
 <ParamField path="--devtools" type="boolean">Open Chrome DevTools (local mode only)</ParamField>
 <ParamField path="--debug" type="boolean">Enable detailed debug logging to stderr and ~/.ish/local-sim.log</ParamField>
-<ParamField path="--parallel <n>" type="string">Run N participants in parallel (local mode only). Browser: default all. Native iOS/Android: pools N auto-provisioned devices - simulators (iOS) / headless emulators from your AVDs (Android) - default 1, capped at 5, auto-sized to host RAM (and AVD count).</ParamField>
+<ParamField path="--parallel <n>" type="string">Run N participants in parallel (local mode only). Browser: default all - one process runs every participant at once. Native iOS/Android: pools N auto-provisioned devices - simulators (iOS) / headless emulators from your AVDs (Android) - default 1, capped at 5, auto-sized to host RAM (and AVD count).</ParamField>
 <ParamField path="--platform <platform>" type="string">Local target platform: 'web' (Playwright), 'android' (adb emulator), or 'ios' (simctl+idb simulator). Defaults to the iteration's platform.</ParamField>
 <ParamField path="--app <path>" type="string">Native local mode: path to an .apk (android) / .app (ios) to install, or an installed package/bundle id to launch. The extension implies --platform.</ParamField>
 
