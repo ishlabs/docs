@@ -5,7 +5,7 @@ mode: "reference"
 ---
 
 {/* GENERATED FILE - do not edit by hand.
-    Source: ishlabs/ish-cli @ study (v0.39.0).
+    Source: ishlabs/ish-cli @ study (v0.40.0).
     Regenerate: `node scripts/generate-docs-cli.mjs` in ish-cli. */}
 
 import GlobalFlags from "/snippets/global-flags.mdx";
@@ -20,7 +20,7 @@ Usage: `ish study run [id] [options]`
 <ParamField path="id">Study ID (alias or UUID) - positional alias for --study (optional)</ParamField>
 
 ### Options
-<ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace ID (defaults to the study's own workspace; refused when it names another)</ParamField>
 <ParamField path="--study <id>" type="string">Study ID</ParamField>
 <ParamField path="--iteration <id>" type="string">Iteration to run (defaults to latest on the study)</ParamField>
 <ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
