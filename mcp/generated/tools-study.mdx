@@ -74,7 +74,7 @@ source-faithful, re-sanitized server-side. On a study created with
 ``content_type="email"``, ``title`` is the Subject: line and ``sender_name``
 / ``sender_email`` the sender participants see.
 
-**Social posts.** A LinkedIn / X / Instagram / Facebook / TikTok post is an
+**Social posts.** A LinkedIn / X / Instagram / Facebook / TikTok / YouTube post is an
 ``image`` or ``video`` iteration with ``copy_content=&#123;"text": &lt;post text>,
 "social_platform": "linkedin", "social_device": "desktop"}`` (device optional,
 default mobile) on a study created with
@@ -231,7 +231,7 @@ Stop at the first segment where the participant says they would not keep going. 
 Subset of segment indices to include; ``None`` (default) means all.
 </ParamField>
 <ParamField body="preview_gate_enabled" type="boolean">
-Show a feed teaser card first; stop if the participant would not open it. Needs ``feed_preview`` in the iteration's details, else the run is ungated. Default: `false`.
+Teaser card first; stop if they would not open it. Card: ``feed_preview``, else title, caption or first image. Unset: on for email and social posts.
 </ParamField>
 </Expandable>
 </ParamField>
@@ -306,7 +306,7 @@ Default: `"page_based"`.
 <ParamField body="position" type="&quot;before&quot; | &quot;after&quot;">
 Whether the copy is shown before or after the media. Default: `"after"`.
 </ParamField>
-<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot;">
+<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot; | &quot;youtube&quot;">
 Optional social-platform skin for the rendered post.
 </ParamField>
 <ParamField body="social_device" type="&quot;mobile&quot; | &quot;desktop&quot; | &quot;mix&quot;">
@@ -562,10 +562,15 @@ in ``account_usage().rates``. Every reference clone runs its own roster, so
 spend scales with the number of references.
 
 Per reference (isolated, so one failure never aborts the rest) the backend
-clones the source study onto the reference, appends a fresh round, replicates
-the source iteration's AI participant roster, and dispatches the simulations.
-Re-running against the same references appends another round (it never
-deletes an existing clone).
+clones the source study onto the reference, opens a round, replicates the
+source iteration's AI participant roster onto it, and dispatches the
+simulations. A re-run of the same source iteration against the same
+reference reuses its clone and its existing round and adds the roster's
+people to that round (the round keeps its original URL and screen format);
+a different source iteration opens its own round. Nothing deletes a clone.
+A reused clone whose copied design no longer matches the source study is
+named in ``design_drift``: that round measures the stale clone design
+(advisory; it never blocks the run).
 
 Precondition: ``source_iteration_id`` must already have COMPLETED AI
 participants, so run the source study first (``study_run``, then wait for
@@ -596,7 +601,8 @@ skipped before any work (e.g. no access).
 
 **Returns** ``&#123;"started": [&#123;reference_id, clone_study_id, iteration_id,
 participant_count}], "failed": [&#123;reference_id, stage, error}], "skipped":
-[&#123;reference_id, reason}]}`` - one row per reference.
+[&#123;reference_id, reason}], "design_drift": [&#123;reference_id, name}]}`` - one
+row per reference.
 
 ### Parameters
 <ParamField body="source_study_id" type="string" required>
@@ -849,9 +855,13 @@ Read modes:
   read), ``per_participant`` (drill into ONE participant's run; needs
   ``participant_id``), ``transcripts`` (chat only;
   all, or one when ``participant_id`` is set), ``insights``
-  (``study_analyze`` output as ``&#123;latest, history}``, where ``history`` holds
-  only the EARLIER runs newest-first, so a study analyzed once returns
-  ``history: []``).
+  (``study_analyze`` output as ``&#123;latest, history, evaluation_metrics}``,
+  where ``history`` holds only the EARLIER runs newest-first, so a study
+  analyzed once returns ``history: []``; ``evaluation_metrics`` is the
+  conversion read keyed by each opted-in ``evaluation_dimensions`` entry,
+  each ``&#123;iterations: [&#123;iteration_label, n, mean, distribution, band,
+  rank}], per_participant: [...]}`` with ``mean`` on a 1-5 scale; absent
+  when the study opted into none or it is not computed yet).
 - ``study_ids`` → benchmark cross-read: per-study results in order, each
   shaped by ``view`` (pass the source plus its ``study_benchmark`` clones).
 
@@ -1015,7 +1025,7 @@ probe); bounds SPEND, not just duration.
 `wait` / `timeout`: ``wait=True`` blocks until terminal; ``timeout`` defaults
 to 240 s. Both as on ``study_run``.
 
-**Social posts.** A post for LinkedIn, X, Instagram, Facebook or TikTok is
+**Social posts.** A post for LinkedIn, X, Instagram, Facebook, TikTok or YouTube is
 ``content_url`` (image or video) + ``modality`` + ``social_platform`` +
 ``caption`` (the post text): participants meet it in that platform's feed
 and react as they would there. ``content_md`` has no feed, so it loses the
@@ -1161,7 +1171,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="modality" type="&quot;interactive&quot; | &quot;text&quot; | &quot;video&quot; | &quot;audio&quot; | &quot;image&quot; | &quot;document&quot;">
 &nbsp;
 </ParamField>
-<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot;">
+<ParamField body="social_platform" type="&quot;instagram&quot; | &quot;tiktok&quot; | &quot;facebook&quot; | &quot;linkedin&quot; | &quot;x&quot; | &quot;youtube&quot;">
 &nbsp;
 </ParamField>
 <ParamField body="caption" type="string">
@@ -1178,7 +1188,7 @@ Stop at the first segment where the participant says they would not keep going. 
 Subset of segment indices to include; ``None`` (default) means all.
 </ParamField>
 <ParamField body="preview_gate_enabled" type="boolean">
-Show a feed teaser card first; stop if the participant would not open it. Needs ``feed_preview`` in the iteration's details, else the run is ungated. Default: `false`.
+Teaser card first; stop if they would not open it. Card: ``feed_preview``, else title, caption or first image. Unset: on for email and social posts.
 </ParamField>
 </Expandable>
 </ParamField>

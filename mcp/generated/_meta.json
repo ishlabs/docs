@@ -35,6 +35,7 @@
     "tools-upload",
     "tools-reference",
     "tools-docs",
-    "tools-account"
+    "tools-account",
+    "tools-feedback"
   ]
 }

@@ -1,0 +1,55 @@
+---
+title: "feedback tools"
+description: "MCP tool reference for the feedback domain."
+mode: "reference"
+---
+
+{/* GENERATED FILE - do not edit by hand.
+    Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
+    Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
+
+## `feedback_send`
+
+**Tier:** write · **Tags:** always-visible, feedback, write
+
+Report a bug, request a feature or send a note to the ish team about ish
+itself: a tool that failed, an error you could not act on, a result that
+looks wrong, a description that misled you. Goes to the same queue as the
+web app's Send feedback dialog and the CLI's ``ish feedback``, filed as
+the signed-in user. Not for what simulated people said: that is study or
+ask data, not feedback about ish.
+
+Worth a call after an error message that ends by naming this tool, after
+a fault you could not fix, and at the end of a piece of work that hit
+several errors. Once is enough; do not file the same failure twice.
+
+`message`: what you were trying to do, what you called, and what came
+    back (10 to 4000 characters). Paste the error text.
+`type`: ``"bug"`` (default), ``"feature"`` or ``"other"``.
+`title`: optional, 3 to 120 characters; defaults to the message's first line.
+`workspace_id`: optional, the workspace this concerns (UUID or ``w-`` alias).
+`study_id`: optional, the study this concerns (UUID or ``s-`` alias).
+
+Diagnostics are attached automatically: the MCP version, your client, and
+this session's recent tool errors (tool, code, message), so you do not
+need to copy them. Nothing else about the session is sent.
+
+**Returns** ``FeedbackReceipt``: ``id``, ``type``, ``title``, ``status``
+(``new`` on creation). Full shape: docs_get("reference/responses").
+
+### Parameters
+<ParamField body="message" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="type" type="&quot;bug&quot; | &quot;feature&quot; | &quot;other&quot;">
+Default: `"bug"`.
+</ParamField>
+<ParamField body="title" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="workspace_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="study_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
