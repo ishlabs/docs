@@ -27,7 +27,9 @@ upload belongs to.
 `purpose`: what the file is for - ``"person_source"`` (ground a person),
 ``"study_media"`` (study iteration content), or ``"both"`` (default -
 mints both handles from one upload so a single image serves person
-grounding AND study media without re-uploading).
+grounding AND study media without re-uploading). The returned ``purpose``
+is what was minted: on the Free plan ``both`` comes back as
+``study_media`` and ``person_source`` is refused (``usage_limit_reached``).
 `wait`: OPT-IN convenience (default ``False``). When ``True``, the call
 runs a short internal poll loop and returns once the user completes the
 upload - but since the gating step is a human in a browser, prefer the
