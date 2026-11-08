@@ -22,11 +22,13 @@ Every source is one of three kinds, and both surfaces auto-detect it from the fi
 
 | Kind | What it covers |
 |---|---|
-| `text_file` | PDF, plain text, Markdown, CSV, JSON, HTML, and Word documents |
+| `text_file` | PDF, Word (`.docx`), Excel (`.xlsx`, `.xlsm`), CSV and TSV, plain text (`.txt`, `.log`), Markdown, and email (`.eml`) |
 | `audio` | `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac` |
 | `image` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp` |
 
-Detection is by extension first, then MIME type. When neither resolves, override it explicitly (the CLI takes `--kind text_file|audio|image`; hyphen and underscore variants are accepted). Audio sources are transcribed by a worker, with speaker diarization on by default.
+JSON and HTML files are not parsed, so convert them to PDF or plain text first. Word documents can ground a generated person, but they can't be added as context to an existing person (`ish person context add`, `person_context_add`): export the file as PDF and add the PDF.
+
+Detection is by extension first, then MIME type. When neither resolves, override it explicitly (the CLI takes `--kind text_file|audio|image`; hyphen and underscore variants are accepted). In the CLI, `.xlsm`, `.tsv`, `.log`, and `.eml` files need `--kind text_file`. Audio sources are transcribed by a worker, with speaker diarization on by default.
 
 ## Two ways to use a source
 
