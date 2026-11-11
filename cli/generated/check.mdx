@@ -22,9 +22,15 @@ Usage: `ish check [platform]`
 
 ## `ish setup`
 
-Fetch/install local-simulation dependencies (Chromium, iOS runner, adb) and show what's left to do
+Set up local simulations step by step for a platform (ios | android | web), or every download
 
-Usage: `ish setup`
+Usage: `ish setup [platform] [options]`
+
+### Arguments
+<ParamField path="platform">(optional)</ParamField>
+
+### Options
+<ParamField path="--no-device" type="boolean">Don't start a simulator or emulator (ios / android)</ParamField>
 
 ## Global flags
 
