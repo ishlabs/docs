@@ -15,7 +15,7 @@ Eleven tools carry the `LONG_RUNNING` classification. They split into four class
 | Class | Tools | How you wait |
 | --- | --- | --- |
 | Dispatch and poll | `study_run`, `study_analyze`, `simulation_extend`, `ask_run`, `ask_round`, `ask_questions`, `ask_people` | `wait` / `timeout` params; `next_action` poll hint on the non-blocking path |
-| Blocks by default | `person_generate` | `wait=True` by default; on `wait=False` returns a `job_id` and you read results via `person_get` |
+| Blocks by default | `person_build` | `wait=True` by default; on elapse or `wait=False` its `next_action` resumes with `person_build(import_id=…)` |
 | Synchronous | `study_benchmark`, `chatbot_setup` | Returns when the call completes; no `wait` param, no `next_action` |
 | Slow create | `study_add_iteration` | No `wait`, no `timeout`, no `next_action`; the call returns an `IterationCreateResponse` once the iteration is created. It is `LONG_RUNNING` only because resolving local file uploads (`content_url`, `image_urls`, `@path` text) can be slow, not because it polls a run. |
 
@@ -28,11 +28,11 @@ Eleven tools carry the `LONG_RUNNING` classification. They split into four class
 The dispatch-and-poll tools accept two parameters:
 
 <ParamField path="wait" type="bool">
-Block inside the tool call until the job reaches a terminal status or `timeout` elapses. Default `False` on every dispatch tool except `person_generate`, which defaults to `True`.
+Block inside the tool call until the job reaches a terminal status or `timeout` elapses. Default `False` on every dispatch tool except `person_build`, which defaults to `True`.
 </ParamField>
 
 <ParamField path="timeout" type="float">
-Seconds to block when `wait=True`. Default `600.0` for `study_run`, `simulation_extend`, and the four ask tools; `300.0` for `study_analyze`; `180.0` for `person_generate`.
+Seconds to block when `wait=True`. Default `600.0` for `study_run`, `simulation_extend`, and the four ask tools; `300.0` for `study_analyze`; `240.0` for `person_build`.
 </ParamField>
 
 **`wait=False` (the default for runs and asks).** Dispatch the job and return immediately with the IDs you need to come back for the result (`participant_ids`, `iteration_id`, `ask_id`, and so on). The response carries a structured `next_action` field naming the exact tool, arguments, cadence, and status field to check next.
@@ -154,7 +154,7 @@ A status not in the terminal set means the job is still running. Each `next_acti
 | Simulations and participants | `completed`, `failed`, `cancelled`, `canceled`, `errored` |
 | Ask rounds | `completed`, `errored` |
 | Study analysis | `completed`, `failed` |
-| Person generation | `completed`, `failed` |
+| Person build (the hand-in) | `done`, `needs_input`, `failed`, `cancelled` |
 | Upload session | `completed`, `expired` |
 
 <Note>
@@ -181,15 +181,15 @@ A `wait=True` call survives transient poll failures. A single HTTP read-timeout,
 
 `wait=False` is the default because holding a tool call open for minutes blocks the agent from doing other work, and most clients (Claude Code, claude.ai) do not surface intermediate progress to the model. Reach for `wait=True` only when:
 
-- The job is genuinely short: `person_generate` (short enough that it defaults to `wait=True` with a 180s budget), an ask with `sample=1` and a single-variant round, a chatbot smoke test.
+- The job is genuinely short: `person_build` (short enough that it defaults to `wait=True` with a 240 s budget), an ask with `sample=1` and a single-variant round, a chatbot smoke test.
 - A human is watching the run live and would rather the agent did not return mid-task.
 - You are scripting end to end and the next step truly cannot start until the run is done.
 
 When you do pass `wait=True`, set `timeout` to a budget that matches the run size. The `wait_timeout` envelope is recoverable: it carries the dispatched IDs and a `next_action` to resume polling. Dispatching async and checking back is still cleaner.
 
-## person_generate and the blocking default
+## person_build and the blocking default
 
-`person_generate` is `LONG_RUNNING` but blocks by default (`wait=True`, `timeout=180.0`): it uploads any source artifacts, enqueues the job, polls to terminal, and returns the resolved people and scenarios. Pass `wait=False` to get the `job_id` and `status="queued"` back immediately, then pick up the results with `person_get(workspace_id=..., type="ai")`. It does not attach a `next_action`; the follow-up tool is `person_get`. See [people](/concepts/people).
+`person_build` is `LONG_RUNNING` but blocks by default (`wait=True`, `timeout=240.0`, counted from the call's start, uploads included): it uploads any sources, hands them in, and polls until the hand-in is done, needs an answer, or fails. Where the workspace makes drafts it returns the draft; otherwise the people. When the budget runs out it returns what is known with a `next_action` that resumes with `person_build(workspace_id=…, import_id=…)` (`check_after_seconds=20`). Read and act on a draft with `person_review`. See [people](/concepts/people).
 
 ## Cancellation
 
@@ -217,6 +217,6 @@ So this server delivers completion in the return envelope, not on a side channel
     Which verb drives which long-running work.
   </Card>
   <Card title="People" href="/concepts/people">
-    Audiences, generation, and how participants are resolved.
+    Audiences, building people, and how participants are resolved.
   </Card>
 </Columns>

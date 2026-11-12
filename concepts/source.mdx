@@ -1,59 +1,65 @@
 ---
 title: "Sources"
-description: "The real evidence behind a generated person: transcripts, audio, images, and PDFs that ground a simulated Person in how someone actually reacted."
+description: "Material about people that ish reads once per workspace and keeps on each Person it feeds: transcripts, emails, surveys, audio, images, and PDFs."
 mode: "explanation"
 ---
 
-A **source** is a piece of real evidence you hand to person generation: an interview transcript, a call recording, a screenshot, a support email, a PDF. When you describe an audience and attach a source, the generated [person](/concepts/people) is grounded in how someone actually reacted, not just in a prompt. This page is the mental model: what a source is, what it does to a generated person, and how it lives over time. For exact flags and parameters, follow the links to the [CLI](/cli/generated/source) and [MCP](/mcp/generated/tools-person) reference.
+A **source** is material about people that you hand to a build: an interview transcript, a call recording, a survey export, a support email, a screenshot, a PDF. ish reads it once per workspace and keeps it on each [Person](/concepts/people) it feeds, so the same file handed in twice in one workspace is one source. This page is the mental model: what a source is, what it gives a Person, and how it lives over time. For exact flags and parameters, follow the links to the [CLI](/cli/generated/source) and [MCP](/mcp/generated/tools-person) reference.
 
 ## What a source does
 
-A brief alone produces a plausible Person. A brief plus a source produces a Person pinned to evidence. The generation job reads the file and folds what it finds into the record it builds: the vocabulary in a transcript, the objection in an email, the friction visible in a screenshot. The richer the input, the less the generated person is invented and the more it reflects a real reaction you have already seen.
+A brief alone produces a plausible Person. A brief plus a source produces a Person pinned to material. The build reads the file and turns what it finds into the Person: values (an occupation, a city, an age), what they did and said (episodes with their own quoted words), and facts. One file can feed several people: a survey export gives one Person per respondent, a recording with four speakers can give four.
 
-You can attach more than one source to a single generation, and pair each one with a short note about how that person reacted to that artifact. The note rides along with the file so the generated Person reflects the reaction, not just the document.
+What each source gave is kept, per Person, and you can read it back:
+
+- in the app, on the Person's **Sources** tab;
+- in the CLI, `ish person get <id> --sources`: each file, what it gave (values, conversations, facts), and how many people in the workspace it feeds;
+- in MCP, `person_get(person_id=…, include=["sources"])`.
+
+Every value on a Person also says where it came from: a source, your brief, or ish.
 
 <Note>
-A source grounds a simulated person; it does not turn the output into a real human. ish leans into the approximation. An "ish" of someone built from a real transcript is closer to the mark than one built from a prompt, but it is still simulation. Frame the findings the same way.
+A source grounds a simulated person; it does not turn the output into a real human. A Person built from a real transcript is closer to the mark than one built from a prompt, but it is still simulation. Frame the findings the same way.
 </Note>
+
+## Why you may share it
+
+Every hand-in of material says why you may share it: the people in it agreed, it is public, it comes from your work with them, or you made it (`remembered` reuses your last answer for a Person you are adding to). It is stored with the hand-in as your word, not the person's consent. Say also when other people are in the material too. At a terminal the CLI asks; without one, `--basis` is required, and an agent asks its human rather than choosing. In MCP the same reason is `rights_basis`.
 
 ## Source kinds
 
-Every source is one of three kinds, and both surfaces auto-detect it from the file extension or MIME type:
+Every source is one of three kinds, detected from the file extension or MIME type:
 
 | Kind | What it covers |
 |---|---|
-| `text_file` | PDF, Word (`.docx`), Excel (`.xlsx`, `.xlsm`), CSV and TSV, plain text (`.txt`, `.log`), Markdown, and email (`.eml`) |
-| `audio` | `.mp3`, `.wav`, `.m4a`, `.ogg`, `.flac`, `.aac` |
-| `image` | `.png`, `.jpg`, `.gif`, `.webp`, `.bmp` |
+| `text_file` | PDF, Excel (`.xlsx`), CSV and TSV, plain text, Markdown, email (`.eml`), captions (`.vtt`, `.srt`) |
+| `audio` | recordings (`.mp3`, `.wav`, `.m4a`, `.ogg`, `.mp4`, `.mov`, `.webm`), transcribed with speakers told apart |
+| `image` | `.png`, `.jpg`, `.jpeg`, `.webp` |
 
-JSON and HTML files are not parsed, so convert them to PDF or plain text first. Word documents can ground a generated person, but they can't be added as context to an existing person (`ish person context add`, `person_context_add`): export the file as PDF and add the PDF.
-
-Detection is by extension first, then MIME type. When neither resolves, override it explicitly (the CLI takes `--kind text_file|audio|image`; hyphen and underscore variants are accepted). In the CLI, `.xlsm`, `.tsv`, `.log`, and `.eml` files need `--kind text_file`. Audio sources are transcribed by a worker, with speaker diarization on by default.
+Word documents are read only as PDF: export the file as PDF and hand in the PDF. JSON and HTML files are not parsed, so convert them to PDF or plain text first.
 
 ## Two ways to use a source
 
-How a source reaches generation depends on whether you use it once or reuse it.
-
 <Columns cols={2}>
   <Card title="Inline" icon="bolt">
-    Pass a local path straight to person generation. The file is uploaded and processed as part of the run, then discarded from your attention. Reach for this when the source belongs to one generation.
+    Hand a local file straight to a build. It is uploaded for that hand-in. Reach for this when the file belongs to one build.
   </Card>
   <Card title="Upload then reuse" icon="recycle">
-    Upload the source once, get an ID back, and reference that ID from many generations without re-uploading. Reach for this when one transcript should ground several audiences.
+    Upload the file once, get an id back, and reference it from several builds without re-uploading.
   </Card>
 </Columns>
 
-Inline is the common path. In the CLI, `ish person generate --source ./call.mp3` uploads and processes the file before building the Person. In MCP, `person_generate(source_paths=[...])` does the same inline.
+Inline is the common path. In the CLI, `ish person build ./call.mp3 --basis agreed` uploads the file and hands it in. In MCP, `person_build(sources=[{"path": …}], rights_basis="agreed")` does the same; a source can also be pasted text (`text`) or raw bytes (`inline_base64` with a `file_name`).
 
-Upload then reuse separates the upload into its own step. `ish source upload` returns a `ps-` alias you hand to later `ish person generate --source ps-...` runs. The MCP `source_upload` tool returns a `source_upload_id` you pass as `person_generate(source_upload_ids=[...])`. The exact arguments live in the [CLI](/cli/generated/source) and [MCP person](/mcp/generated/tools-person) reference.
+Upload then reuse separates the upload into its own step. `ish source upload` returns a `ps-` alias you pass as `ish person build --source ps-…`. The MCP `source_upload` tool returns a `source_upload_id` you pass as `person_build(source_upload_ids=[…])`.
 
 <Tip>
-The note that captures how a real person reacted (`--source-description` in the CLI, `reaction` in MCP, capped at 500 characters) only applies when you upload a file. For a source you uploaded earlier, generation uses whatever note you set at upload time.
+The note that captures how a real person reacted (`--description` on `ish source upload`, `reaction` on `source_upload`) is set at upload time and travels with the file.
 </Tip>
 
 ## Where the bytes come from
 
-The CLI reads sources from your local filesystem. The MCP server runs the upload on its own machine, so its `source_upload` accepts three input shapes:
+The CLI reads sources from your local filesystem. The MCP server runs the upload on its own machine, so it accepts three input shapes:
 
 - a path the **MCP process** can read on its filesystem,
 - an `http(s)://` URL, fetched server-side (SSRF-guarded, with a 10 MB cap),
@@ -63,25 +69,23 @@ This matters when an agent runs against the hosted MCP server: a path that exist
 
 ## Processing and status
 
-A source is not ready the instant the bytes land. After the upload, ish kicks off processing: text and images are parsed inline, audio is transcribed by an async worker. A source moves toward one of two terminal states, `processed` or `failed`. Inline generation waits for processing automatically; the standalone CLI upload polls until the source is terminal, with `--no-wait` to return early and a poll timeout you can raise from its 300-second default.
+A source is not ready the instant the bytes land. After the upload, ish processes it: text and images are parsed, audio is transcribed. A source moves toward one of two terminal states, `processed` or `failed`. A build waits for processing itself; the standalone CLI upload polls until the source is terminal, with `--no-wait` to return early.
 
-A `failed` source carries an error you can read back. Inspect any source by ID at any time with `ish source get`.
+A `failed` source carries an error you can read back. Inspect any uploaded source by id with `ish source get`.
 
 ## How a source lives over time
 
-A source outlives the generation that consumed it. Two facts shape that life.
+A source outlives the build that read it. Deletes are ref-counted: `ish source delete` removes the source and its file only when no Person still links to it, so deleting a source never silently rewrites the people it fed. In the app, a file can be erased from one Person or for everyone it feeds, after a list of exactly what goes.
 
-First, deletes are ref-counted. `ish source delete` removes the source row and its uploaded file only when no generated Person still maps to it. A person already built from a source keeps that seed mapping until the person itself is deleted, so deleting a source never silently rewrites the people it grounded. Like every removal in ish, the delete asks for confirmation and is not reversible.
-
-Second, the alias prefix differs by surface. The CLI tags a source with a `ps-` alias; the MCP server uses `tps-` for the same family of attachments. Both resolve to the same underlying file. Use whichever prefix the surface you are on returns; do not assume one carries over to the other.
+The alias prefix differs by surface. The CLI tags a source with a `ps-` alias; the MCP server uses `tps-` for the same family of attachments. Both resolve to the same underlying file. Use whichever prefix the surface you are on returns.
 
 ## Related
 
 <Columns cols={2}>
   <Card title="People and panels" icon="users" href="/concepts/people">
-    What a Person is and how a source grounds the people you generate.
+    What a Person is and how a build turns material into people.
   </Card>
   <Card title="Workspaces" icon="folder" href="/concepts/workspace">
-    Sources are scoped to a workspace, alongside the people they ground.
+    Sources are scoped to a workspace, alongside the people they feed.
   </Card>
 </Columns>

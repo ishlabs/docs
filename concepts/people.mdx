@@ -52,24 +52,28 @@ Real evidence enters through [sources](/concepts/source), which a contributor au
 
 ## Two ways to get the people you need
 
-You rarely start a run by hand-building a Person. You either pull from a pool that already exists or generate new people to fit a brief.
+You rarely start a run by hand-building a Person. You either pull from a pool that already exists or build new people from a brief, material, or both.
 
 <Columns cols={2}>
   <Card title="Sample from the pool" icon="users">
     Filter the people available to your workspace by demographic and pick a sample. Good when the pool already covers who you are building for.
   </Card>
-  <Card title="Generate to fit a brief" icon="sparkles">
-    Describe who you are building for (and optionally ground it in real evidence) and ish builds matching AI People. Good when the pool is thin for your archetype.
+  <Card title="Build people" icon="user-plus">
+    Describe who you are building for, hand in real material, or both, and ish builds matching people. Good when the pool is thin for your archetype.
   </Card>
 </Columns>
 
-### Generating people
+### Building people
 
-Generation turns a written brief, real research artifacts, or both into matching AI People. Hand it a description of who you are building for, point it at any [sources](/concepts/source) (transcripts, emails, PDFs, images, audio) that capture how real people reacted, and it builds people grounded in that evidence. When sources are attached it can also produce grounded scenarios: recorded reactions the Person carries into a simulation as past context.
+One hand-in builds people: a written brief, files ([sources](/concepts/source) such as transcripts, emails, surveys, PDFs, images, audio), or both. One file can hold several people (a survey export, a recording with four speakers), and the same hand-in can add to one existing Person instead of creating one.
 
-Generation runs as an async job and blocks by default while it works (typically 30 to 60 seconds), then returns the resulting people. You can opt out of waiting and pick the results up later. A single generation is capped at 10 people; omit the count to let ish propose one. Generated people count toward your plan's custom-person cap, which is separate from the per-run credit pool.
+Where your workspace makes drafts, nothing is on a Person until it is accepted. The build returns a **draft**: what each Person would get, where every value came from, and any **questions** ish needs answered first. You answer the questions, then accept the draft as it is or look through it first. An agent may accept a made-up person's draft that nothing waits on; a real person's draft is accepted only in the ish app, and whether a person is real is answered only there. A build is capped at 10 people unless the material decides the count. Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool.
 
-When the pool has nothing that matches your filters, generating people that fit the brief is the right next move, regardless of what the pool happens to contain.
+<Note>
+Until your workspace has drafts, the people exist as soon as the build finishes.
+</Note>
+
+When the pool has nothing that matches your filters, building people that fit the brief is the right next move, regardless of what the pool happens to contain.
 
 ### Sampling from the pool
 
@@ -90,7 +94,7 @@ Every Person has a **visibility** scope that decides who can see and use it. The
 
 <AccordionGroup>
   <Accordion title="workspace" icon="lock">
-    The Person is private to its owning workspace. Only that workspace sees it. People you create or generate land here. A Person must be in your workspace before you can enrich it with new files or evidence.
+    The Person is private to its owning workspace. Only that workspace sees it. People you create or build land here. A Person must be in your workspace before you can enrich it with new files or evidence.
   </Accordion>
   <Accordion title="shared" icon="share-nodes">
     Community-published, visible in every workspace's people list, with attribution to whoever published it.
@@ -114,17 +118,15 @@ Whichever way you build them, people feed a [study](/concepts/study) run or an a
 
 ## Same model, both surfaces
 
-The CLI and the MCP server expose the same person model: read, generate, enrich, delete. The verbs line up.
+The CLI and the MCP server expose the same person model: build, review, read, update, delete. The verbs line up.
 
 <CodeGroup>
 ```bash CLI
 # Sample three Swedish people aged 35 to 50 for a run
 ish study run --country SE --min-age 35 --max-age 50 --sample 3
 
-# Generate five people from a brief
-ish person generate \
-  --description "Tech-savvy millennials in the US who use mobile banking" \
-  --count 5
+# Build five people from a brief
+ish person build --brief "Tech-savvy millennials in the US who use mobile banking" --count 5
 
 # List your workspace people, then the platform pool
 ish person list
@@ -132,10 +134,10 @@ ish person list --visibility platform --country US
 ```
 
 ```text MCP
-# Generate people from a brief (blocks until done by default)
-person_generate(
+# Build people from a brief (waits for the draft by default)
+person_build(
   workspace_id="w-6ec",
-  description="Tech-savvy millennials in the US who use mobile banking",
+  brief="Tech-savvy millennials in the US who use mobile banking",
   count=5,
 )
 
@@ -153,7 +155,7 @@ Both surfaces mint a short alias for each Person, and both use the same prefix: 
 
 <Columns cols={2}>
   <Card title="Sources" href="/concepts/source" icon="file-lines">
-    The real evidence that grounds generated people.
+    The real material a build reads, and what each file gave a person.
   </Card>
   <Card title="Workspace" href="/concepts/workspace" icon="folder">
     The container that owns your people, studies, and sources.

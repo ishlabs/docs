@@ -89,7 +89,7 @@ On the MCP path, do not pass iteration content to `study_create`. Pair iteration
 
 <Step title="Scout pool sizes before committing (recommended)">
 
-`person_get` speaks the same demographic vocabulary as `RoleCriteria`, so the cheapest pre-flight is a list call with `limit=10`. The envelope carries `total` (the full match count) plus a small sample to eyeball. If either side returns `total: 0`, mint the missing pool with `person_generate` before you create the iteration.
+`person_get` speaks the same demographic vocabulary as `RoleCriteria`, so the cheapest pre-flight is a list call with `limit=10`. The envelope carries `total` (the full match count) plus a small sample to eyeball. If either side returns `total: 0`, build the missing pool with `person_build(accept=True)` before you create the iteration.
 
 <CodeGroup>
 

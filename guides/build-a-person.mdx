@@ -1,160 +1,155 @@
 ---
 title: "Build a specific person"
-description: "Generate a simulated person, or a small cohort, from a written brief and real research artifacts."
+description: "Build a simulated person, or a small group, from a brief, real material, or both; answer, accept, add later and edit in words."
 mode: "how-to"
 ---
 
-You want a [person](/concepts/people) who fits a real audience: not a row pulled from the shared pool, but one built to your brief and grounded in evidence you already have. This guide generates that person from a description plus optional [sources](/concepts/source) (transcripts, emails, PDFs, images, audio), on either surface.
+You want a [person](/concepts/people) who fits a real audience: not a row pulled from the shared pool, but one built to your brief and grounded in material you already have. This guide builds that person from a description, [sources](/concepts/source) (transcripts, emails, surveys, PDFs, images, audio), or both, on either surface, in five steps.
 
-Generation builds new AI People; it does not turn the output into a real human. A person built from a real transcript is closer to the mark than one built from a prompt alone, but it is still simulation. Frame the findings the same way.
+A build makes simulated people; it does not turn the output into a real human. A person built from a real transcript is closer to the mark than one built from a prompt alone, but it is still simulation. Frame the findings the same way.
 
 ## Before you start
 
-- An active workspace. The CLI reads it from your [active context](/concepts/active-context); MCP takes a `workspace_id`. Generated people land in that workspace.
-- A brief, a source, or both. You need at least one. A brief alone produces a plausible Person; a brief plus a source pins it to a reaction you have already seen.
+- An active workspace. The CLI reads it from your [active context](/concepts/active-context); MCP takes a `workspace_id`. Built people land in that workspace.
+- A brief, material, or both.
+- With material: why you may share it (the people agreed, it is public, it comes from your work with them, or you made it). Ask the person whose material it is; an agent never chooses one.
 
 <Note>
-Generated people count toward your plan's custom-person cap, which is separate from the per-run credit pool. See [credits and limits](/concepts/credits-and-limits).
+Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool. See [credits and limits](/concepts/credits-and-limits).
 </Note>
 
-## Generate from a brief
-
-The fastest path: describe who you are building for and let ish build matching people. Generation runs as an async job, so the command enqueues it and waits (typically 30 to 60 seconds), then prints the resulting people.
-
-<CodeGroup>
-```bash CLI
-ish person generate \
-  --description "Tech-savvy millennials in the US who use mobile banking" \
-  --count 3
-```
-
-```text MCP
-person_generate(
-  workspace_id="w-6ec",
-  description="Tech-savvy millennials in the US who use mobile banking",
-  count=3,
-)
-```
-</CodeGroup>
-
-The brief has a minimum length: the CLI requires 10 characters or more, the MCP tool 20 or more. A useful brief names the audience traits, demographics, and pain points that ground generation, so aim well above the floor either way.
-
-`--count` (CLI) and `count` (MCP) pin the audience size to between one and 10. Omit it to let ish propose a count for you. To build one specific person rather than a cohort, pass a count of one.
-
-<Tip>
-On MCP you can narrow generation with `age_range=(min, max)`, `country=["US"]`, and `gender=[...]` so the generated people fall inside those bounds. On the CLI, shape the audience through the brief itself.
-</Tip>
-
-## Ground a person in real evidence
-
-A source is the difference between a plausible Person and one tied to an actual reaction. Attach an interview transcript, a support email, a screenshot, or a call recording, and the generated person reflects the vocabulary, objections, and friction in that file.
+Two rules hold on every surface. Whether a person is real is answered only in the ish app; an agent gets the question and a link. An exact value is set with `ish person update` or `person_update`, and a description changes only through a build.
 
 <Steps>
-<Step title="Point generation at a source">
-Pass a local file straight to generation. The CLI uploads and processes it inline before building the Person; MCP does the same through `source_paths`.
+<Step title="Build">
+Hand in a brief, material, or both. Say who they are only as you know it: `made_up` for someone you invented, `real_person` for a real person. With files, say why you may share them.
 
 <CodeGroup>
 ```bash CLI
-ish person generate \
-  --description "Skeptical enterprise buyer who reviews vendor proposals" \
-  --source ./proposal.eml \
-  --source-description "called this proposal lazy and vague" \
-  --count 1
+# From a brief
+ish person build --brief "A Malmö accountant with a toddler" --wait
+
+# From material about a real person
+ish person build ./interview.m4a --who real_person --basis agreed \
+  --brief "Priya, the night nurse I interviewed" --wait
 ```
 
 ```text MCP
-person_generate(
+person_build(
   workspace_id="w-6ec",
-  description="Skeptical enterprise buyer who reviews vendor proposals",
-  source_paths=["./proposal.eml"],
-  reaction_notes=["called this proposal lazy and vague"],
-  count=1,
+  brief="A Malmö accountant with a toddler",
+)
+
+person_build(
+  workspace_id="w-6ec",
+  brief="Priya, the night nurse I interviewed",
+  sources=[{"path": "https://example.com/interview.m4a"}],
+  who="real_person",
+  rights_basis="agreed",
+)
+```
+</CodeGroup>
+
+The build waits for the draft by default on MCP (`wait=True`) and with `--wait` on the CLI. It returns a draft: each person, what an accept would take, and anything waiting on you.
+</Step>
+
+<Step title="Answer">
+When ish needs to know something first (who is this voice, are these the same person), the draft carries questions. Ask the user each one and pass the answer.
+
+<CodeGroup>
+```bash CLI
+ish person review <import-id>
+ish person review <import-id> --answer <question-id>=<answer> --wait
+```
+
+```text MCP
+person_review(import_id="…")
+person_review(import_id="…", action="answer", question_id="…", answer="…")
+```
+</CodeGroup>
+
+"Is this a real person?" is not among the questions an agent answers: the CLI and MCP return it with the draft's link, and the user answers it in the app.
+</Step>
+
+<Step title="Accept, or look through first">
+Read the draft with the user, then accept. A made-up person's draft can be accepted from the CLI or MCP. A real person's draft is accepted only in the ish app; the CLI and MCP give you the link, and on such a draft they answer, edit and leave out nothing either.
+
+<CodeGroup>
+```bash CLI
+ish person review <import-id> --all
+ish person review <import-id> --edit <item-id>=35 --accept
+```
+
+```text MCP
+person_review(import_id="…", detail=True)
+person_review(import_id="…", action="accept")
+```
+</CodeGroup>
+
+To skip the look-through for made-up people, pass `--accept` (CLI) or `accept=True` (MCP) on the build: it accepts each made-up person that nothing waits on, one by one, and leaves the rest as a draft.
+</Step>
+
+<Step title="Add later">
+As new material arrives, hand it to the same person.
+
+<CodeGroup>
+```bash CLI
+ish person build --to p-d4e ./meetings/2026-06-12.vtt --basis work \
+  --brief "Steering meeting; she is Speaker 2." --wait
+```
+
+```text MCP
+person_build(
+  workspace_id="w-6ec",
+  person_id="p-d4e",
+  sources=[{"path": "https://example.com/2026-06-12.vtt"}],
+  rights_basis="work",
 )
 ```
 </CodeGroup>
 </Step>
 
-<Step title="Add the reaction note">
-The note captures how a real person reacted to that file, and it rides along to generation so the generated Person reflects the reaction, not just the document. In the CLI it is `--source-description`, paired with each `--source` by position. In MCP it is `reaction_notes`, one entry per `source_paths` file in the same order; use `""` to skip a note for a file. The note is capped at 500 characters.
-</Step>
+<Step title="Edit in words">
+A change in words is a build with a person: it ends in a draft that shows what changes, which you accept as above.
 
-<Step title="Read the result">
-Generation prints the people it built. When sources are attached it also produces grounded scenarios: recorded reactions the Person carries into a simulation as past context. Pass `--no-scenarios` (CLI) or `generate_evidence=False` (MCP) to skip them.
+<CodeGroup>
+```bash CLI
+ish person build --to p-d4e --brief "Make her ten years older" --wait
+```
+
+```text MCP
+person_build(workspace_id="w-6ec", person_id="p-d4e", brief="Make her ten years older")
+```
+</CodeGroup>
 </Step>
 </Steps>
 
-You can attach more than one source to a single generation and combine a brief, inline sources, and already-uploaded sources freely.
+<Note>
+Until a workspace has drafts, words handed to an existing person are stored as a note to approve, and nothing is edited. A build that creates people makes them at once.
+</Note>
 
-<Warning>
-The MCP server reads `source_paths` from its own filesystem, not yours. When an agent runs against the hosted MCP server, a path on your laptop is not on the server. Pass an `http(s)://` URL (fetched server-side, with a 10 MB cap), a `data:` URL, or upload first and reuse the id. See [sources](/concepts/source).
-</Warning>
+## After the build
 
-## Reuse a source across generations
-
-When one transcript should ground several audiences, upload it once and reference its id from many generations instead of re-uploading each time.
+Each person gets a short alias, `p-` on both surfaces (for example `p-d4e`). Hand those ids straight to a run, and read the whole person, every value with where it came from and every file with what it gave:
 
 <CodeGroup>
 ```bash CLI
-# Upload once; the note set here is what generation reads later.
-ish source upload ./call.mp3 --description "frustrated about repeated transfers"
-# -> ps-3a4
-
-ish person generate --description "Voices behind support tickets" --source ps-3a4 --count 4
-```
-
-```text MCP
-source_upload(
-  workspace_id="w-6ec",
-  source_path="./call.mp3",
-  reaction="frustrated about repeated transfers",
-)
-# -> source_upload_id
-
-person_generate(
-  workspace_id="w-6ec",
-  description="Voices behind support tickets",
-  source_upload_ids=["<source_upload_id>"],
-  count=4,
-)
-```
-</CodeGroup>
-
-For an already-uploaded source, the note set at upload time is the one generation uses. The CLI rejects a `--source-description` paired with an uploaded source so the note is never silently dropped; set it on `ish source upload` instead.
-
-<Tip>
-Not sure how many people one source warrants? The CLI prints a suggested count for a single processed source without generating anything: `ish person generate --source ps-3a4 --propose-count`.
-</Tip>
-
-## Don't wait for the job
-
-Generation blocks by default. To dispatch and pick up the results later, opt out of waiting.
-
-- **CLI:** `--no-wait` skips polling source processing; raise the generation poll with `--timeout <seconds>` (default 180) when a job runs long. The job keeps running server-side past the timeout, so re-poll or re-run with a longer timeout rather than re-enqueueing, which would duplicate the work.
-- **MCP:** `wait=False` returns a `job_id` and `status="queued"` immediately. Pick up the finished people with `person_get(workspace_id=..., type="ai")`.
-
-## After generation
-
-Each generated person gets a short alias, with a different prefix per surface: the CLI returns `p-` (for example `p-d4e`), the MCP server returns `tp-`. Hand those ids straight to a run.
-
-<CodeGroup>
-```bash CLI
+ish person get p-d4e --profile --sources
 ish study run --person p-d4e
 ```
 
 ```text MCP
-# The returned person ids select the audience for a run.
+person_get(workspace_id="w-6ec", person_id="p-d4e", include=["profile", "sources"])
 study_run(study_id="s-1a2", audience={"person_ids": ["p-d4e"]})
 ```
 </CodeGroup>
 
-To pin generation to exactly one Person for a pair-chat rehearsal, generate with a count of one per side and feed each returned id into the chat configuration.
-
-## When generation is not the right tool
+## When a build is not the right tool
 
 | You want | Reach for |
 |---|---|
-| New people that fit a brief or evidence | `ish person generate` / `person_generate` (this guide) |
-| One Person crafted through an iterative probe loop | [Build a person from notes](/cli/generated/person) (`suggest-scenarios` + `evidence`) |
+| People from a brief, material, or both | `ish person build` / `person_build` (this guide) |
+| An exact value on a person | `ish person update` / `person_update` |
 | An exact Person from a JSON spec, no model involved | `ish person create --file` |
 | People that already exist in a pool | Sample from the pool ([people and panels](/concepts/people)) |
 
@@ -162,15 +157,15 @@ To pin generation to exactly one Person for a pair-chat rehearsal, generate with
 
 <Columns cols={2}>
   <Card title="CLI: ish person" href="/cli/generated/person" icon="terminal">
-    Every flag, enum, and field on `person generate` and the rest of the person commands.
+    Every flag on `person build`, `person review` and the rest of the person commands.
   </Card>
   <Card title="MCP: person tools" href="/mcp/generated/tools-person" icon="/images/logos/mcp.svg">
-    The full `person_generate` and `source_upload` parameter contract.
+    The full `person_build`, `person_review` and `person_update` parameter contract.
   </Card>
   <Card title="People and panels" href="/concepts/people" icon="users">
-    What a person is and how a generated audience feeds a run.
+    What a person is and how a draft becomes people.
   </Card>
   <Card title="Sources" href="/concepts/source" icon="file-lines">
-    The real evidence that grounds a generated person.
+    The material a build reads, and what each file gave.
   </Card>
 </Columns>

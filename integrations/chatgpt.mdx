@@ -5,7 +5,7 @@ mode: "how-to"
 ---
 
 Add the hosted ish MCP server to ChatGPT as a connector so it can call ish tools
-(`study_run`, `ask_run`, `person_generate`, and the rest) from a chat. The server lives at
+(`study_run`, `ask_run`, `person_build`, and the rest) from a chat. The server lives at
 `https://mcp.ishlabs.io/mcp`, speaks streamable HTTP, and signs you in over OAuth on first
 connect, so no token lands in any config.
 
@@ -144,7 +144,7 @@ file arrives as an argument, ish uses an out-of-band upload link instead.
   <Step title="ish picks it up">
     The agent polls [`upload_status`](/mcp/generated/tools-upload) until the file lands,
     then uses the returned handle in the downstream call (for example
-    [`person_generate`](/mcp/generated/tools-person) or
+    [`person_build`](/mcp/generated/tools-person) or
     [`study_add_iteration`](/mcp/generated/tools-study)).
   </Step>
 </Steps>

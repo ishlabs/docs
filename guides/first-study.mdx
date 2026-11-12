@@ -65,23 +65,24 @@ The CLI prints the new study id and an alias like `s-b2c`, and remembers it as y
 
 <Step title="Choose who experiences it">
 
-A run with no panel reuses whatever participants already exist on the iteration. To resolve a fresh group, sample from the pool or generate people to fit a brief. Selection is shared across both surfaces. See [people and panels](/concepts/people).
+A run with no panel reuses whatever participants already exist on the iteration. To resolve a fresh group, sample from the pool or build people to fit a brief. Selection is shared across both surfaces. See [people and panels](/concepts/people).
 
 <CodeGroup>
 
 ```bash CLI
 # sample three Swedish people aged 35 to 50 (deferred to the run step below)
-# or generate people first when the pool is thin for your archetype
-ish person generate \
-  --description "Tech-savvy millennials in the US who use mobile banking" \
-  --count 3
+# or build people first when the pool is thin for your archetype
+ish person build \
+  --brief "Tech-savvy millennials in the US who use mobile banking" \
+  --count 3 --wait --accept
 ```
 
 ```python MCP
-person_generate(
+person_build(
     workspace_id="w-6ec",
-    description="Tech-savvy millennials in the US who use mobile banking",
+    brief="Tech-savvy millennials in the US who use mobile banking",
     count=3,
+    accept=True,
 )
 ```
 

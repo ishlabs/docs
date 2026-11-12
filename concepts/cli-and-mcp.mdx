@@ -41,7 +41,7 @@ The CLI reads as `ish <noun> <verb>`. The MCP exposes the same operations as `<n
 | Read current session, user, and workspaces | `ish status` / `ish whoami` | read resource [`ish://identity/me`](/mcp/generated/resources) |
 | List or read workspaces | `ish workspace list` / `ish workspace get` | [`workspace_get`](/mcp/generated/tools-workspace) (no args = list, `workspace_id` = one) |
 | Create, update, delete a workspace | `ish workspace create` / `update` / `delete` | [`workspace_create`](/mcp/generated/tools-workspace) / `workspace_update` / `workspace_delete` |
-| List or generate people | `ish person list` / `ish person generate` | [`person_get`](/mcp/generated/tools-person) / [`person_generate`](/mcp/generated/tools-person) |
+| List or generate people | `ish person list` / `ish person generate` | [`person_get`](/mcp/generated/tools-person) / [`person_build`](/mcp/generated/tools-person) |
 | Upload a source file | `ish source upload` | [`source_upload`](/mcp/generated/tools-person) |
 | List, browse, or read a study | `ish study list` / `ish study get` | [`study_get`](/mcp/generated/tools-study) (`workspace_id` = browse, `study_id` = one) |
 | Create a study | `ish study create` | [`study_create`](/mcp/generated/tools-study) |
@@ -75,7 +75,7 @@ The MCP is stateless. Every tool takes the relevant `workspace_id`, `study_id`, 
 
 The CLI is all commands. The MCP splits its surface in two:
 
-- **Tools** are actions the agent invokes: `study_run`, `ask_run`, `person_generate`.
+- **Tools** are actions the agent invokes: `study_run`, `ask_run`, `person_build`.
 - **Resources** are static reads addressed by a URI: `ish://identity/me`, `ish://workspace/<id>/secrets`, `ish://study/<id>/screenshots`. They are what the CLI exposes as read commands like `ish status` and `ish secret list`.
 
 The hosted server exposes 51 tools, 9 resources, and no prompts. A resource read on the MCP is the same data a `--json` read returns on the CLI.
