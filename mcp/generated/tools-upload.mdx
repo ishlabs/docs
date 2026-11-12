@@ -20,7 +20,7 @@ but the file never arrived as a tool argument - hosted MCP transports are
 JSON-only. The flow is: mint → **relay the returned ``instruction`` to the
 user verbatim** → user drops the file in the page and confirms → poll
 ``upload_status(token=...)`` → reuse the resulting handle in
-``person_generate(source_upload_ids=[...])`` or ``study_add_iteration(...)``.
+``person_build(source_upload_ids=[...])`` or ``study_add_iteration(...)``.
 
 `workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace the
 upload belongs to.
@@ -70,7 +70,7 @@ Call this after relaying the upload link and the user confirms they've
 uploaded. While ``status='pending'``, the returned ``next_action`` tells
 you to poll again. On ``status='completed'``, ``result`` carries the
 reusable handle(s) and ``suggestions`` names the exact downstream call:
-``person_generate(source_upload_ids=[...])`` and/or
+``person_build(source_upload_ids=[...])`` and/or
 ``study_add_iteration(content_url=… / image_urls=[…])``. On ``status='expired'``
 the link lapsed unused - mint a fresh one.
 

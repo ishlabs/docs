@@ -8,143 +8,53 @@ mode: "reference"
     Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
     Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
 
-## `person_attach`
-
-**Tier:** write · **Tags:** person, write
-
-Enrich one existing **private** person with extra grounding -
-**exactly one of ``source`` / ``evidence``.** Use this to add
-hand-tailored material to a single Person after the fact (vs.
-``person_generate``, which mints N people from a brief / sources). See
-``docs_get("guides/build-specific-person")`` for the evidence loop.
-
-- ``source=SourceAttachInput(path=..., description=...)`` runs the
-  Person-scoped 3-step attachment intake (initiate → signed-URL PUT →
-  confirm) - a file you want this Person to react to.
-- ``evidence=[EvidenceTraceInput(...), ...]`` POSTs scenario answers the
-  Person's simulation-time prompt reads as ``&lt;past_reactions>``.
-
-**The Person must be private** (``visibility="private"``): the backend
-rejects shared/published people (moderation gate); the MCP surfaces
-that as ``[validation_error]`` with a "must be private" message.
-
-`person_id`: UUID or short alias (e.g. ``p-d4e``); must be a
-caller-owned private Person.
-`source`: file payload - exactly one of ``source`` / ``evidence``.
-`evidence`: 1..N ``EvidenceTraceInput`` rows (mutually exclusive with
-``source``). Each carries ``text`` (the Person's answer), ``source`` enum
-(``situation`` / ``voice`` / ``binary`` / ``micro-story``),
-``scenario_prompt`` (the question), optional ``raw_response``.
-
-**Returns** ``PersonAttachResponse``: with ``source``, success sets
-``attachment_id``; with ``evidence``, ``evidence_traces`` lists the persisted
-rows. Full shape: ``docs_get("reference/responses")``.
-
-### Parameters
-<ParamField body="person_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
-</ParamField>
-<ParamField body="source" type="object">
-&nbsp;
-<Expandable title="properties">
-File payload for ``person_attach(source=...)``.
-
-The MCP resolves ``path`` (local path, ``http(s)://`` URL, or ``data:``
-URL) - or decodes ``inline_base64`` - and uploads via the backend's
-person-scoped 3-step intake. ``description`` is the optional researcher
-note that lands in ``Attachment.description`` (max 500 chars per the
-backend ``ConfirmProfileAttachmentRequest``).
-<ParamField body="path" type="string">
-Where to read the file from - a local path read from the **MCP server's** filesystem (the MCP process must have read access), an ``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap), or a ``data:`` URL. Supported MIME types: ``audio/*``, ``image/*``, ``text/*``, ``application/pdf``, ``application/json``, and office-document types. Omit when passing ``inline_base64``.
-</ParamField>
-<ParamField body="description" type="string">
-Optional researcher note attached to the file (max 500 chars). Mirrors the ``reaction`` field on ``source_upload``.
-</ParamField>
-<ParamField body="inline_base64" type="string">
-Raw base64-encoded file bytes (no ``data:`` prefix) - for hosted MCP clients that can pass bytes but not a path. ``file_name`` is REQUIRED with this. Mutually exclusive with a non-data ``path``.
-</ParamField>
-<ParamField body="file_name" type="string">
-Name to record for the upload; required with raw ``inline_base64``, optional otherwise (overrides the path/URL basename).
-</ParamField>
-<ParamField body="content_type" type="string">
-MIME override; inferred from ``file_name`` / the remote ``Content-Type`` when omitted.
-</ParamField>
-</Expandable>
-</ParamField>
-<ParamField body="evidence" type="object[]">
-&nbsp;
-<Expandable title="item properties">
-One scenario answer to persist on a person.
-
-Wire-shape mirror of the backend's ``EvidenceTraceInput``
-(``app/api/participant/me/scenarios/models.py``). Each row carries the
-persona's in-character answer (``text``), which scenario shape it
-answers (``source``), and the prompt the agent posed (``scenario_prompt``).
-<ParamField body="text" type="string" required>
-The persona's in-character answer / observation. Free text.
-</ParamField>
-<ParamField body="source" type="&quot;situation&quot; | &quot;voice&quot; | &quot;binary&quot; | &quot;micro-story&quot;" required>
-Which of the four scenario shapes this row answers: ``situation`` (concrete moment + 2-4 plausible reactions), ``voice`` (same situation, first-person utterances), ``binary`` (A vs B forced choice), ``micro-story`` (open-ended one-paragraph response).
-</ParamField>
-<ParamField body="scenario_prompt" type="string">
-The prompt the agent posed. Surfaces in the simulation-time persona prompt next to ``text`` so the simulated participant sees both question and answer as past context.
-</ParamField>
-<ParamField body="raw_response" type="object">
-Optional structured echo of the original LLM response.
-</ParamField>
-</Expandable>
-</ParamField>
-
-## `person_context_add`
+## `person_build`
 
 **Tier:** long-running · **Tags:** dispatch, person
 
-Add context to one existing private person: their real interactions (an email
-thread, a meeting transcript, a commented document) plus a note, read into
-episodes of beats (their own quoted words plus what they did) for review.
-Adding NEVER approves: show the user the ``episodes``, then
-``person_context_review(action="approve")``; a real third party's episodes the
-user approves themselves in the ish app.
-Reading is included (no credits).
+Build simulated people from a brief, from material, or both, or add to one person:
+create a person from a description ("a Malmö accountant with a toddler"), several
+from one file (a survey export, a recording with four speakers), or hand a note,
+files or an edit in words ("make her ten years older") to an existing person_id.
+Returns a draft to accept, or the people when the workspace has no drafts yet.
 
-Context holds one person's own words: material written by other people is
-skipped, whatever the note says. To ground new people in it, such as posts by
-many authors, use ``person_generate``.
+Where the workspace has no drafts yet, words handed to an existing person are stored as
+a note for the user to approve; nothing is edited. Pass who only as the user stated
+it; never infer it. Saying made_up does not stop ish from asking whether the person is
+real when the material reads like one real individual; only the user answers that, in
+the ish app. Building people here uses no credits.
 
-Best: whole threads and transcripts (their own words carry the voice), the file
-they reacted to marked ``role="shown"``, and rejections as well as yeses. Never
-write words on the person's behalf.
+`workspace_id`: UUID or alias (``w-...``). `brief`: who they are, or the change to
+make, in plain words. `person_id`: add to this person instead of creating. `sources`:
+files in order, each one of ``text``, ``path`` (a ``data:`` or ``http(s)://`` URL, or
+a path on the MCP host), ``inline_base64`` or ``attachment_id``. `source_upload_ids`:
+files already uploaded with ``source_upload``. `count`: how many to create, 1 to 10;
+omit to let ish decide. `who`: ``made_up`` or ``real_person``, only as the user said
+it, only when creating. `use_of_words`: ``own_words`` or ``inspiration``.
+`rights_basis`: required with any file; why the USER may share it (``agreed``,
+``public``, ``work``, ``own``, ``remembered`` for a person); ask, never assume.
+`includes_others`: other people are in it. `import_id`: resume a hand-in (GETs only).
+`accept`: accept, one by one, each made-up person that needs nobody; never a real
+person. `wait`: block until done or a question (``timeout`` seconds, default 240);
+on elapse ``next_action`` resumes. `idempotency_key`: only to retry a failed hand-in.
 
-Add: ``note`` and/or ``sources``. Answer: ``import_id`` + ``answer`` when an
-import stopped at ``needs_input`` with a ``question``. Resume: ``import_id``
-alone waits on an import still reading.
+A draft holds nothing on a person until accepted: show it to the user, then
+``person_review``. A real person's draft, and the question whether a person is real,
+are the user's in the ish app: hand them ``app_url``.
 
-`person_id`: UUID or alias (``p-...``) of a private person.
-`note`: who the person is in the material and the situation, in your words
-(at most 20,000 characters).
-`sources`: up to 20 ordered files, each one of ``text`` (paste a thread here,
-``file_name="thread.eml"``), ``path``, ``inline_base64`` or ``attachment_id``,
-with optional ``role`` shown | record.
-`import_id` / `answer`: the import to answer or resume, and the answer.
-`wait`: block until the import is done, needs input or failed (``timeout``
-seconds, default 240); a wait that runs out returns status ``interpreting``
-and a ``next_action``.
-`idempotency_key`: only to retry an add that failed; the error names it.
-`rights_basis`: required to add; why the USER may share this: they
-``agreed``, ``public``, ``work`` with the person, ``own`` (they made it),
-``remembered`` (last answer). Ask the user, never assume.
-`includes_others`: other people are in it.
-
-**Returns** ``ContextImport``: ``status`` / ``status_label``, ``question``,
-``episodes`` with beats, ``next_step``; ``next_action`` while reading. Full
-shape: ``docs_get("reference/responses")``.
+**Returns** ``PersonBuild``: ``draft``, ``people`` (state, what an accept takes, what
+waits for the user), ``questions``, ``person_ids``, ``app_url``, ``next_step``;
+``episodes`` when no draft was made.
 
 ### Parameters
-<ParamField body="person_id" type="string" required>
+<ParamField body="workspace_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="note" type="string">
+<ParamField body="brief" type="string">
 &nbsp;
+</ParamField>
+<ParamField body="person_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 <ParamField body="sources" type="object[]">
 &nbsp;
@@ -171,11 +81,29 @@ Name with extension: pdf, txt, md, csv, tsv, xlsx, eml, vtt, srt, png, jpg, webp
 </ParamField>
 </Expandable>
 </ParamField>
+<ParamField body="source_upload_ids" type="string[]">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="count" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="who" type="&quot;made_up&quot; | &quot;real_person&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="use_of_words" type="&quot;own_words&quot; | &quot;inspiration&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="rights_basis" type="&quot;agreed&quot; | &quot;public&quot; | &quot;work&quot; | &quot;own&quot; | &quot;remembered&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="includes_others" type="boolean">
+Default: `false`.
+</ParamField>
 <ParamField body="import_id" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="answer" type="string">
-&nbsp;
+<ParamField body="accept" type="boolean">
+Default: `false`.
 </ParamField>
 <ParamField body="wait" type="boolean">
 Default: `true`.
@@ -186,32 +114,32 @@ Default: `240.0`.
 <ParamField body="idempotency_key" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="rights_basis" type="&quot;agreed&quot; | &quot;public&quot; | &quot;work&quot; | &quot;own&quot; | &quot;remembered&quot;">
-&nbsp;
-</ParamField>
-<ParamField body="includes_others" type="boolean">
-Default: `false`.
-</ParamField>
 
 ## `person_context_delete`
 
 **Tier:** destructive · **Tags:** delete, person
 
-Permanently erase one episode of a person's context. **DESTRUCTIVE** and
-irreversible: its beats, the files no other episode cites, and its copies in
-runs already set up are removed. Confirm with the user first. To only stop
-using it, call ``person_context_review(action="leave_out")`` instead.
+Permanently erase one episode of a person's context, or throw away a draft that
+person_build made (import_id): the draft, and the files added only for it, are
+deleted. **DESTRUCTIVE** and irreversible: an episode's beats, the files no other
+episode cites, and its copies in runs already set up are removed. Confirm with the
+user first. To only stop using an episode, call
+``person_context_review(action="leave_out")`` instead.
 
-`person_id`: UUID or alias (``p-...``) of the person.
-`episode_id`: the episode UUID.
+`person_id`: UUID or alias (``p-...``) of the person, with `episode_id`: the
+episode UUID. Or `import_id` alone: the draft to throw away.
 
-**Returns** ``&#123;"deleted": True, "episode_id": &lt;id>}``.
+**Returns** ``&#123;"deleted": True, "episode_id": &lt;id>}`` or
+``&#123;"deleted": True, "import_id": &lt;id>}``.
 
 ### Parameters
-<ParamField body="person_id" type="string" required>
+<ParamField body="person_id" type="string">
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="episode_id" type="string" required>
+<ParamField body="episode_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="import_id" type="string">
 &nbsp;
 </ParamField>
 
@@ -223,7 +151,7 @@ Read a person's context. Polymorphic: with neither id, list the person's
 episodes in this workspace (``status`` filters them) with their current
 patterns and ``subject_kind``; with ``episode_id``, read one episode with every
 beat and the person's own words inline; with ``import_id``, read one import
-the way ``person_context_add`` returns it (use it to check a wait). With
+as today's engine reports it (use it to check a wait). With
 ``format="markdown"``, export the whole person as one Markdown file: profile,
 bio and answered scenarios, then every approved episode in use, oldest first.
 
@@ -370,133 +298,6 @@ to delete.
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
 
-## `person_generate`
-
-**Tier:** long-running · **Tags:** dispatch, person
-
-Mint new simulated people from a plain-English brief ("three skeptical
-indie hackers", "a head of product at a Series B") and optional research
-files, via the agentic generation pipeline. Returns the minted
-``person_ids``, which you pass as ``people.person_ids`` on ``study_run``
-/ ``ask_run``.
-
-Bills credits per person actually produced, more with avatars; live rates in
-``account_usage().rates``.
-
-`workspace_id`: UUID or short alias (e.g. ``w-6ec``) of the workspace.
-`description`: free-text brief for the people to mint (>=20 chars when
-supplied).
-`source_paths`: evidence references - prefer a ``data:`` URL or an
-``http(s)://`` URL (fetched server-side, SSRF-guarded, 10MB cap). A local
-file path is read from the **MCP server's own** filesystem, so it only helps
-when you run the server yourself.
-`source_upload_ids`: reuse sources already uploaded via ``source_upload``
-(or a prior partial build) without re-uploading.
-`reaction_notes`: one researcher note per ``source_paths`` entry (same
-order, same length) describing how the real person reacted to THAT
-artifact; ``""`` skips a note for that file.
-`count`: pin how many to mint, [1, 10]; omit to let the agent propose.
-`age_range`: ``(min, max)`` inclusive. `country`: ISO-3166-alpha-2
-codes. `gender`: list of gender labels.
-`generate_evidence`: also produce grounded ``EvidenceTrace`` rows.
-``None`` (default) = auto (scenarios only when sources attached);
-``True`` / ``False`` override.
-`job_id`: resume mode - poll an already-enqueued job instead of starting
-one. Returned in ``next_action`` by a ``wait=False`` call. Mutually
-exclusive with every generation input: combining them is a
-``validation_error``, never a silent discard.
-`wait`: bool, default ``True`` - blocks until terminal, but for at most
-~50 s (runs take ~40-100 s): a job still running then comes back
-``ok=True`` with its ``job_id``, ``status`` and a ``next_action`` that
-re-attaches. ``False`` returns that shape right after enqueue.
-`timeout`: seconds to block instead of ~50 s, for a client that lets one
-call run longer; on elapse, the ``timeout`` envelope (same ``job_id`` and
-``next_action``).
-
-Minting also counts toward the plan's custom-person entity cap, which is
-independent of the credit pool; on hit, ``[usage_limit_reached]``.
-
-Uploaded evidence - emails, PDFs, text, images, audio - grounds the people
-it mints, optionally with scenarios traced back to the real reactions. See
-``docs_get("concepts/person")`` (generate vs manual) and
-``docs_get("concepts/source")`` (artifacts as generation inputs).
-
-**Blocking and resume.** ``wait=True`` uploads artifacts, enqueues the job,
-polls to terminal, returns resolved people + scenarios.
-``person_generate(workspace_id=..., job_id=...)`` re-attaches to that same
-job and waits it out, again for ~50 s at a time: keep following
-``next_action`` until ``status`` is terminal. Never re-send the brief to
-recover a cut call; that mints a second set. See
-``docs_get("reference/long-running-jobs")``. The three inputs (description,
-``source_paths``, ``source_upload_ids``) freely combine. Combining ``job_id``
-with any of them is a ``validation_error`` rather than a silent discard; if
-the job is already terminal, ``wait=False`` returns the same envelope the
-blocking call would have - the minted people on ``completed``, ``ok=False``
-otherwise - with no ``next_action``.
-
-**``source_paths`` in full.** ``data:`` and ``http(s)://`` URLs are portable
-and work against the hosted server. To feed raw local bytes to the hosted
-server, upload them first with ``source_upload(inline_base64=...)`` and pass
-the returned id via ``source_upload_ids``. Supported MIME: ``audio/*``,
-``image/*``, ``text/*``, ``application/pdf``, ``application/json``,
-office-document types.
-
-**Single-person role-fitting (pair-mode use case).** Pair-mode chat
-rehearsals (``study_add_iteration`` with ``chat_pair=...``) need one person
-per side: call ``person_generate(count=1, description="...")`` per side;
-the returned ids plug into ``ChatPairConfig.group_a`` / ``group_b``.
-
-Pipeline-specific failures come back as ``generation_failed`` or
-``timeout``. **Partial-failure contract:** when upload(s) succeeded but
-enqueue failed, ``source_ids`` is still populated so agents can retry
-against existing sources without re-uploading.
-
-**Returns** ``PersonGenerateResponse`` keyed by ``ok``: a finished job
-populates ``people`` + ``person_ids``; a running one ``job_id`` +
-``status`` + ``next_action``. Full shape:
-``docs_get("reference/responses")``.
-
-### Parameters
-<ParamField body="workspace_id" type="string" required>
-UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
-</ParamField>
-<ParamField body="description" type="string">
-&nbsp;
-</ParamField>
-<ParamField body="source_paths" type="string[]">
-&nbsp;
-</ParamField>
-<ParamField body="source_upload_ids" type="string[]">
-UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
-</ParamField>
-<ParamField body="reaction_notes" type="string[]">
-&nbsp;
-</ParamField>
-<ParamField body="count" type="integer">
-&nbsp;
-</ParamField>
-<ParamField body="age_range" type="object[]">
-&nbsp;
-</ParamField>
-<ParamField body="country" type="string[]">
-&nbsp;
-</ParamField>
-<ParamField body="gender" type="string[]">
-&nbsp;
-</ParamField>
-<ParamField body="generate_evidence" type="boolean">
-&nbsp;
-</ParamField>
-<ParamField body="job_id" type="string">
-&nbsp;
-</ParamField>
-<ParamField body="wait" type="boolean">
-Default: `true`.
-</ParamField>
-<ParamField body="timeout" type="number">
-&nbsp;
-</ParamField>
-
 ## `person_get`
 
 **Tier:** read-only · **Tags:** person, read
@@ -530,6 +331,9 @@ values are in ``docs_get("concepts/person")``.
 ``accessibility_profile`` JSONB.
 `include_bio`, `include_accessibility_profile`: default ``False`` (each is
 large per row; fetch a single Person for the full payload).
+`include`: single mode only - ``profile`` (the values by area, each with where it
+came from), ``context`` (the episodes), ``sources`` (the files, and what each gave),
+``readout`` (the pattern lines).
 `include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
 rows (newest-first) under the Person's ``evidence``; rejected in list mode,
 where per-row evidence would blow the token budget.
@@ -545,7 +349,7 @@ here is what a run can draw. Widen with ``scope``. Returns a
 has_more}``); ``total`` is the match count, handy for pre-flighting a
 pair-mode side's pool (the ``*_in`` enums + a11y booleans share their
 vocabulary with ``RoleCriteria``). If nothing matches, fall through to
-``person_generate`` to mint matching people. Public-pool rows surface
+``person_build`` to make matching people. Public-pool rows surface
 but can't be deleted by the caller (``person_delete`` → ``[forbidden]``).
 
 **Single mode** (with ``person_id``): that Person with workspace-scoped
@@ -562,7 +366,8 @@ Two vocabularies meet here. This FILTER takes ``workspace`` / ``shared`` /
 ``platform`` (plus the aliases ``private`` / ``public``); a returned
 ``Person.visibility`` reads ``private`` / ``published`` / ``platform``.
 ``private`` is workspace-only, ``published`` community-visible,
-``platform`` admin-curated. So ``person_attach`` needs a Person whose
+``platform`` admin-curated. So adding to a person (``person_build`` with
+``person_id``) needs a Person whose
 ``visibility`` is ``private``; filter for that pool with
 ``visibility="workspace"``.
 
@@ -678,15 +483,136 @@ Default: `"workspace"`.
 <ParamField body="visibility" type="&quot;workspace&quot; | &quot;shared&quot; | &quot;platform&quot; | &quot;private&quot; | &quot;public&quot;">
 &nbsp;
 </ParamField>
+<ParamField body="include" type="&quot;profile&quot; | &quot;context&quot; | &quot;sources&quot; | &quot;readout&quot;[]">
+&nbsp;
+</ParamField>
+
+## `person_review`
+
+**Tier:** write · **Tags:** person, write
+
+Read a draft that person_build made, or act on it: list a workspace's open drafts,
+see what a draft would put on each person and what waits, answer its questions,
+accept a made-up person's draft, leave a value out or edit it. Whether a person is
+real, and everything on a real person's draft, is the user's in the ish app; this
+returns the question or the draft with the link. To throw a draft away use
+person_context_delete(import_id=…).
+
+`workspace_id` alone: the open drafts. `import_id` alone: one draft, lean (per
+person: the counts, the areas with something to check, the context items, the
+questions); `detail=True` adds every value and what each person did and said, so you
+can show the user the words before anyone accepts. `action` (with `import_id`):
+``accept`` (one person with `person_ref`, else every person you may accept),
+``answer`` (`question_id` and `answer`: one of the question's answers, or the user's
+words where it takes words; codes ``made_up`` / ``real_person``, ``target`` /
+``other`` / ``another`` with `other_person_id`, ``same`` / ``different``,
+``own_words`` / ``inspiration``), ``leave_out`` or ``edit`` (`item_id`, and `value`
+for an edit), ``retry`` (`person_ref` of a failed read). An import that is not a
+draft and waits on a question takes ``answer`` with no `question_id`.
+
+Never answer whether a person is real and never act on a real person's draft: those
+come back with ``app_url`` for the user. Show the user a draft before accepting it.
+
+**Returns** ``DraftView`` (people, questions, areas, ``app_url``, ``next_step``), or
+``DraftList`` for a workspace.
+
+### Parameters
+<ParamField body="workspace_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="import_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="action" type="&quot;accept&quot; | &quot;answer&quot; | &quot;leave_out&quot; | &quot;edit&quot; | &quot;retry&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="person_ref" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="question_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="answer" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="other_person_id" type="string">
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="item_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="value" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="detail" type="boolean">
+Default: `false`.
+</ParamField>
+
+## `person_update`
+
+**Tier:** write · **Tags:** person, write
+
+Set exact values on one existing person: name, date of birth, gender, country,
+city, occupation and the five background fields. It never sets a description: for
+that, or for a change described in words ("make her less patient"), use
+person_build(person_id=…, brief=…), which ends in a review.
+
+`person_id`: UUID or alias (``p-...``). `name`, `date_of_birth` (YYYY-MM-DD),
+`gender`, `country` (ISO-3166-alpha-2), `city`, `occupation`; `education_level`,
+`household`, `locale_type`, `income_level`, `employment_status` take the enums of
+``docs_get("concepts/person")``. Pass at least one; only what you pass is sent.
+
+A real person's values are the user's: the backend refuses them from here, and this
+returns ``[needs_human_approval]`` with the person's link. Never try another way.
+
+**Returns** the updated ``Person``.
+
+### Parameters
+<ParamField body="person_id" type="string" required>
+UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
+</ParamField>
+<ParamField body="name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="date_of_birth" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="gender" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="country" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="city" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="occupation" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="education_level" type="&quot;less_than_secondary&quot; | &quot;secondary&quot; | &quot;some_post_secondary&quot; | &quot;vocational_or_associate&quot; | &quot;bachelor&quot; | &quot;graduate&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="household" type="&quot;single&quot; | &quot;couple_no_kids&quot; | &quot;couple_with_kids&quot; | &quot;single_parent&quot; | &quot;shared_housing&quot; | &quot;adult_with_parents&quot; | &quot;multi_generational&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="locale_type" type="&quot;urban&quot; | &quot;suburban&quot; | &quot;small_town&quot; | &quot;rural&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="income_level" type="&quot;lower&quot; | &quot;lower_middle&quot; | &quot;middle&quot; | &quot;upper_middle&quot; | &quot;upper&quot; | &quot;prefer_not_to_say&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="employment_status" type="&quot;employed_full_time&quot; | &quot;employed_part_time&quot; | &quot;self_employed&quot; | &quot;unemployed_seeking&quot; | &quot;student&quot; | &quot;homemaker&quot; | &quot;retired&quot; | &quot;unable_to_work&quot; | &quot;other&quot;">
+&nbsp;
+</ParamField>
 
 ## `source_upload`
 
 **Tier:** write · **Tags:** person, write
 
 Upload one piece of real evidence (email, PDF, text/doc, image, audio)
-so a later ``person_generate`` can ground a participant "ish" in how a
+so a later ``person_build`` can ground a participant "ish" in how a
 real person reacted. Returns a ``source_upload_id`` to hand to
-``person_generate(source_upload_ids=[...])``. See
+``person_build(source_upload_ids=[...])``. See
 ``docs_get("concepts/source")``.
 
 Pass the bytes with ``inline_base64`` (or a ``data:`` URL) - that is the
