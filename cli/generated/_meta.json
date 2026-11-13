@@ -1,6 +1,6 @@
 {
   "generator": "generate-docs-cli.mjs",
-  "cli_version": "0.43.0",
+  "cli_version": "0.44.0",
   "pages": [
     "index",
     "session",
