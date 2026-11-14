@@ -563,6 +563,21 @@ Bills credits per completed participant, scaled by the steps they take
 in ``account_usage().rates``. Every reference clone runs its own roster, so
 spend scales with the number of references.
 
+`source_study_id`: UUID or alias (e.g. ``s-b2c``) of the source study.
+`source_iteration_id`: UUID or alias (``i-...``) of the source iteration
+whose completed participant roster each round replicates.
+`reference_ids`: existing reference UUIDs / aliases (``w-...``), e.g. from
+an earlier run's ``started`` rows.
+`references`: new targets, each ``&#123;name, base_url}``, created first in the
+source study's workspace. On a re-run pass ``reference_ids`` instead, or
+each call creates new references. At least one target across the two. If
+the benchmark itself then fails, the error names the references created.
+`screen_format`: shared screen format for every round (``"desktop"`` or
+``"mobile_portrait"``).
+`max_interactions`: optional per-participant step cap; omitted, the
+backend's ``DEFAULT_MAX_STEPS = 15`` applies (``study_run`` defaults to 20,
+so pass the source study's cap for a like-for-like comparison).
+
 Per reference (isolated, so one failure never aborts the rest) the backend
 clones the source study onto the reference, opens a round, replicates the
 source iteration's AI participant roster onto it, and dispatches the
@@ -578,21 +593,6 @@ Precondition: ``source_iteration_id`` must already have COMPLETED AI
 participants, so run the source study first (``study_run``, then wait for
 completion). Read the results with ``study_comparison(study_id)`` once the
 dispatched rounds finish.
-
-`source_study_id`: UUID or alias (e.g. ``s-b2c``) of the source study.
-`source_iteration_id`: UUID or alias (``i-...``) of the source iteration
-whose completed participant roster each round replicates.
-`reference_ids`: existing reference UUIDs / aliases (``w-...``), e.g. from
-an earlier run's ``started`` rows.
-`references`: new targets, each ``&#123;name, base_url}``, created first in the
-source study's workspace. On a re-run pass ``reference_ids`` instead, or
-each call creates new references. At least one target across the two. If
-the benchmark itself then fails, the error names the references created.
-`screen_format`: shared screen format for every round (``"desktop"`` or
-``"mobile_portrait"``).
-`max_interactions`: optional per-participant step cap; omitted, the
-backend's ``DEFAULT_MAX_STEPS = 15`` applies (``study_run`` defaults to 20,
-so pass the source study's cap for a like-for-like comparison).
 
 Each reference's target URL is its ``base_url``. On a ``failed`` row,
 ``stage`` names where that reference broke: ``create_reference | no_url |
