@@ -863,7 +863,14 @@ Read modes:
   conversion read keyed by each opted-in ``evaluation_dimensions`` entry,
   each ``&#123;iterations: [&#123;iteration_label, n, mean, distribution, band,
   rank}], per_participant: [...]}`` with ``mean`` on a 1-5 scale; absent
-  when the study opted into none or it is not computed yet).
+  when the study opted into none or it is not computed yet). Each
+  ``key_insights[]`` finding: ``participant_count`` counts RUNS that raised
+  it, either way, never agreement; ``stance_by_iteration`` splits each
+  version into ``met`` (went for) / ``missed`` (against) / ``mixed``, null
+  on runs that predate it; ``person_level`` true means the same people carry
+  it in every version, a trait of them not a version result, so relay
+  ``distinct_people``; an ``evidence[]`` row cites an interaction or, with
+  ``answer_participant_id`` + ``answer_question_id``, a questionnaire answer.
 - ``study_ids`` → benchmark cross-read: per-study results in order, each
   shaped by ``view`` (pass the source plus its ``study_benchmark`` clones).
 
