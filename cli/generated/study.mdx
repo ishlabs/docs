@@ -29,7 +29,7 @@ Usage: `ish study generate [options]`
 <ParamField path="--workspace <id>" type="string">Workspace ID</ParamField>
 <ParamField path="--problem <description>" type="string">Problem description (what you want to understand) Required.</ParamField>
 <ParamField path="--target-url <url>" type="string">URL of the product to test</ParamField>
-<ParamField path="--evaluation-dimension <dimension>" type="string">Conversion-intent dimension to measure on the generated study: purchase_intent, signup_intent or subscribe_intent (repeatable) Default: [].</ParamField>
+<ParamField path="--evaluation-dimension <dimension>" type="string">Conversion-intent dimension to measure on the generated study: purchase_intent, signup_intent, subscribe_intent (comma-separated or repeatable) Default: [].</ParamField>
 
 ## `ish study get`
 
@@ -62,7 +62,7 @@ Usage: `ish study update <id> [options]`
 <ParamField path="--assignments-file <path>" type="string">JSON file with assignments array</ParamField>
 <ParamField path="--assignments <json>" type="string">Inline JSON array of assignments (escape hatch)</ParamField>
 <ParamField path="--question <text>" type="string">Replace the questionnaire with these text questions (repeatable) Default: [].</ParamField>
-<ParamField path="--evaluation-dimension <dimension>" type="string">Replace the conversion-intent dimensions to measure: purchase_intent, signup_intent or subscribe_intent (repeatable). Reconciles the auto-added reaction questions to match. Default: [].</ParamField>
+<ParamField path="--evaluation-dimension <dimension>" type="string">Replace the conversion-intent dimensions to measure: purchase_intent, signup_intent, subscribe_intent (comma-separated or repeatable). Reconciles the auto-added reaction questions to match. Default: [].</ParamField>
 <ParamField path="--questionnaire <json|@file|path>" type="string">Replace the questionnaire from inline JSON, @file, or a JSON file path (full InterviewQuestion shape)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 

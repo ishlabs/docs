@@ -38,8 +38,8 @@ Usage: `ish ask run [id] [options]`
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
-<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
-<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <list>" type="string">Filter by gender: female, male, nonbinary (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
@@ -82,8 +82,8 @@ Usage: `ish ask create [options]`
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
-<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
-<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <list>" type="string">Filter by gender: female, male, nonbinary (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
@@ -230,8 +230,8 @@ Usage: `ish ask add-people [id] [options]`
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
-<ParamField path="--gender <gender>" type="string">Filter by gender (female, male, nonbinary; repeatable, OR semantics) Default: [].</ParamField>
-<ParamField path="--country <code>" type="string">Filter by 2-letter country code (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <list>" type="string">Filter by gender: female, male, nonbinary (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
+<ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>

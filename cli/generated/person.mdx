@@ -222,8 +222,8 @@ Usage: `ish person list [options]`
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
 <ParamField path="--type <type>" type="string">Person type: ai, human, all (default: ai) Default: "ai".</ParamField>
-<ParamField path="--gender <gender>" type="string">Filter by gender (repeatable) Default: [].</ParamField>
-<ParamField path="--country <country>" type="string">Filter by country code, e.g. US (repeatable) Default: [].</ParamField>
+<ParamField path="--gender <list>" type="string">Filter by gender, e.g. female,male (comma-separated or repeatable) Default: [].</ParamField>
+<ParamField path="--country <list>" type="string">Filter by country codes, e.g. US,GB,SE (comma-separated or repeatable) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your own people - the DEFAULT) | shared (community-published) | platform (the full shared pool, ~13.6k) (legacy 'private'/'public' accepted as aliases)</ParamField>
