@@ -67,11 +67,7 @@ You rarely start a run by hand-building a Person. You either pull from a pool th
 
 One hand-in builds people: a written brief, files ([sources](/concepts/source) such as transcripts, emails, surveys, PDFs, images, audio), or both. One file can hold several people (a survey export, a recording with four speakers), and the same hand-in can add to one existing Person instead of creating one.
 
-Where your workspace makes drafts, nothing is on a Person until it is accepted. The build returns a **draft**: what each Person would get, where every value came from, and any **questions** ish needs answered first. You answer the questions, then accept the draft as it is or look through it first. An agent may accept a made-up person's draft that nothing waits on; a real person's draft is accepted only in the ish app, and whether a person is real is answered only there. A build is capped at 10 people unless the material decides the count. Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool.
-
-<Note>
-Until your workspace has drafts, the people exist as soon as the build finishes.
-</Note>
+Handing material in is the approval: what ish reads is applied at once, with nothing to accept. Each value records where it came from, Context is in use from the next run, and the build lists what it changed and what it refused or skipped. A **question** comes up only where a wrong guess would mix people up (which voice, which person, the same person, a real person); it holds back only what depends on it, and the rest is applied meanwhile. Whether a person is real is answered only in the ish app. A real person's material handed in through the CLI, MCP or the in-app assistant waits for **one confirm** in the app, which can cover many people at once; a hand-in made in the app applies at once. Anything applied can be edited, left out or undone afterwards. A build is capped at 10 people unless the material decides the count. Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool.
 
 When the pool has nothing that matches your filters, building people that fit the brief is the right next move, regardless of what the pool happens to contain.
 
@@ -134,7 +130,7 @@ ish person list --visibility platform --country US
 ```
 
 ```text MCP
-# Build people from a brief (waits for the draft by default)
+# Build people from a brief (waits until it is read, by default)
 person_build(
   workspace_id="w-6ec",
   brief="Tech-savvy millennials in the US who use mobile banking",

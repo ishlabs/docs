@@ -74,7 +74,7 @@ A run with no panel reuses whatever participants already exist on the iteration.
 # or build people first when the pool is thin for your archetype
 ish person build \
   --brief "Tech-savvy millennials in the US who use mobile banking" \
-  --count 3 --wait --accept
+  --count 3 --wait
 ```
 
 ```python MCP
@@ -82,7 +82,6 @@ person_build(
     workspace_id="w-6ec",
     brief="Tech-savvy millennials in the US who use mobile banking",
     count=3,
-    accept=True,
 )
 ```
 

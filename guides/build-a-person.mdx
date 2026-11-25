@@ -1,10 +1,10 @@
 ---
 title: "Build a specific person"
-description: "Build a simulated person, or a small group, from a brief, real material, or both; answer, accept, add later and edit in words."
+description: "Build a simulated person, or a small group, from a brief, real material, or both: applied at once, then answer, correct, add later and edit in words."
 mode: "how-to"
 ---
 
-You want a [person](/concepts/people) who fits a real audience: not a row pulled from the shared pool, but one built to your brief and grounded in material you already have. This guide builds that person from a description, [sources](/concepts/source) (transcripts, emails, surveys, PDFs, images, audio), or both, on either surface, in five steps.
+You want a [person](/concepts/people) who fits a real audience: not a row pulled from the shared pool, but one built to your brief and grounded in material you already have. This guide builds that person from a description, [sources](/concepts/source) (transcripts, emails, surveys, PDFs, images, audio), or both, on either surface, step by step.
 
 A build makes simulated people; it does not turn the output into a real human. A person built from a real transcript is closer to the mark than one built from a prompt alone, but it is still simulation. Frame the findings the same way.
 
@@ -18,11 +18,11 @@ A build makes simulated people; it does not turn the output into a real human. A
 Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool. See [credits and limits](/concepts/credits-and-limits).
 </Note>
 
-Two rules hold on every surface. Whether a person is real is answered only in the ish app; an agent gets the question and a link. An exact value is set with `ish person update` or `person_update`, and a description changes only through a build.
+Handing material in is the approval: what ish reads is applied at once, with nothing to accept. Three rules hold on every surface. A real person's material handed in through the CLI, MCP or the in-app assistant waits for one confirm that only the ish app gives. Whether a person is real is answered only in the ish app; an agent gets the question and a link. An exact value is set with `ish person update` or `person_update`, and a description changes only through a build.
 
 <Steps>
 <Step title="Build">
-Hand in a brief, material, or both. Say who they are only as you know it: `made_up` for someone you invented, `real_person` for a real person. With files, say why you may share them.
+Hand in a brief, material, or both. Say who they are only as you know it: `made_up` for someone you invented, `real_person` for a real person. With files, or to use someone's own words (`own_words`), say why you may share them.
 
 <CodeGroup>
 ```bash CLI
@@ -50,11 +50,15 @@ person_build(
 ```
 </CodeGroup>
 
-The build waits for the draft by default on MCP (`wait=True`) and with `--wait` on the CLI. It returns a draft: each person, what an accept would take, and anything waiting on you.
+The build waits until the material is read, by default on MCP (`wait=True`) and with `--wait` on the CLI. It returns the people with what was applied to each, any open questions, and what was refused or skipped (a file that could not be read, a category ish does not store).
+</Step>
+
+<Step title="A real person: one confirm in the app">
+A real person's material handed in through the CLI or MCP is read and structured, then waits for one confirm in the ish app before anything is applied. The build returns the app link (`app_url`, with `waits_for_user_in_app` on MCP; exit code 2 with the link on the CLI). Give the link to the user; they can confirm many people at once. Material that is not confirmed within 30 days is discarded with its files. A hand-in made in the app itself applies at once.
 </Step>
 
 <Step title="Answer">
-When ish needs to know something first (who is this voice, are these the same person), the draft carries questions. Ask the user each one and pass the answer.
+ish asks only where a wrong guess would mix people up: which voice is this person, which of your people is this about, are these the same person, is this a real person. Each question holds back only what depends on it; everything else is already applied. Ask the user and pass the answer.
 
 <CodeGroup>
 ```bash CLI
@@ -63,34 +67,38 @@ ish person review <import-id> --answer <question-id>=<answer> --wait
 ```
 
 ```text MCP
-person_review(import_id="…")
-person_review(import_id="…", action="answer", question_id="…", answer="…")
+person_review(workspace_id="w-6ec", import_id="…")
+person_review(workspace_id="w-6ec", import_id="…", action="answer", question_id="…", answer="…")
 ```
 </CodeGroup>
 
-"Is this a real person?" is not among the questions an agent answers: the CLI and MCP return it with the draft's link, and the user answers it in the app.
+"Is this a real person?" is not among the questions an agent answers: the CLI and MCP return it with the app link, and the user answers it in the app. An answer about a real person, given through the CLI or MCP, then waits for the same one confirm.
 </Step>
 
-<Step title="Accept, or look through first">
-Read the draft with the user, then accept. A made-up person's draft can be accepted from the CLI or MCP. A real person's draft is accepted only in the ish app; the CLI and MCP give you the link, and on such a draft they answer, edit and leave out nothing either.
+<Step title="Correct afterwards">
+Read what a hand-in changed, then edit a value, leave one item out, or undo the whole hand-in. Undo restores the earlier values and keeps the history; through the CLI or MCP it never removes a person. On a real person, editing, leaving out and undoing happen in the ish app; the CLI and MCP give you the link.
 
 <CodeGroup>
 ```bash CLI
 ish person review <import-id> --all
-ish person review <import-id> --edit <item-id>=35 --accept
+ish person review <import-id> --edit <item-id>=35
+ish person review <import-id> --leave-out <item-id>
+ish person review <import-id> --undo
 ```
 
 ```text MCP
 person_review(import_id="…", detail=True)
-person_review(import_id="…", action="accept")
+person_review(import_id="…", action="edit", item_id="…", value="35")
+person_review(import_id="…", action="leave_out", item_id="…")
+person_review(import_id="…", action="undo")
 ```
 </CodeGroup>
 
-To skip the look-through for made-up people, pass `--accept` (CLI) or `accept=True` (MCP) on the build: it accepts each made-up person that nothing waits on, one by one, and leaves the rest as a draft.
+A value you typed yourself is never overwritten by later material: what the material says instead is listed as kept back, and you can use it with an edit.
 </Step>
 
 <Step title="Add later">
-As new material arrives, hand it to the same person.
+As new material arrives, hand it to the same person. It is applied the same way.
 
 <CodeGroup>
 ```bash CLI
@@ -110,7 +118,7 @@ person_build(
 </Step>
 
 <Step title="Edit in words">
-A change in words is a build with a person: it ends in a draft that shows what changes, which you accept as above.
+A change in words is a build with a person: it is applied, and what changed is listed like any hand-in, with undo.
 
 <CodeGroup>
 ```bash CLI
@@ -123,10 +131,6 @@ person_build(workspace_id="w-6ec", person_id="p-d4e", brief="Make her ten years 
 </CodeGroup>
 </Step>
 </Steps>
-
-<Note>
-Until a workspace has drafts, words handed to an existing person are stored as a note to approve, and nothing is edited. A build that creates people makes them at once.
-</Note>
 
 ## After the build
 
@@ -163,7 +167,7 @@ study_run(study_id="s-1a2", audience={"person_ids": ["p-d4e"]})
     The full `person_build`, `person_review` and `person_update` parameter contract.
   </Card>
   <Card title="People and panels" href="/concepts/people" icon="users">
-    What a person is and how a draft becomes people.
+    What a person is and how a hand-in becomes people.
   </Card>
   <Card title="Sources" href="/concepts/source" icon="file-lines">
     The material a build reads, and what each file gave.

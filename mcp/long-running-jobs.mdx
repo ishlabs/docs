@@ -189,7 +189,7 @@ When you do pass `wait=True`, set `timeout` to a budget that matches the run siz
 
 ## person_build and the blocking default
 
-`person_build` is `LONG_RUNNING` but blocks by default (`wait=True`, `timeout=240.0`, counted from the call's start, uploads included): it uploads any sources, hands them in, and polls until the hand-in is done, needs an answer, or fails. Where the workspace makes drafts it returns the draft; otherwise the people. When the budget runs out it returns what is known with a `next_action` that resumes with `person_build(workspace_id=…, import_id=…)` (`check_after_seconds=20`). Read and act on a draft with `person_review`. See [people](/concepts/people).
+`person_build` is `LONG_RUNNING` but blocks by default (`wait=True`, `timeout=240.0`, counted from the call's start, uploads included): it uploads any sources, hands them in, and polls until the hand-in is read: applied, waiting on a question, waiting for the user's confirm in the app (a real person), or failed. It returns the people, the open questions and what was refused or skipped; nothing waits for an accept. When the budget runs out it returns what is known with a `next_action` that resumes with `person_build(workspace_id=…, import_id=…)` (`check_after_seconds=20`). See what a hand-in changed, answer its questions and correct it afterwards with `person_review`. See [people](/concepts/people).
 
 ## Cancellation
 

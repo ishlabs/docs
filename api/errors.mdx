@@ -230,14 +230,13 @@ These come from the workspace routes for building people and reviewing a person'
 
 409. The user has to do this in the ish app:
 - answering whether a person is real;
-- accepting, answering, editing or leaving out anything on a real person's draft;
-- changing a description, or a real person's values, once the workspace makes drafts;
-- approving context about a real person;
-- releasing a held pattern line;
-- accepting a real person's proposed bio;
+- confirming a real person's material handed in through the CLI, MCP or the in-app assistant (one confirm, for one person or many);
+- editing, leaving out or undoing anything on a real person;
+- using a held pattern line anyway;
+- taking a real person's suggested bio;
 - changing a real person into another kind of person.
 
-The CLI and the MCP server can't do it for them. The response carries `app_url`, the link to the draft or the person in the app: give it to the user.
+A made-up person's hand-in needs none of these: it is applied at once. The CLI and the MCP server can't do these for the user. The response carries `app_url`, the link to the hand-in or the person in the app: give it to the user.
 
 ### version_conflict {#version_conflict}
 
@@ -245,7 +244,7 @@ The CLI and the MCP server can't do it for them. The response carries `app_url`,
 
 ### context_busy {#context_busy}
 
-409. This context is being updated right now; try again in a moment. An episode erase or a draft's discard while one of the person's imports is being read. Retryable: wait, then send the same request again.
+409. This context is being updated right now; try again in a moment. An episode erase or an undo while one of the person's imports is being read. Retryable: wait, then send the same request again.
 
 ### episode_withdrawn {#episode_withdrawn}
 

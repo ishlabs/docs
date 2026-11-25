@@ -16,13 +16,14 @@ Build simulated people from a brief, from material, or both, or add to one perso
 create a person from a description ("a Malmö accountant with a toddler"), several
 from one file (a survey export, a recording with four speakers), or hand a note,
 files or an edit in words ("make her ten years older") to an existing person_id.
-Returns a draft to accept, or the people when the workspace has no drafts yet.
 
-Where the workspace has no drafts yet, words handed to an existing person are stored as
-a note for the user to approve; nothing is edited. Pass who only as the user stated
-it; never infer it. Saying made_up does not stop ish from asking whether the person is
-real when the material reads like one real individual; only the user answers that, in
-the ish app. Building people here uses no credits.
+What is handed in is applied at once: nothing waits for an accept. A made-up person's
+values and Context are on them when the read ends and used from the next run. A real
+person's material handed in here waits for ONE confirm by the user in the ish app:
+give them ``app_url``. A question is asked only where a wrong guess would mix people
+up, and holds back only what depends on it. Pass who only as the user stated it;
+never infer it. Whether a person is real, when ish asks, only the user answers, in
+the app. Building people here uses no credits.
 
 `workspace_id`: UUID or alias (``w-...``). `brief`: who they are, or the change to
 make, in plain words. `person_id`: add to this person instead of creating. `sources`:
@@ -30,21 +31,21 @@ files in order, each one of ``text``, ``path`` (a ``data:`` or ``http(s)://`` UR
 a path on the MCP host), ``inline_base64`` or ``attachment_id``. `source_upload_ids`:
 files already uploaded with ``source_upload``. `count`: how many to create, 1 to 10;
 omit to let ish decide. `who`: ``made_up`` or ``real_person``, only as the user said
-it, only when creating. `use_of_words`: ``own_words`` or ``inspiration``.
-`rights_basis`: required with any file; why the USER may share it (``agreed``,
-``public``, ``work``, ``own``, ``remembered`` for a person); ask, never assume.
-`includes_others`: other people are in it. `import_id`: resume a hand-in (GETs only).
-`accept`: accept, one by one, each made-up person that needs nobody; never a real
-person. `wait`: block until done or a question (``timeout`` seconds, default 240);
-on elapse ``next_action`` resumes. `idempotency_key`: only to retry a failed hand-in.
+it, only when creating. `use_of_words`: ``own_words`` (quote them) or
+``inspiration``. `rights_basis`: required with any file and with own_words; why the
+USER may share it (``agreed``, ``public``, ``work``, ``own``, ``remembered`` for a
+person); ask, never assume. `includes_others`: other people are in it. `import_id`:
+resume a hand-in (reads only). `wait`: block until read (``timeout`` seconds, default
+240); on elapse ``next_action`` resumes. `idempotency_key`: only to retry a failed
+hand-in.
 
-A draft holds nothing on a person until accepted: show it to the user, then
-``person_review``. A real person's draft, and the question whether a person is real,
-are the user's in the ish app: hand them ``app_url``.
+Afterwards ``person_review(import_id)`` shows what changed and answers, edits, leaves
+out or undoes; on a real person those are the user's, in the app.
 
-**Returns** ``PersonBuild``: ``draft``, ``people`` (state, what an accept takes, what
-waits for the user), ``questions``, ``person_ids``, ``app_url``, ``next_step``;
-``episodes`` when no draft was made.
+**Returns** ``PersonBuild``: ``people`` (state, what was applied, what waits),
+``questions``, ``not_used`` (refused or skipped), ``failed_files``, ``person_ids``,
+``waits_for_user_in_app``, ``app_url``, ``next_step``; ``episodes`` on an older
+backend.
 
 ### Parameters
 <ParamField body="workspace_id" type="string" required>
@@ -102,9 +103,6 @@ Default: `false`.
 <ParamField body="import_id" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="accept" type="boolean">
-Default: `false`.
-</ParamField>
 <ParamField body="wait" type="boolean">
 Default: `true`.
 </ParamField>
@@ -119,27 +117,21 @@ Default: `240.0`.
 
 **Tier:** destructive · **Tags:** delete, person
 
-Permanently erase one episode of a person's context, or throw away a draft that
-person_build made (import_id): the draft, and the files added only for it, are
-deleted. **DESTRUCTIVE** and irreversible: an episode's beats, the files no other
-episode cites, and its copies in runs already set up are removed. Confirm with the
-user first. To only stop using an episode, call
-``person_context_review(action="leave_out")`` instead.
+Permanently erase one episode of a person's context. **DESTRUCTIVE** and
+irreversible: its beats, the files no other episode cites, and its copies in runs
+already set up are removed. Confirm with the user first. To only stop using an
+episode, call ``person_context_review(action="leave_out")``; to take back a whole
+hand-in, ``person_review(action="undo")``.
 
-`person_id`: UUID or alias (``p-...``) of the person, with `episode_id`: the
-episode UUID. Or `import_id` alone: the draft to throw away.
+`person_id`: UUID or alias (``p-...``) of the person. `episode_id`: the episode UUID.
 
-**Returns** ``&#123;"deleted": True, "episode_id": &lt;id>}`` or
-``&#123;"deleted": True, "import_id": &lt;id>}``.
+**Returns** ``&#123;"deleted": True, "episode_id": &lt;id>}``.
 
 ### Parameters
-<ParamField body="person_id" type="string">
+<ParamField body="person_id" type="string" required>
 UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 </ParamField>
-<ParamField body="episode_id" type="string">
-&nbsp;
-</ParamField>
-<ParamField body="import_id" type="string">
+<ParamField body="episode_id" type="string" required>
 &nbsp;
 </ParamField>
 
@@ -491,30 +483,28 @@ Default: `"workspace"`.
 
 **Tier:** write · **Tags:** person, write
 
-Read a draft that person_build made, or act on it: list a workspace's open drafts,
-see what a draft would put on each person and what waits, answer its questions,
-accept a made-up person's draft, leave a value out or edit it. Whether a person is
-real, and everything on a real person's draft, is the user's in the ish app; this
-returns the question or the draft with the link. To throw a draft away use
-person_context_delete(import_id=…).
+See what a hand-in changed, and act on it afterwards: list a workspace's hand-ins
+that are running, asking or waiting; read what one hand-in changed on each person,
+what it holds back and what was not used; answer its questions; edit or leave out
+an applied item; undo it; try a failed one again. Nothing is accepted: a hand-in is
+applied when it is read.
 
-`workspace_id` alone: the open drafts. `import_id` alone: one draft, lean (per
-person: the counts, the areas with something to check, the context items, the
-questions); `detail=True` adds every value and what each person did and said, so you
-can show the user the words before anyone accepts. `action` (with `import_id`):
-``accept`` (one person with `person_ref`, else every person you may accept),
-``answer`` (`question_id` and `answer`: one of the question's answers, or the user's
-words where it takes words; codes ``made_up`` / ``real_person``, ``target`` /
-``other`` / ``another`` with `other_person_id`, ``same`` / ``different``,
-``own_words`` / ``inspiration``), ``leave_out`` or ``edit`` (`item_id`, and `value`
-for an edit), ``retry`` (`person_ref` of a failed read). An import that is not a
-draft and waits on a question takes ``answer`` with no `question_id`.
+`workspace_id` alone: the hand-ins that need someone. `import_id` (with
+`workspace_id`, for its questions): what changed, lean (what is held, assumed, kept
+back or edited since); `detail=True` lists every item. `action` (with `import_id`):
+``answer`` (`workspace_id`, `question_id`, `answer`: one of the question's answers,
+or the user's words where it takes words; `other_person_id` with ``another``),
+``edit`` (`item_id`, `value`), ``leave_out`` (`item_id`), ``undo`` (all of it, or
+one `person_ref`; the people are kept), ``retry`` (`workspace_id`; a failed,
+retryable hand-in). A kept-back value (the user typed theirs) is used instead with
+``edit`` and its ``kept_back_theirs``.
 
-Never answer whether a person is real and never act on a real person's draft: those
-come back with ``app_url`` for the user. Show the user a draft before accepting it.
+Never answer a question marked ``app_only`` (whether a person is real), and never
+act on a real person: those come back with the app link for the user. A real person's
+material waits for one confirm only the user gives, in the app.
 
-**Returns** ``DraftView`` (people, questions, areas, ``app_url``, ``next_step``), or
-``DraftList`` for a workspace.
+**Returns** ``ChangesView`` (people with their items, questions, ``not_used``,
+``app_url``, ``next_step``), or ``HandInList`` for a workspace.
 
 ### Parameters
 <ParamField body="workspace_id" type="string">
@@ -523,7 +513,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="import_id" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="action" type="&quot;accept&quot; | &quot;answer&quot; | &quot;leave_out&quot; | &quot;edit&quot; | &quot;retry&quot;">
+<ParamField body="action" type="&quot;answer&quot; | &quot;edit&quot; | &quot;leave_out&quot; | &quot;undo&quot; | &quot;retry&quot;">
 &nbsp;
 </ParamField>
 <ParamField body="person_ref" type="string">

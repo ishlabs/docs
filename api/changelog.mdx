@@ -8,6 +8,13 @@ Every change to the API's wire contract, newest first. Entries are append-only: 
 
 `/api/v1` is in developer preview, so breaking revisions still land on the current version rather than opening a new one. See [versioning](/api/versioning) for the rules that apply, and read this page before each upgrade.
 
+## 2026-11-25 (spec 1.12.0)
+
+Additive. Two new optional fields on an existing request; no existing field changed.
+
+- **`POST /v1/workspaces/{workspace_id}/people/generation-jobs` takes `use_of_words`.** `inspiration` (the default, and what every request without the field gets) keeps the `description` as a source the people's values cite and stores no quote. `own_words` stores the words quoted in it (a customer's line, a forum comment) as the people's own.
+- **`own_words` needs `rights`.** `rights.basis` says why you may share those words (`agreed`, `public`, `work` or `own`), and `rights.includes_others` whether the text holds other people's words or details. A request with `own_words` and no `rights` is refused with `422` before anything is read.
+
 ## 2026-10-08 (spec 1.11.0)
 
 Additive. A new error kind on an existing status code; no field changed.

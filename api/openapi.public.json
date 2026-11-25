@@ -1808,6 +1808,27 @@
             "description": "Also generate a portrait for each person. A separate image model call, so it costs one extra credit per person actually produced.",
             "title": "Generate Avatars",
             "type": "boolean"
+          },
+          "rights": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PublicRights"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why you may share the words you hand in. Required when `use_of_words` is `own_words`; a request without it is refused with 422 before anything is read."
+          },
+          "use_of_words": {
+            "default": "inspiration",
+            "description": "Whether words quoted in `description` (a customer's line, a forum comment) may be stored as the people's own words. `inspiration` (the default) keeps the description as a source the people's values cite and stores no quote. `own_words` stores the quotes and needs `rights`.",
+            "enum": [
+              "own_words",
+              "inspiration"
+            ],
+            "title": "Use Of Words",
+            "type": "string"
           }
         },
         "required": [
@@ -2698,6 +2719,34 @@
           }
         },
         "title": "PublicPersonUpdateRequest",
+        "type": "object"
+      },
+      "PublicRights": {
+        "additionalProperties": false,
+        "description": "Why the caller may share the material they hand in: their accountability record,\nnot the person's consent.",
+        "properties": {
+          "basis": {
+            "description": "`agreed`: the people agreed; `public`: it is published; `work`: it is your organisation's own material; `own`: you wrote it.",
+            "enum": [
+              "agreed",
+              "public",
+              "work",
+              "own"
+            ],
+            "title": "Basis",
+            "type": "string"
+          },
+          "includes_others": {
+            "default": false,
+            "description": "The material also holds other people's words or details.",
+            "title": "Includes Others",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "basis"
+        ],
+        "title": "PublicRights",
         "type": "object"
       },
       "RateLimitBudget": {
