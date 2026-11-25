@@ -12,7 +12,7 @@ A build makes simulated people; it does not turn the output into a real human. A
 
 - An active workspace. The CLI reads it from your [active context](/concepts/active-context); MCP takes a `workspace_id`. Built people land in that workspace.
 - A brief, material, or both.
-- With material: why you may share it (the people agreed, it is public, it comes from your work with them, or you made it). Ask the person whose material it is; an agent never chooses one.
+- A rights statement, whenever you hand in a file or add anything to an existing person (whatever the words setting), and whenever you use someone's own words (`own_words`): why you may share it (the people agreed, it is public, it comes from your work with them, or it is your own). A typed description for new people, used as inspiration, needs none. An agent asks the user; it never chooses one.
 
 <Note>
 Built people count toward your plan's custom-person cap, which is separate from the per-run credit pool. See [credits and limits](/concepts/credits-and-limits).
@@ -22,7 +22,7 @@ Handing material in is the approval: what ish reads is applied at once, with not
 
 <Steps>
 <Step title="Build">
-Hand in a brief, material, or both. Say who they are only as you know it: `made_up` for someone you invented, `real_person` for a real person. With files, or to use someone's own words (`own_words`), say why you may share them.
+Hand in a brief, material, or both. Say who they are only as you know it: `made_up` for someone you invented, `real_person` for a real person. With files, with anything added to an existing person, or to use someone's own words (`own_words`), say why you may share them.
 
 <CodeGroup>
 ```bash CLI
@@ -122,11 +122,11 @@ A change in words is a build with a person: it is applied, and what changed is l
 
 <CodeGroup>
 ```bash CLI
-ish person build --to p-d4e --brief "Make her ten years older" --wait
+ish person build --to p-d4e --brief "Make her ten years older" --basis own --wait
 ```
 
 ```text MCP
-person_build(workspace_id="w-6ec", person_id="p-d4e", brief="Make her ten years older")
+person_build(workspace_id="w-6ec", person_id="p-d4e", brief="Make her ten years older", rights_basis="own")
 ```
 </CodeGroup>
 </Step>

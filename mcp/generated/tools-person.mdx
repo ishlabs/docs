@@ -32,7 +32,8 @@ a path on the MCP host), ``inline_base64`` or ``attachment_id``. `source_upload_
 files already uploaded with ``source_upload``. `count`: how many to create, 1 to 10;
 omit to let ish decide. `who`: ``made_up`` or ``real_person``, only as the user said
 it, only when creating. `use_of_words`: ``own_words`` (quote them) or
-``inspiration``. `rights_basis`: required with any file and with own_words; why the
+``inspiration``. `rights_basis`: required with any file, with anything added to an
+existing person, and with own_words (a brief for new people needs none); why the
 USER may share it (``agreed``, ``public``, ``work``, ``own``, ``remembered`` for a
 person); ask, never assume. `includes_others`: other people are in it. `import_id`:
 resume a hand-in (reads only). `wait`: block until read (``timeout`` seconds, default
@@ -42,8 +43,8 @@ hand-in.
 Afterwards ``person_review(import_id)`` shows what changed and answers, edits, leaves
 out or undoes; on a real person those are the user's, in the app.
 
-**Returns** ``PersonBuild``: ``people`` (state, what was applied, what waits),
-``questions``, ``not_used`` (refused or skipped), ``failed_files``, ``person_ids``,
+**Returns** ``PersonBuild``: ``people`` (state, applied, held), ``questions``,
+``not_used`` (refused or skipped), ``failed_files``, ``person_ids``,
 ``waits_for_user_in_app``, ``app_url``, ``next_step``; ``episodes`` on an older
 backend.
 
