@@ -182,8 +182,8 @@ Default: `"json"`.
 **Tier:** write · **Tags:** person, write
 
 Approve, edit, leave out or use again one episode of a person's context, at
-the ``version`` you read. A real third party's episode is approved or edited
-only by the user, in the ish app, never here or through the CLI:
+the ``version`` you read. A real third party's episode is approved, edited, left
+out or put back in use only by the user, in the ish app, never here or through the CLI:
 ``[needs_human_approval]`` carries the link to the person's page there.
 
 ``approve``: only after the user has seen exactly that version; all its pending
@@ -207,9 +207,8 @@ An approved episode stays approved.
 
 ``leave_out`` ("Not in use") removes the episode, or one ``beat_id``, from new
 runs and runs already set up, with the pattern lines that depended on it, and
-keeps the record; for a real third party that is the user's step too.
-``use_again`` undoes it; approved context returns to "In use", which for a real
-third party is the user's step. To erase, use
+keeps the record. ``use_again`` undoes it; approved context returns to "In
+use". To erase, use
 ``person_context_delete``.
 
 `person_id`: UUID or alias (``p-...``) of the person.
