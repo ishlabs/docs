@@ -80,10 +80,10 @@ Read what a hand-in changed, then edit a value, leave one item out, or undo the 
 
 <CodeGroup>
 ```bash CLI
-ish person review <import-id> --all
+ish person review <import-id>
 ish person review <import-id> --edit <item-id>=35
 ish person review <import-id> --leave-out <item-id>
-ish person review <import-id> --undo
+ish person review <import-id> --undo --yes
 ```
 
 ```text MCP
@@ -94,7 +94,7 @@ person_review(import_id="…", action="undo")
 ```
 </CodeGroup>
 
-A value you typed yourself is never overwritten by later material: what the material says instead is listed as kept back, and you can use it with an edit.
+A left-out item can be put back (`--restore` / `action="restore"`). A value you typed yourself is never overwritten by later material: what the material says instead is listed as kept back, and one act uses it (`--use-instead` / `action="use_instead"`).
 </Step>
 
 <Step title="Add later">

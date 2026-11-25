@@ -10,33 +10,60 @@ mode: "reference"
 
 import GlobalFlags from "/snippets/global-flags.mdx";
 
-## `ish person context`
+## `ish person build`
 
-Add real interactions to a person, review the episodes, and approve them for runs
+Build people from a brief, files or both, or add to one person; what is read applies at once
 
-Usage: `ish person context`
-
-## `ish person context add`
-
-Add files plus a note; ish reads them into episodes for review
-
-Usage: `ish person context add <person-id> [files]... [options]`
+Usage: `ish person build [files]... [options]`
 
 ### Arguments
-<ParamField path="person-id">(required)</ParamField>
 <ParamField path="files">(optional, variadic)</ParamField>
 
 ### Options
-<ParamField path="--wait" type="boolean">Wait until the episodes are ready, a question needs your answer, or reading fails; never approves</ParamField>
-<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
-<ParamField path="--note <text>" type="string">Your account in your own words, or @path to a UTF-8 file</ParamField>
-<ParamField path="--note-file <path>" type="string">UTF-8 note file, or - for stdin</ParamField>
-<ParamField path="--role <file=role>" type="string">Mark a file shown (the person saw it) or record (the file is the log itself); repeatable Default: [].</ParamField>
-<ParamField path="--request-id <uuid>" type="string">UUID sent as the import's idempotency key. After a failure, check what was created with status &lt;person-id&gt; &lt;import-id&gt; or list; a re-run uploads the files again</ParamField>
-<ParamField path="--dir <folder>" type="string">Add every supported file directly in a folder, one import per file; a re-run adds nothing it added before</ParamField>
-<ParamField path="--basis <why>" type="string">Why you can share this about the person: agreed, public, work, own, or remembered (your last answer); asked at a terminal when omitted</ParamField>
+<ParamField path="--brief <text>" type="string">Who they are, or what to change, in words (or @path)</ParamField>
+<ParamField path="--brief-file <path>" type="string">Read the brief from a file, or - for stdin</ParamField>
+<ParamField path="--to <person-id>" type="string">Add to this person instead of creating</ParamField>
+<ParamField path="--count <n>" type="string">How many people to create (1-10). Omit to let the material decide</ParamField>
+<ParamField path="--who <kind>" type="string">Who they are, as you say it: made_up or real_person. Asked at a terminal when files are given</ParamField>
+<ParamField path="--words <use>" type="string">How other people's words are used: own (needs --basis) or inspiration</ParamField>
+<ParamField path="--basis <why>" type="string">Why you can share the material: agreed, public, work, own, or remembered (with --to)</ParamField>
 <ParamField path="--includes-others" type="boolean">Other people are in the material too</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
+<ParamField path="--source <ps-id>" type="string">A file uploaded earlier with ish source upload (repeatable; creating only) Default: [].</ParamField>
+<ParamField path="--role <file=role>" type="string">Mark a file shown or record (repeatable; with --to) Default: [].</ParamField>
+<ParamField path="--dir <folder>" type="string">Add every supported file in a folder, one hand-in per file (with --to)</ParamField>
+<ParamField path="--request-id <uuid>" type="string">Sent as the hand-in's idempotency key. After a failure, check what was made with ish person review before re-running; a re-run uploads the files again</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the read ends, a question needs your answer, or a confirm waits in the app</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace; falls back to the active workspace</ParamField>
+
+## `ish person review`
+
+Show what a hand-in changed; answer its questions, edit, leave out or undo; with no id, list the hand-ins that need you
+
+Usage: `ish person review [import-id] [options]`
+
+### Arguments
+<ParamField path="import-id">(optional)</ParamField>
+
+### Options
+<ParamField path="--answer <question-id=answer>" type="string">Answer an open question (repeatable) Default: [].</ParamField>
+<ParamField path="--answer-person <person-id>" type="string">The person a who or speaker answer names (sent with the answer)</ParamField>
+<ParamField path="--edit <item-id=value>" type="string">Change an applied value to this exact value (repeatable) Default: [].</ParamField>
+<ParamField path="--leave-out <item-id>" type="string">Stop using an applied item (repeatable) Default: [].</ParamField>
+<ParamField path="--restore <item-id>" type="string">Use a left-out item again (repeatable) Default: [].</ParamField>
+<ParamField path="--use-instead <item-id>" type="string">Use the material's value instead of the one you typed (a kept-back item; repeatable) Default: [].</ParamField>
+<ParamField path="--undo [person-ref]" type="string">Take this hand-in back, or one person's part of it</ParamField>
+<ParamField path="--retry" type="boolean">Read a failed hand-in again; nothing applied is duplicated</ParamField>
+<ParamField path="--yes" type="boolean">Skip the confirmation for --undo</ParamField>
+<ParamField path="--wait" type="boolean">Wait until the read ends, a question needs your answer, or a confirm waits in the app</ParamField>
+<ParamField path="--timeout <seconds>" type="string">Maximum wait, 0 &lt; seconds &lt;= 3600 (default 600) Default: "600".</ParamField>
+<ParamField path="--workspace <id>" type="string">Workspace; falls back to the active workspace</ParamField>
+
+## `ish person context`
+
+Review a person's episodes from real interactions and approve them for runs
+
+Usage: `ish person context`
 
 ## `ish person context status`
 
@@ -106,7 +133,7 @@ Usage: `ish person context approve <person-id> <episode-id> [options]`
 <ParamField path="episode-id">(required)</ParamField>
 
 ### Options
-<ParamField path="--expected-version <n>" type="string">The version you read with show (required unless you confirm at a terminal)</ParamField>
+<ParamField path="--expected-version <n>" type="string">The version you read with show (required)</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person context leave-out`
@@ -253,26 +280,6 @@ Usage: `ish person create [options]`
 <ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
 
-## `ish person generate`
-
-Generate people plus evidence-grounded scenarios from a brief and/or sources
-
-Usage: `ish person generate [options]`
-
-### Options
-<ParamField path="--description <text>" type="string">Description / researcher brief (use @path to read from file)</ParamField>
-<ParamField path="--description-file <path>" type="string">Read description from a file</ParamField>
-<ParamField path="--source <id-or-path>" type="string">Source UUID or local file path; auto-uploads paths (repeatable) Default: [].</ParamField>
-<ParamField path="--source-description <text>" type="string">Per-source researcher note - how the person reacted to THAT file. Paired with --source by index (repeatable). Only applies to local-path sources; for already-uploaded aliases the note is whatever was set at upload time. Default: [].</ParamField>
-<ParamField path="--diarize" type="boolean">Apply speaker diarization to audio sources (silently ignored for text/image)</ParamField>
-<ParamField path="--count <n>" type="string">Number of people to generate (1-10). Omit to let the model propose a count</ParamField>
-<ParamField path="--propose-count" type="boolean">Print the LLM's suggested count for a single processed source and exit (no generation)</ParamField>
-<ParamField path="--workspace <id>" type="string">Workspace (product) ID; falls back to active workspace</ParamField>
-<ParamField path="--no-scenarios" type="boolean">Skip fetching the evidence-grounded scenarios for each generated person</ParamField>
-<ParamField path="--no-wait" type="boolean">Don't poll source-processing status. Only relevant when --source is a local path (paths get auto-uploaded and processed).</ParamField>
-<ParamField path="--source-timeout <seconds>" type="string">Source-processing poll timeout in seconds. Only relevant when --source is a local path. Default: "300".</ParamField>
-<ParamField path="--timeout <seconds>" type="string">Generation-job poll timeout in seconds (default 180; pass a larger value for long-running jobs). The job keeps running server-side past this; re-poll later or re-run with a longer --timeout - don't re-enqueue, that would duplicate the work. Default: "180".</ParamField>
-
 ## `ish person get`
 
 Get person details (accepts multiple IDs for batched lookup)
@@ -283,6 +290,10 @@ Usage: `ish person get <ids>... [options]`
 <ParamField path="ids">Person ID(s) - one or more aliases/UUIDs (space- or comma-separated) (required, variadic)</ParamField>
 
 ### Options
+<ParamField path="--profile" type="boolean">Add the Profile by area, each value with where it came from</ParamField>
+<ParamField path="--context" type="boolean">Add the summary of their episodes</ParamField>
+<ParamField path="--sources" type="boolean">Add their sources and what each gave</ParamField>
+<ParamField path="--readout" type="boolean">Add the pattern lines read from their context</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person update`
@@ -308,7 +319,7 @@ Usage: `ish person update <id> [options]`
 <ParamField path="--income-level <value>" type="string">Self-identified relative socioeconomic position. One of: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say</ParamField>
 <ParamField path="--employment-status <value>" type="string">Primary daytime activity / labor-force status. One of: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other</ParamField>
 <ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
-<ParamField path="--subject-kind <kind>" type="string">Who this person is: fictional, self, or real_third_party (a real person other than you; their context is approved by a human only, and they stay private). Moving off real_third_party asks y/N at a terminal</ParamField>
+<ParamField path="--subject-kind <kind>" type="string">Who this person is: fictional, self, or real_third_party (a real person other than you; their context is approved only in the ish app, and they stay private). A real third party is changed in the ish app: the CLI prints the link</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person delete`
