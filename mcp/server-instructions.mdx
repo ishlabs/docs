@@ -86,9 +86,7 @@ The block sketches the common paths as tool sequences, not as steps to copy
 verbatim. Discover and run a study; generate an audience; compare variants with
 an ask; [benchmark](/concepts/benchmarking) a study against competitor references;
 edit and clean up; cancel runs; run a chat-modality study. Each sketch names the
-tools in order and the decision points between them (for example, the optional
-`dispatch=False` review checkpoint that stages a panel before any credits are
-drawn).
+tools in order and the decision points between them.
 
 The point of these sketches is sequencing. They tell the agent that
 `study_add_iteration` carries the URL or media, not `study_create`; that
@@ -144,8 +142,8 @@ the validation behavior.
 ### Where to read more
 
 The block does not try to be the whole manual. It points the agent at the deeper
-docs, which ship as [MCP resources](/mcp/generated/resources): read `ish://docs`
-for the index, then `ish://docs/<slug>` for any page. It also points at the
+docs, which the [`docs_get`](/mcp/generated/tools-docs) tool serves: `docs_get()`
+for the index, then `docs_get("<slug>")` for any page. It also points at the
 [session and reference resources](/mcp/generated/resources) (`ish://identity/me`
 to confirm whose workspaces the agent is acting on, the per-modality content
 types, workspace secrets) and the binary study media resources (screenshots,

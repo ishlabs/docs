@@ -186,11 +186,9 @@ the ``version`` you read. A real third party's episode is approved, edited, left
 out or put back in use only by the user, in the ish app, never here or through the CLI:
 ``[needs_human_approval]`` carries the link to the person's page there.
 
-``approve``: only after the user has seen exactly that version; all its pending
-beats then go into new runs in this person's workspace ("In use").
-A profile-field fact changes the profile only when someone chooses Update
-profile in the ish app; approving here leaves the profile as it is. A
-conflicting fact replaces the known one once approved, unless it is left out.
+``approve`` (an older backend's pending episode only): after the user has seen
+exactly that version, its beats go into new runs ("In use"). A profile-field
+fact changes the profile only when someone chooses Update profile in the app.
 
 ``edit``: correct ish's wording with the user: the ``summary``, each beat's
 ``what_was_going_on`` ("" clears it) or ``what_they_did``, or remove a quote
@@ -546,7 +544,7 @@ Default: `false`.
 Set exact values on one existing person: name, date of birth, gender, country,
 city, occupation and the five background fields. It never sets a description: for
 that, or for a change described in words ("make her less patient"), use
-person_build(person_id=…, brief=…), which ends in a review.
+person_build(person_id=…, brief=…), which applies at once.
 
 `person_id`: UUID or alias (``p-...``). `name`, `date_of_birth` (YYYY-MM-DD),
 `gender`, `country` (ISO-3166-alpha-2), `city`, `occupation`; `education_level`,

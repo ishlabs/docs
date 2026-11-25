@@ -41,7 +41,7 @@ The CLI reads as `ish <noun> <verb>`. The MCP exposes the same operations as `<n
 | Read current session, user, and workspaces | `ish status` / `ish whoami` | read resource [`ish://identity/me`](/mcp/generated/resources) |
 | List or read workspaces | `ish workspace list` / `ish workspace get` | [`workspace_get`](/mcp/generated/tools-workspace) (no args = list, `workspace_id` = one) |
 | Create, update, delete a workspace | `ish workspace create` / `update` / `delete` | [`workspace_create`](/mcp/generated/tools-workspace) / `workspace_update` / `workspace_delete` |
-| List or generate people | `ish person list` / `ish person generate` | [`person_get`](/mcp/generated/tools-person) / [`person_build`](/mcp/generated/tools-person) |
+| List or build people | `ish person list` / `ish person build` | [`person_get`](/mcp/generated/tools-person) / [`person_build`](/mcp/generated/tools-person) |
 | Upload a source file | `ish source upload` | [`source_upload`](/mcp/generated/tools-person) |
 | List, browse, or read a study | `ish study list` / `ish study get` | [`study_get`](/mcp/generated/tools-study) (`workspace_id` = browse, `study_id` = one) |
 | Create a study | `ish study create` | [`study_create`](/mcp/generated/tools-study) |
