@@ -33,8 +33,8 @@ Usage: `ish ask run [id] [options]`
 <ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;]</ParamField>
 <ParamField path="--language <code>" type="string">2-letter language code (with --new only) Default: "en".</ParamField>
 <ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
-<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses a larger N before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
-<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (with --new only) (at most 20: the CLI refuses more matches before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses more before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (with --new only) (at most 20: the CLI refuses more before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
@@ -77,8 +77,8 @@ Usage: `ish ask create [options]`
 <ParamField path="--questions <json|@file|path>" type="string">Questions as inline JSON, @file, or a JSON file path: [&#123;"question":"...","type":"text"|"slider"|"likert"|"single-choice"|"multiple-choice"|"number"&#125;]</ParamField>
 <ParamField path="--language <code>" type="string">2-letter language code Default: "en".</ParamField>
 <ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
-<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses a larger N before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
-<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (at most 20: the CLI refuses more matches before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses more before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Use every simulatable AI person matching the filters (at most 20: the CLI refuses more before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
@@ -225,8 +225,8 @@ Usage: `ish ask add-people [id] [options]`
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (workspace is inferred from the ask)</ParamField>
 <ParamField path="--round <n|round-id>" type="string">Round to add people to (required) Required.</ParamField>
 <ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
-<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses a larger N before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
-<ParamField path="--all-simulatable" type="boolean">Add every simulatable AI person matching the filters not already included (at most 20: the CLI refuses more matches before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses more before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
+<ParamField path="--all-simulatable" type="boolean">Add every simulatable AI person matching the filters not already included (at most 20: the CLI refuses more before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>

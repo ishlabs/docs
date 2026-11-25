@@ -24,8 +24,8 @@ Usage: `ish study run [id] [options]`
 <ParamField path="--study <id>" type="string">Study ID</ParamField>
 <ParamField path="--iteration <id>" type="string">Iteration to run (defaults to latest on the study)</ParamField>
 <ParamField path="--person <ids>" type="string">Person IDs/aliases (comma-separated or repeatable) Default: [].</ParamField>
-<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (at most 20: the CLI refuses a larger N before creating or running anything, so for a larger cohort run again with other filters)</ParamField>
-<ParamField path="--all" type="boolean">Use every AI person matching the filters (workspace-wide if no filters set) (at most 20: the CLI refuses more matches before creating or running anything, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
+<ParamField path="--sample <N>" type="string">Randomly sample N people from the matching pool (up to the cap the backend states for the study: a larger selection is refused, naming the cap, before anything is created, so for a larger cohort run again with other filters)</ParamField>
+<ParamField path="--all" type="boolean">Use every AI person matching the filters (workspace-wide if no filters set) (up to the cap the backend states for the study: a larger selection is refused, naming the cap, before anything is created, so narrow the filters, or run again with other filters for a larger cohort)</ParamField>
 <ParamField path="--search <text>" type="string">Substring match against person name</ParamField>
 <ParamField path="--bio <text>" type="string">Substring match against person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Substring match against person occupation (repeatable) Default: [].</ParamField>
