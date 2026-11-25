@@ -207,8 +207,9 @@ An approved episode stays approved.
 
 ``leave_out`` ("Not in use") removes the episode, or one ``beat_id``, from new
 runs and runs already set up, with the pattern lines that depended on it, and
-keeps the record. ``use_again`` undoes it; approved context returns to "In
-use", which for a real third party is the user's step. To erase, use
+keeps the record; for a real third party that is the user's step too.
+``use_again`` undoes it; approved context returns to "In use", which for a real
+third party is the user's step. To erase, use
 ``person_context_delete``.
 
 `person_id`: UUID or alias (``p-...``) of the person.
