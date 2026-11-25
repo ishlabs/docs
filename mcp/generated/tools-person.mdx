@@ -489,15 +489,15 @@ what it holds back and what was not used; answer its questions; edit or leave ou
 an applied item; undo it; try a failed one again. Nothing is accepted: a hand-in is
 applied when it is read.
 
-`workspace_id` alone: the hand-ins that need someone. `import_id` (with
-`workspace_id`, for its questions): what changed, lean (what is held, assumed, kept
+`workspace_id` alone: the hand-ins that need someone. `import_id`: what changed
+and its open questions, lean (what is held, assumed, kept
 back or edited since); `detail=True` lists every item. `action` (with `import_id`):
-``answer`` (`workspace_id`, `question_id`, `answer`: one of the question's answers,
+``answer`` (`question_id`, `answer`: one of the question's answers,
 or the user's words where it takes words; `other_person_id` with ``another``),
-``edit`` (`item_id`, `value`), ``leave_out`` (`item_id`), ``undo`` (all of it, or
-one `person_ref`; the people are kept), ``retry`` (`workspace_id`; a failed,
-retryable hand-in). A kept-back value (the user typed theirs) is used instead with
-``edit`` and its ``kept_back_theirs``.
+``edit`` (`item_id`, `value`), ``leave_out`` / ``restore`` (`item_id`),
+``use_instead`` (`item_id` of a value kept back because the user typed theirs),
+``undo`` (all of it, or one `person_ref`; the people are kept), ``retry`` (a
+failed, retryable hand-in).
 
 Never answer a question marked ``app_only`` (whether a person is real), and never
 act on a real person: those come back with the app link for the user. A real person's
@@ -513,7 +513,7 @@ UUID or short alias (e.g. 'w-6ec', 'p-abc', 'pt-072')
 <ParamField body="import_id" type="string">
 &nbsp;
 </ParamField>
-<ParamField body="action" type="&quot;answer&quot; | &quot;edit&quot; | &quot;leave_out&quot; | &quot;undo&quot; | &quot;retry&quot;">
+<ParamField body="action" type="&quot;answer&quot; | &quot;edit&quot; | &quot;leave_out&quot; | &quot;restore&quot; | &quot;use_instead&quot; | &quot;undo&quot; | &quot;retry&quot;">
 &nbsp;
 </ParamField>
 <ParamField body="person_ref" type="string">
