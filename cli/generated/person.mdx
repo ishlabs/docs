@@ -266,7 +266,7 @@ Usage: `ish person create [options]`
 ### Options
 <ParamField path="--file <path>" type="string">JSON file with person data (or '-' for stdin). Escape hatch for fields not covered by inline flags.</ParamField>
 <ParamField path="--name <text>" type="string">Person name (required if --file omitted)</ParamField>
-<ParamField path="--type <value>" type="string">Person type: ai | human (default: ai when --file omitted)</ParamField>
+<ParamField path="--type <value>" type="string">Person type: ai | human (default: ai when --file omitted). A human (a real person) is created only in the ish app: the CLI prints the link and exits 2</ParamField>
 <ParamField path="--bio <text>" type="string">Person bio</ParamField>
 <ParamField path="--occupation <text>" type="string">Occupation</ParamField>
 <ParamField path="--country <code>" type="string">Country code, e.g. US</ParamField>
