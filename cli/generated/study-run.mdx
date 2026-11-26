@@ -33,6 +33,7 @@ Usage: `ish study run [id] [options]`
 <ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--where <rule>" type="string">Filter on any Profile value with a rule tree (inline JSON or @file), as `person list --where`; replaces --occupation, --gender, --country and the ages</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
 <ParamField path="--config <id>" type="string">Simulation config ID (required for media unless every person has one)</ParamField>
 <ParamField path="--max-interactions <n>" type="string">Max interactions per participant (interactive / media only). Precedence: flag &gt; iteration's stored value &gt; CLI default (20).</ParamField>

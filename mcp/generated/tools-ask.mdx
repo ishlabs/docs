@@ -109,6 +109,9 @@ Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that ex
 <ParamField body="max_age" type="integer">
 &nbsp;
 </ParamField>
+<ParamField body="where" type="object">
+A Profile rule tree, as person_get's where.
+</ParamField>
 <ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
 Which pool `sample` / `all_matching` draw from. 'workspace' (default): this workspace's own people; 'platform': the admin-curated public pool (~13k generic people); 'all': every pool - workspace, platform, and other workspaces' community-published people. Ignored when person_ids is set. Default: `"workspace"`.
 </ParamField>
@@ -535,6 +538,9 @@ Canonical role keys (e.g. ``founder``, ``product_leader``, ``engineer``) that ex
 </ParamField>
 <ParamField body="max_age" type="integer">
 &nbsp;
+</ParamField>
+<ParamField body="where" type="object">
+A Profile rule tree, as person_get's where.
 </ParamField>
 <ParamField body="scope" type="&quot;workspace&quot; | &quot;platform&quot; | &quot;all&quot;">
 Which pool `sample` / `all_matching` draw from. 'workspace' (default): this workspace's own people; 'platform': the admin-curated public pool (~13k generic people); 'all': every pool - workspace, platform, and other workspaces' community-published people. Ignored when person_ids is set. Default: `"workspace"`.

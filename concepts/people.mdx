@@ -78,6 +78,14 @@ When you select people for a run, two modes are available and they are mutually 
 - **Explicit people.** Name the people directly by id.
 - **A demographic-filtered sample.** Combine filters (country, gender, age range, occupation, name or bio substring, the extended enums, accessibility needs) and take a sample.
 
+### Filtering on the Profile
+
+Every value of a Person's Profile can be a filter: where and how they live, who they live with, income (a word such as "Middle income", never a number), heritage and languages, devices, how they come across, and the jobs and studies of their life so far. You pass one rule tree (`--where` on the CLI, `where` on the MCP), the same tree the ish app saves as a segment: a leaf tests one Profile key, such as `home.country` or `money.income`, and a group joins conditions with `and`, `or` or `not`.
+
+A job or a study is a record with many values, so its values are filtered inside a **record group**. The group matches a Person with one job (or one study) meeting every condition in it: "a current senior job at a firm of ten or more" is three conditions on the same job, not three facts that could each come from a different one. A job value outside its group is refused before anything runs, and the refusal names the group to write. A range, such as a birth year or a headcount, is written `{"gte": x, "lt": y}`, with `null` for an open end, and matches when the stored range lies inside it. The rule replaces the demographic filters rather than mixing with them. The full key list, with each choice's values, is in `ish docs get-page concepts/people` and `docs_get("concepts/people")`.
+
+### Combining demographic filters
+
 Within one dimension the filter values OR together: `country = SE, NO` matches either. Across dimensions they AND: adding an age range narrows the country match further. Occupation is a loose, case-insensitive substring match, so `manager` also catches hotel and retail managers; enumerate the whole-token variants you mean, or pair occupation with other filters, to recover the specificity you want.
 
 <Warning>
@@ -127,6 +135,13 @@ ish person build --brief "Tech-savvy millennials in the US who use mobile bankin
 # List your workspace people, then the platform pool
 ish person list
 ish person list --visibility platform --country US
+
+# Swedes in a current senior job
+ish person list --where '{"op": "and", "conditions": [
+  {"field": {"source": "profile", "key": "home.country"}, "operator": "eq", "value": "SE"},
+  {"op": "and", "record": "work.jobs", "conditions": [
+    {"field": {"source": "profile", "key": "work.jobs.current"}, "operator": "eq", "value": true},
+    {"field": {"source": "profile", "key": "work.jobs.seniority"}, "operator": "in", "value": ["senior"]}]}]}'
 ```
 
 ```text MCP
@@ -140,8 +155,12 @@ person_build(
 # List the workspace pool filtered by demographic
 person_get(workspace_id="w-6ec", country=["SE"], age_min=35, age_max=50)
 
-# Read one Person
+# Read one Person, then their Profile with each job and study
 person_get(workspace_id="w-6ec", person_id="p-d4e")
+person_get(workspace_id="w-6ec", person_id="p-d4e", include=["profile"])
+
+# Filter on the Profile: the same rule tree as the CLI's --where
+person_get(workspace_id="w-6ec", where={"field": {"source": "profile", "key": "money.income"}, "operator": "in", "value": ["middle", "upper_middle"]})
 ```
 </CodeGroup>
 

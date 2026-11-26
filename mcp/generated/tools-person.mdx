@@ -332,6 +332,13 @@ came from), ``context`` (the episodes), ``sources`` (the files, and what each ga
 `include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
 rows (newest-first) under the Person's ``evidence``; rejected in list mode,
 where per-row evidence would blow the token budget.
+`where`: list mode - filter on any Profile value (home, household, money,
+heritage, devices, jobs, studies) with a rule tree, e.g.
+``&#123;"op": "and", "conditions": [&#123;"field": &#123;"source": "profile", "key":
+"home.country"}, "operator": "eq", "value": "SE"}, &#123;"op": "and", "record":
+"work.jobs", "conditions": [...]}]}``. A job's or study's values go inside a
+``record`` group (one job meeting them all). Replaces the demographic
+filters above; keys, operators and values: ``docs_get("concepts/people")``.
 
 Within a dimension (``country`` / ``gender`` / ``occupation`` / each
 ``*_in`` enum) values OR; across dimensions they AND. See
@@ -479,6 +486,9 @@ Default: `"workspace"`.
 &nbsp;
 </ParamField>
 <ParamField body="include" type="&quot;profile&quot; | &quot;context&quot; | &quot;sources&quot; | &quot;readout&quot;[]">
+&nbsp;
+</ParamField>
+<ParamField body="where" type="object">
 &nbsp;
 </ParamField>
 

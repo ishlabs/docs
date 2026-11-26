@@ -254,6 +254,7 @@ Usage: `ish person list [options]`
 <ParamField path="--min-age <n>" type="string">Minimum age</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your own people - the DEFAULT) | shared (community-published) | platform (the full shared pool, ~13.6k) (legacy 'private'/'public' accepted as aliases)</ParamField>
+<ParamField path="--where <rule>" type="string">Filter on any Profile value with a rule tree (inline JSON or @file); a job's or study's values go in a record group. Replaces --occupation, --gender, --country and the ages. See `ish docs get-page concepts/people`</ParamField>
 <ParamField path="--limit <n>" type="string">Max results (default 50) Default: "50".</ParamField>
 <ParamField path="--offset <n>" type="string">Offset for pagination Default: "0".</ParamField>
 

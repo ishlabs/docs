@@ -42,6 +42,7 @@ Usage: `ish ask run [id] [options]`
 <ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--where <rule>" type="string">Filter on any Profile value with a rule tree (inline JSON or @file), as `person list --where`; replaces --occupation, --gender, --country and the ages</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
 <ParamField path="--subset-round <n>" type="string">Drill-in subset (Pattern B) - append-round only. 1-indexed prior round to filter against. Pair with --subset-variant.</ParamField>
 <ParamField path="--subset-variant <variant_id>" type="string">Drill-in subset (Pattern B) - append-round only. Variant id (UUID) on the prior round whose pickers should inherit. Read from `aggregates.pick_buckets` or `variants[*].id` on the prior round's `ask results --json`.</ParamField>
@@ -86,6 +87,7 @@ Usage: `ish ask create [options]`
 <ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--where <rule>" type="string">Filter on any Profile value with a rule tree (inline JSON or @file), as `person list --where`; replaces --occupation, --gender, --country and the ages</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
 <ParamField path="--no-dispatch" type="boolean">Create the ask in DRAFT status without billing or dispatching the round. Hand the draft id back to the user, then start it with `ish ask dispatch &lt;id&gt;`. People flags are still required because the participants are materialized at create time. Mutually exclusive with --wait (nothing to wait for).</ParamField>
 <ParamField path="--wait" type="boolean">Wait until the first round completes (or errors)</ParamField>
@@ -234,6 +236,7 @@ Usage: `ish ask add-people [id] [options]`
 <ParamField path="--country <list>" type="string">Filter by 2-letter country codes, e.g. US,GB,SE (comma-separated or repeatable, OR semantics) Default: [].</ParamField>
 <ParamField path="--min-age <n>" type="string">Minimum age (inclusive)</ParamField>
 <ParamField path="--max-age <n>" type="string">Maximum age (inclusive)</ParamField>
+<ParamField path="--where <rule>" type="string">Filter on any Profile value with a rule tree (inline JSON or @file), as `person list --where`; replaces --occupation, --gender, --country and the ages</ParamField>
 <ParamField path="--visibility <v>" type="string">Filter by visibility: workspace (your workspace), shared (community-published), platform (admin-curated). Old values `private` / `public` are accepted and mapped to `workspace` / `platform`.</ParamField>
 <ParamField path="--backfill" type="boolean">Backfill prior rounds in order for new people</ParamField>
 
