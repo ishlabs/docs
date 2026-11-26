@@ -326,9 +326,9 @@ values are in ``docs_get("concepts/person")``.
 ``accessibility_profile`` JSONB.
 `include_bio`, `include_accessibility_profile`: default ``False`` (each is
 large per row; fetch a single Person for the full payload).
-`include`: single mode only - ``profile`` (each area's lines with their keys and
-origins; jobs and studies as records), ``stored`` (codes and ranges a ``where``
-compares), ``context`` (episodes), ``sources`` (files and what each gave),
+`include`: single mode only - ``profile`` (rows per area with keys and
+origins; jobs, studies as records), ``stored`` (codes and ranges ``where``
+compares), ``context`` (episodes), ``sources`` (files, what each gave),
 ``readout`` (pattern lines).
 `include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
 rows (newest-first) under the Person's ``evidence``; rejected in list mode,
