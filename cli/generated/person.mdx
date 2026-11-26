@@ -319,7 +319,7 @@ Usage: `ish person update <id> [options]`
 <ParamField path="--income-level <value>" type="string">Self-identified relative socioeconomic position. One of: lower, lower_middle, middle, upper_middle, upper, prefer_not_to_say</ParamField>
 <ParamField path="--employment-status <value>" type="string">Primary daytime activity / labor-force status. One of: employed_full_time, employed_part_time, self_employed, unemployed_seeking, student, homemaker, retired, unable_to_work, other</ParamField>
 <ParamField path="--accessibility-profile <json-or-path>" type="string">AccessibilityProfile v1.0 as an inline JSON string OR a path to a JSON file. Empty object &#123;&#125; is the canonical default. Validated client-side against the spec before submit.</ParamField>
-<ParamField path="--subject-kind <kind>" type="string">Who this person is: fictional, self, or real_third_party (a real person other than you; their context is approved only in the ish app, and they stay private). A real third party is changed in the ish app: the CLI prints the link</ParamField>
+<ParamField path="--subject-kind <kind>" type="string">Who this person is: fictional, self, or real_third_party (a real person other than you; they stay private). A real person's context, yours too, is approved only in the ish app. A real third party is changed in the ish app: the CLI prints the link</ParamField>
 <ParamField path="--workspace <id>" type="string">Workspace ID; accepted for consistency (inferred from alias / active context)</ParamField>
 
 ## `ish person delete`
