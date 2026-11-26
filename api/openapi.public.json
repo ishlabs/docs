@@ -4515,7 +4515,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.11.0"
+    "version": "1.12.0"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -10928,7 +10928,7 @@
                 }
               }
             },
-            "description": "The API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope = 'people:write'`). Mint a key that includes it; an ish user access token is unconstrained by scopes.",
+            "description": "Either the API key lacks the `people:write` scope (`detail.error_kind = 'insufficient_scope'`, with `detail.required_scope`), or the person is out of scope for this lane (`person_out_of_scope`): a person in the shared ish library is editable by no workspace, and a real person's profile is edited only by a person signed in to the ish app (`detail.app_url` links to them there). Nothing is changed.",
             "headers": {
               "X-Request-Id": {
                 "$ref": "#/components/headers/XRequestId"
