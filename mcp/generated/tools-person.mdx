@@ -326,19 +326,18 @@ values are in ``docs_get("concepts/person")``.
 ``accessibility_profile`` JSONB.
 `include_bio`, `include_accessibility_profile`: default ``False`` (each is
 large per row; fetch a single Person for the full payload).
-`include`: single mode only - ``profile`` (the values by area, each with where it
-came from), ``context`` (the episodes), ``sources`` (the files, and what each gave),
-``readout`` (the pattern lines).
+`include`: single mode only - ``profile`` (values by area with their origin;
+jobs and studies as records), ``stored`` (codes and ranges a ``where``
+compares), ``context`` (episodes), ``sources`` (files and what each gave),
+``readout`` (pattern lines).
 `include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
 rows (newest-first) under the Person's ``evidence``; rejected in list mode,
 where per-row evidence would blow the token budget.
-`where`: list mode - filter on any Profile value (home, household, money,
-heritage, devices, jobs, studies) with a rule tree, e.g.
-``&#123;"op": "and", "conditions": [&#123;"field": &#123;"source": "profile", "key":
-"home.country"}, "operator": "eq", "value": "SE"}, &#123;"op": "and", "record":
-"work.jobs", "conditions": [...]}]}``. A job's or study's values go inside a
-``record`` group (one job meeting them all). Replaces the demographic
-filters above; keys, operators and values: ``docs_get("concepts/people")``.
+`where`: list mode - a Profile rule tree (home, household, money, devices, jobs,
+studies), e.g. ``&#123;"field": &#123;"source": "profile", "key": "home.country"},
+"operator": "eq", "value": "SE"}``; a job's values go in a ``&#123;"op": "and",
+"record": "work.jobs", "conditions": [...]}`` group. Replaces the demographic
+filters; keys: ``docs_get("concepts/people")``.
 
 Within a dimension (``country`` / ``gender`` / ``occupation`` / each
 ``*_in`` enum) values OR; across dimensions they AND. See
@@ -485,7 +484,7 @@ Default: `"workspace"`.
 <ParamField body="visibility" type="&quot;workspace&quot; | &quot;shared&quot; | &quot;platform&quot; | &quot;private&quot; | &quot;public&quot;">
 &nbsp;
 </ParamField>
-<ParamField body="include" type="&quot;profile&quot; | &quot;context&quot; | &quot;sources&quot; | &quot;readout&quot;[]">
+<ParamField body="include" type="&quot;profile&quot; | &quot;stored&quot; | &quot;context&quot; | &quot;sources&quot; | &quot;readout&quot;[]">
 &nbsp;
 </ParamField>
 <ParamField body="where" type="object">
