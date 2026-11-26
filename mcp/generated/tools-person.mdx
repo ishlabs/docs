@@ -122,7 +122,8 @@ Permanently erase one episode of a person's context. **DESTRUCTIVE** and
 irreversible: its beats, the files no other episode cites, and its copies in runs
 already set up are removed. Confirm with the user first. To only stop using an
 episode, call ``person_context_review(action="leave_out")``; to take back a whole
-hand-in, ``person_review(action="undo")``.
+hand-in, ``person_review(action="undo")``. A real person's episode is erased only
+by the user, in the ish app: ``[needs_human_approval]`` carries the link.
 
 `person_id`: UUID or alias (``p-...``) of the person. `episode_id`: the episode UUID.
 
@@ -278,7 +279,9 @@ Permanently delete a person. **DESTRUCTIVE**.
 
 Public-pool people cannot be deleted by individual workspaces; the
 backend rejects those with ``[forbidden]`` (or ``[not_found]`` if
-the Person does not exist).
+the Person does not exist). A real person is deleted only by the user, in
+the ish app: the backend refuses it from here, and this returns
+``[needs_human_approval]`` with the person's link. Made-up people delete here.
 
 `person_id`: UUID or short alias (e.g. ``p-d4e``) of the person
 to delete.
