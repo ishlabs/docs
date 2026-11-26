@@ -326,8 +326,8 @@ values are in ``docs_get("concepts/person")``.
 ``accessibility_profile`` JSONB.
 `include_bio`, `include_accessibility_profile`: default ``False`` (each is
 large per row; fetch a single Person for the full payload).
-`include`: single mode only - ``profile`` (values by area with their origin;
-jobs and studies as records), ``stored`` (codes and ranges a ``where``
+`include`: single mode only - ``profile`` (each area's lines with their keys and
+origins; jobs and studies as records), ``stored`` (codes and ranges a ``where``
 compares), ``context`` (episodes), ``sources`` (files and what each gave),
 ``readout`` (pattern lines).
 `include_evidence`: single mode only - attaches persisted ``EvidenceTrace``
