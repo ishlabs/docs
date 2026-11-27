@@ -2410,6 +2410,12 @@
             "title": "Owner",
             "type": "string"
           },
+          "profile": {
+            "additionalProperties": true,
+            "description": "The person's Profile values, nested by area: `basics`, `home`, `household`, `money`, `heritage`, `devices`, `temperament`, `interests`, `work` and `education`. Every key is present, null when unset. A range (a birth year, a count of children, a start date) is `{gte, lt}`, null for an open end. `work.jobs`, `education.studies` and `interests` are always lists, `[]` when there are none; each job or study carries its `id`. A set (`heritage.citizenships`, `devices.owned`) and `heritage.languages` are null when unknown. A choice is its stored value. An open union: new keys appear over time, and the flat fields above stay until they are retired.",
+            "title": "Profile",
+            "type": "object"
+          },
           "type": {
             "const": "ai",
             "default": "ai",
@@ -2440,6 +2446,7 @@
           "id",
           "name",
           "owner",
+          "profile",
           "created_at",
           "updated_at"
         ],
@@ -4564,7 +4571,7 @@
       "name": "Proprietary"
     },
     "title": "ish Developer API",
-    "version": "1.12.0"
+    "version": "1.14.0"
   },
   "openapi": "3.1.0",
   "paths": {

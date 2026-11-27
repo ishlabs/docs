@@ -8,6 +8,248 @@ mode: "reference"
     Source: ishlabs/ish-mcp @ FastMCP registry (hosted compose).
     Regenerate: `uv run python scripts/generate_docs_mcp.py` in ish-mcp. */}
 
+## `ask_my_ish`
+
+**Tier:** write · **Tags:** person, write
+
+Ask the signed-in owner's ish which option the owner would pick: a
+simulated answer from their takes, within this one call.
+
+Use it before you act on something the owner would otherwise have to choose
+(copy, a layout, an image, a document). The answer is the owner's ish, not the
+owner: relay it as simulated. ``basis`` is the weaker of a count (``none``,
+1-2 ``thin``, 3+ ``strong``) and the model's reading of how far those takes
+bear on the question, so many takes can still be ``thin``. On ``strong`` you
+may act on the pick and then tell the owner it was their ish's; on ``thin``
+show the owner the options and ask first. When the question names someone or
+something it has no source for, ``ask_back`` holds a question back and
+there is no pick. ``notes`` says which case it is and what to do.
+
+`question`: ``&#123;text, options: [&#123;key, label}]}``.
+`stimuli`: the options' files (``id`` = the option's key): ``inline_base64``
+    with ``file_name``, a ``data_url`` or an ``attachment_id`` a receipt's
+    ``kept`` gave. HTML, PNG, JPEG, PDF, Markdown or text; the ish sees each
+    as it is. One call's whole request is at most 4 MiB, base64 included:
+    inline is for files of about 100 KB or less.
+`about`: what it is about; takes with the same label are read first.
+`recommended`: the key of the option you recommend, if one: the ish sees
+    the mark, as on the owner's takes, and the ask keeps it.
+`category`: what the question judges (as on ``me_record``): the owner's takes
+    of that category are read first, then those with the same `about`.
+
+**Returns** ``IshAnswer``: ``simulated``, ``answer``
+(``picks``, ``strength``, ``why``), ``basis``, ``rests_on``, ``ask_back``,
+``kept`` (option key to the attachment_id of its stored bytes, to send back
+instead of the bytes), ``notes``.
+
+### Parameters
+<ParamField body="question" type="object" required>
+The shared Question shape, choice with one pick: ``&#123;text, options}``.
+<Expandable title="properties">
+<ParamField body="kind" type="string">
+Default: `"choice"`.
+</ParamField>
+<ParamField body="text" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="options" type="object[]" required>
+&nbsp;
+<Expandable title="item properties">
+One option of the question: the question model's ``&#123;key, label}``.
+<ParamField body="key" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="label" type="string" required>
+&nbsp;
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="max_picks" type="integer">
+Default: `1`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="stimuli" type="object[]">
+&nbsp;
+<Expandable title="item properties">
+What was shown for an option (``id`` = its key) or for the question itself.
+
+Exactly one of: ``inline_base64`` (with ``file_name``), a ``data_url``, an
+``attachment_id`` an earlier receipt's ``kept`` gave (a workspace upload is
+refused), or ``not_sent: true``
+when you cannot send the bytes (the take is kept and says so). A local file
+path is never read: this server cannot see your files.
+<ParamField body="id" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="inline_base64" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="data_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="file_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="mime" type="&quot;text/html&quot; | &quot;image/png&quot; | &quot;image/jpeg&quot; | &quot;application/pdf&quot; | &quot;text/markdown&quot; | &quot;text/plain&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="attachment_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="not_sent" type="boolean">
+Default: `false`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="about" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="recommended" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="category" type="&quot;made/look&quot; | &quot;made/words&quot; | &quot;made/works&quot; | &quot;made&quot; | &quot;evidence&quot; | &quot;direction&quot; | &quot;people&quot; | &quot;rules&quot;">
+&nbsp;
+</ParamField>
+
+## `me_record`
+
+**Tier:** write · **Tags:** person, write
+
+Record one take of the signed-in owner: a question they were asked, its
+options as they saw them, what they picked and their words beside it.
+
+For a client with no session log, when the owner just chose among options
+you showed them. Their words are stored as your report, not as typed by
+them; nothing trains before they confirm it in the ish app.
+
+`question`: ``&#123;text, options: [&#123;key, label}]}``.
+`pick`: the chosen key; ``"other"`` for an answer in their own words
+    (in `words`), ``"none"`` (none of these) or ``"no_preference"``.
+`basis`: why it may be shared (``own``: their own words); ask the owner.
+`words`: their words beside the pick, as said.
+`stimuli`: the bytes shown, ``id`` = an option key (or the thing asked
+    about): ``inline_base64`` + ``file_name``, ``data_url``,
+    ``attachment_id`` or ``not_sent: true``. HTML, PNG, JPEG, PDF,
+    Markdown or text. One call's whole request is at most 4 MiB, base64
+    included (about 3 MB of files): inline is for small files, about
+    100 KB or less. For larger ones, an agent with a shell runs
+    ``ish me record --option-file &lt;path>``; any client can pass the
+    ``attachment_id`` a receipt's ``take.kept`` gave for bytes already
+    kept. A file path is refused.
+`recommended`: the key you recommended. `strength`: 1 to 3 (3 strongest).
+`about`: a label such as ``"takes page"``; ``ask_my_ish`` reads its takes first.
+`agent_note`: your own note, kept as yours.
+`includes_others`: true when someone else's material is in it.
+`idempotency_key`: your id for it; the same key returns the same take.
+`session_ref`, `tool_use_id`: your session and the tool call that asked, if known.
+`category`: what the take judges, by what the options differ in (never the
+    reason): ``made/look``, ``made/words``, ``made/works``, ``made``,
+    ``evidence``, ``direction``, ``people`` or ``rules``. Kept as yours;
+    without one the take is unsorted.
+
+**Returns** ``Receipt``: ``take`` (``moment_id``, ``pick``,
+``capture``, ``kept``: option key to attachment_id), ``replayed``,
+``receipt`` (names any option kept without bytes, and that the words
+are your report).
+
+### Parameters
+<ParamField body="question" type="object" required>
+The shared Question shape, choice with one pick: ``&#123;text, options}``.
+<Expandable title="properties">
+<ParamField body="kind" type="string">
+Default: `"choice"`.
+</ParamField>
+<ParamField body="text" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="options" type="object[]" required>
+&nbsp;
+<Expandable title="item properties">
+One option of the question: the question model's ``&#123;key, label}``.
+<ParamField body="key" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="label" type="string" required>
+&nbsp;
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="max_picks" type="integer">
+Default: `1`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="pick" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="basis" type="&quot;own&quot; | &quot;agreed&quot; | &quot;public&quot; | &quot;work&quot;" required>
+&nbsp;
+</ParamField>
+<ParamField body="words" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="stimuli" type="object[]">
+&nbsp;
+<Expandable title="item properties">
+What was shown for an option (``id`` = its key) or for the question itself.
+
+Exactly one of: ``inline_base64`` (with ``file_name``), a ``data_url``, an
+``attachment_id`` an earlier receipt's ``kept`` gave (a workspace upload is
+refused), or ``not_sent: true``
+when you cannot send the bytes (the take is kept and says so). A local file
+path is never read: this server cannot see your files.
+<ParamField body="id" type="string" required>
+&nbsp;
+</ParamField>
+<ParamField body="inline_base64" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="data_url" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="file_name" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="mime" type="&quot;text/html&quot; | &quot;image/png&quot; | &quot;image/jpeg&quot; | &quot;application/pdf&quot; | &quot;text/markdown&quot; | &quot;text/plain&quot;">
+&nbsp;
+</ParamField>
+<ParamField body="attachment_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="not_sent" type="boolean">
+Default: `false`.
+</ParamField>
+</Expandable>
+</ParamField>
+<ParamField body="recommended" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="strength" type="integer">
+&nbsp;
+</ParamField>
+<ParamField body="about" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="agent_note" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="includes_others" type="boolean">
+Default: `false`.
+</ParamField>
+<ParamField body="idempotency_key" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="session_ref" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="tool_use_id" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="category" type="&quot;made/look&quot; | &quot;made/words&quot; | &quot;made/works&quot; | &quot;made&quot; | &quot;evidence&quot; | &quot;direction&quot; | &quot;people&quot; | &quot;rules&quot;">
+&nbsp;
+</ParamField>
+
 ## `person_build`
 
 **Tier:** long-running · **Tags:** dispatch, person
