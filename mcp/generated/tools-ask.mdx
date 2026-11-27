@@ -402,6 +402,8 @@ participant to pick a favorite, which is what fills ``aggregates.winner``.
 `wants_ratings`: bool, default ``False``; requires >=1 variant. Collects
 per-variant ratings.
 `questions`: free-text follow-ups appended to round 1.
+`language`: ISO 639-1 code every participant answers in, for every round.
+Omitted, they answer in English (``en``), whatever their own languages.
 `wait` / `timeout`: blocking contract,
 ``docs_get("reference/long-running-jobs")``; default 240 s, then the envelope
 carries ``next_action``. ``True`` blocks until round 1 is terminal, summary
@@ -552,6 +554,9 @@ Default: `false`.
 Default: `false`.
 </ParamField>
 <ParamField body="questions" type="string[]">
+&nbsp;
+</ParamField>
+<ParamField body="language" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="wait" type="boolean">
