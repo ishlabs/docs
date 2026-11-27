@@ -1008,8 +1008,7 @@ in ``account_usage().rates``.
 
 `name`: study name.
 `people`: required - a fresh study has no panel. ``&#123;"sample": N}``,
-``&#123;"person_ids": [...]}``, or ``&#123;"generate": &#123;"description": ...,
-"count": N}}``.
+``&#123;"person_ids": [...]}`` or ``&#123;"generate": &#123;...}}``.
 `workspace_id`: UUID or alias (``w-6ec``); exclusive with ``workspace_name``.
 `workspace_name`: case-insensitive; an unmatched name creates it
 (``created_workspace``).
@@ -1024,11 +1023,12 @@ document; needs ``modality``.
 `content_config`: file / text only; as on ``study_add_iteration``.
 `task`: what participants attempt. Required with ``url``, else
 ``[study_has_no_tasks]``; omit for a read-and-react content study.
+`assignment_name`: short name for the task's assignment; below.
 `questions`: interview questions asked after the run.
-`config_id`: simulation-config override (alias ``c-...``). Required for file
-and text studies unless every person has one.
+`config_id`: simulation config (alias ``c-...``); required for file / text
+unless every person has one.
 `max_interactions`: default 20 - per-participant step cap (5 for a smoke
-probe); bounds SPEND, not just duration.
+probe); bounds SPEND.
 `screen_format`: ``url`` only - ``desktop`` (default) | ``mobile_portrait``.
 `analyze`: with ``wait=True``, adds ``study_analyze`` as ``run.analysis``.
 `wait` / `timeout`: ``wait=True`` blocks until terminal; ``timeout`` defaults
@@ -1050,9 +1050,11 @@ A study tests versions of ONE kind of artifact; a different format (a
 LinkedIn message vs an email) is a separate study. The first version is
 named after the study; the app labels it A.
 
-``task`` becomes the study's one assignment; ``questions`` the
-interview. ``people`` behaves as on ``study_run`` (default scope: this
-workspace's people) - its four mutually-exclusive modes are in
+``task`` becomes the instructions of the study's one assignment, named
+``assignment_name`` when given; without it the name is the task itself, or
+its first sentence past 255 chars. ``questions`` become the interview.
+``people`` behaves as on ``study_run`` (default scope: this workspace's
+people) - its four mutually-exclusive modes are in
 ``docs_get("concepts/people-selector")``. On ``workspace_name`` an exact match wins over a
 substring one; an ambiguous name is a ``[validation_error]`` naming the
 candidates. ``person_get(limit=1).total`` counts a pool. ``screen_format`` is ignored for
@@ -1202,6 +1204,9 @@ Teaser card first; stop if they would not open it. Card: ``feed_preview``, else 
 </Expandable>
 </ParamField>
 <ParamField body="task" type="string">
+&nbsp;
+</ParamField>
+<ParamField body="assignment_name" type="string">
 &nbsp;
 </ParamField>
 <ParamField body="questions" type="string[]">
