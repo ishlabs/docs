@@ -23,10 +23,10 @@ Every modality: `study_id` (UUID or alias, e.g. ``s-b2c``), `name` (what this
 version changes), `modality`, optional `description` (free text about this
 version).
 
-- ``interactive``: `url`, `platform` (browser / android / figma / code),
-  `screen_format` (mobile_portrait / desktop). Optional `locale`,
-  `flow_name`. ``platform="figma"`` also needs `file_key` +
-  `start_node_id`. The ``url`` must load without your session (below).
+- ``interactive``: `url`; optional `platform` (default browser; android /
+  figma / code), `screen_format` (default desktop; mobile_portrait),
+  `locale`, `flow_name`. Figma needs `file_key` + `start_node_id`. The
+  ``url`` must load without your session (below).
 - ``video`` / ``audio`` / ``document``: `content_url` (local path or hosted
   URL). Optional `segmentation`, `content_config`, `copy_content`
   (video/audio), `title`, `mime_type`, `feed_preview` (not audio).
